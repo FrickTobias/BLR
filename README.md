@@ -4,6 +4,8 @@ Description
   - softwares
   - custom-written parsing scripts
 
+TL;DR: Look at overview.
+
 ## Prerequisites
 
 ```
