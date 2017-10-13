@@ -8,9 +8,18 @@ TL;DR: Look at overview.
 
 ## Prerequisites
 
+To install the required software for this pipeline, write the following in your terminal.
 ```
-Software list + links
+sudo apt-get install prerequisites.txt
 ```
+This will install (fragScaff, cdhit_prep and tag_bam.py scripts do not require installation and can be run by writing perl/python before the
+softwares name)
+  - cd-hit-45
+  - cutadapt
+  - UMItools
+  - bowtie2
+  
+Furthermore you will also need a Bowtie2 reference genome, which can be downloaded from NCBI (link below for GR38)
 ```
 Bowtie2 reference (e.g. GR38)
 ```
