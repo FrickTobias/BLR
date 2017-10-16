@@ -62,6 +62,8 @@ fragscaff
 ```
 
 ## Overview
+See project wiki, link below.
+```
+https://github.com/FrickTobias/WGH_Analysis/wiki/Flowchart
+```
 
-Flowchart
-(toned box r1/r2.fq => small .filetype => boxed software funtions => ...)
