@@ -27,15 +27,16 @@ def main():
     # Generate read:cluster dictionary from concatenated .clstr file (stores in Summary instance)
     with open(args.input_clstr, 'r') as openInfile:
         readAndProcessClusters(openInfile)
-        summaryInstance.fetchIndexingLength()
 
     # Tag bam file and write to output file
     infile = pysam.AlignmentFile(args.input_mapped_bam, 'rb')
     out = pysam.AlignmentFile(args.output_tagged_bam, 'wb', template=infile)
     for read in infile.fetch(until_eof=True):
         read_bc = read.query_name.split('_')[-1]
-        bc_id = summaryInstance.read_to_barcode_dict[read_bc[-summaryInstance.barcodeLength:]]
-        read.set_tag('bc', str(bc_id), value_type='Z') # Stores as string, makes duplicate removal possible. Can do it as integer as well.
+        try: bc_id = summaryInstance.read_to_barcode_dict[read_bc]
+        except KeyError:
+            Summary.writeLog('KeyError: ' + str(read_bc))
+        read.set_tag('RG', str(bc_id), value_type='Z') # Stores as string, makes duplicate removal possible. Can do it as integer as well.
         out.write(read)
     infile.close()
     out.close()
@@ -155,6 +156,10 @@ class Summary(object):
         self.read_to_barcode_dict = dict()
         self.CurrentClusterId = 0
         self.barcodeLength = int()
+        log = args.output_tagged_bam.split('.')[:-1]
+        self.log = '.'.join(log) + '.log'
+        with open(self.log, 'w') as openout:
+            pass
 
     def updateReadToClusterDict(self, input_dict):
         """ Merges cluster specific dictionaries to a master dictionary."""
@@ -163,12 +168,11 @@ class Summary(object):
         for barcode in input_dict.keys():
             self.read_to_barcode_dict[barcode] = self.CurrentClusterId
 
-    def fetchIndexingLength(self):
-        """ Calculates length of sequences in dict in order to correct for indexing bases when translating barcode
-            sequences to cluster ID:s."""
+    def writeLog(self, line):
 
-        for bc_sequence in self.read_to_barcode_dict.keys():
-            self.barcodeLength = len(bc_sequence)
-            break
+        import time
+        with open(self.log, 'a') as openout:
+            openout.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\n')
+            openout.write(line + '\n')
 
 if __name__=="__main__": main()

@@ -200,10 +200,10 @@ def reduceComplexity(summaryInstance):
     #
     # Classify reads into indexes
     #
-    for barcode, accession in summaryInstance.barcode_dict.items():
-        try: index_dict[barcode[:reduction]][barcode[reduction:]] = accession
+    for barcode, count in summaryInstance.barcode_dict.items():
+        try: index_dict[barcode[:reduction]][barcode] = count
         except KeyError:
-            summaryInstance.notATGCindex.append(barcode[reduction:])
+            summaryInstance.notATGCindex.append(barcode)
     #
     # Create output directory
     #
