@@ -64,6 +64,6 @@ fragscaff
 ## Overview
 See project wiki, link below.
 ```
-https://github.com/FrickTobias/WGH_Analysis/wiki/Flowchart
+[WGH Analysis flowchart](https://github.com/FrickTobias/WGH_Analysis/wiki/Flowchart)
 ```
 
