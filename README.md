@@ -64,6 +64,14 @@ fragscaff
 ## Overview
 See project wiki, link below.
 
-[WGH Analysis flowchart](https://github.com/FrickTobias/WGH_Analysis/blob/master/figures/flowchart.png)
-
 ![](https://github.com/FrickTobias/WGH_Analysis/blob/master/figures/flowchart.png)
+
+Figure 1: Overview. a) Reads are trimmed for sequence NNNNNNNNN, the first handle followed by the following 20 bases 
+extracted to the header using UMItools extract. Then the second handle is trimmed as the first (but looking for the 
+sequence NNNNNNNN). b1) cdhit_prep.py takes the r1_insert.fq, and writes the barcodes to individual files according 
+to their indexing bases. b2) CD-HIT-454 is used to cluster all .fa files in the output directory from cdhit_prep.py. 
+b3) All .clstr files are concatenated to a NN.clstr file. c) r1 and r2 insert files are mapped using bowtie2. d) 
+Mapping files are tagged with cluster number according to NN.clstr file using tag_bam.py in their ‘RG’ tag. e) 
+picardtools are used to remove duplicates (taking RG into account.). f) fragScaff is run twice, once to calculate 
+N90 of input scaffolds and one more time to create final scaffolds.
+
