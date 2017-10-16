@@ -62,7 +62,6 @@ fragscaff
 ```
 
 ## Overview
-See project wiki, link below.
 
 ![](https://github.com/FrickTobias/WGH_Analysis/blob/master/figures/flowchart.png)
 
