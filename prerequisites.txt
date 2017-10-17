@@ -1,5 +1,0 @@
-cd-hit
-cutadapt
-UMItools
-picardtools
-fragScaff

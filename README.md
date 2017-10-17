@@ -9,7 +9,7 @@ TL;DR: Look at flowchart at the bottom of the page to see pipeline.
 
 To run the pipeline, the following software need to be installed:
 
-  - cd-hit-45
+  - cd-hit-454
   - cutadapt
   - UMItools
   - bowtie2
