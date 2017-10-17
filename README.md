@@ -11,7 +11,7 @@ To install the required software for this pipeline, write the following in your 
 ```
 sudo apt-get install prerequisites.txt
 ```
-This will install UMItools and bowtie2 (fragScaff, cdhit_prep and tag_bam.py do not require installation and can be 
+This will install UMItools, cutadapt, CD-HIT-454 and bowtie2 (fragScaff, cdhit_prep and tag_bam.py do not require installation and can be 
 run by writing perl/python before the softwares name). 
 
   - cd-hit-45
@@ -30,7 +30,7 @@ The whole pipeline can be run be using the automation script instead of running 
 WGH_Analysis. First however, the script need to know some paths (to picard tools, bowtie2 reference and fragScaff)
 which can be set using setpath.sh. NB: the bowtie2 path should be set to something like
 ```
-~/references/Bowtie2/genome
+~/references/Bowtie2Index/genome
 ```
 where the Bowtie2 folder contains multiple genome files.
 

@@ -1,2 +1,5 @@
-# exaplanatory figure folder for linking in wiki
+# exaplanatory figure folder for linking in README.md.
 pictures/
+
+# Personal script for fetching paths to softwares and folders.
+paths.sh
