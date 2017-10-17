@@ -17,7 +17,7 @@ To run the pipeline, the following software need to be installed:
 This can be done by writing the following command in your terminal.
 
 ```
-sudo apt-get install prerequisites.txt
+sudo bash prerequisites.sh
 ```
 
 It will also be required to have downloaded the programs below. 
