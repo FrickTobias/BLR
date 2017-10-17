@@ -28,14 +28,10 @@ Furthermore you will also need a Bowtie2 reference genome (e.g. GR38), which can
 ### Automated analysis
 The whole pipeline can be run be using the automation script instead of running all commands individually using 
 WGH_Analysis. First however, the script need to know some paths (to picard tools, bowtie2 reference and fragScaff)
-which can be set using setpath.sh. NB: the bowtie2 path should be set to something like
-```
-~/references/Bowtie2Index/genome
-```
-where the Bowtie2 folder contains multiple genome files.
+which can be set using setpath.sh.
 
 ```
-bash setpath.sh <picard_path> <bowtie2_reference> <>
+bash setpath.sh <picard_path> <bowtie2_reference> <fragScaff_path>
 bash WGH_automation.sh <read_1.fq> <read_2.fq> <output>
 ```
 
