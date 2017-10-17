@@ -12,7 +12,8 @@ To install the required software for this pipeline, write the following in your 
 sudo apt-get install prerequisites.txt
 ```
 This will install fragScaff, cdhit_prep, UMItools and bowtie2 (tag_bam.py scripts do not require installation and can 
-be run by writing perl/python before the softwares name).
+be run by writing perl/python before the softwares name). 
+
   - cd-hit-45
   - cutadapt
   - UMItools
@@ -21,8 +22,6 @@ be run by writing perl/python before the softwares name).
 Furthermore you will also need a Bowtie2 reference genome, which can be downloaded from Illuminas iGenomes.
 
 [Illumina iGenomes](https://support.illumina.com/sequencing/sequencing_software/igenome.html)
-
-[Download directly](ftp://ussd-ftp.illumina.com/Homo_sapiens/NCBI/GRCh38/Homo_sapiens_NCBI_GRCh38.tar.gz)
 
 ## Useage
 
@@ -34,7 +33,7 @@ bash WGH_automation.sh <read_1.fq> <read_2.fq> <output>
 ```
 
 ### Step by step
-Here, every step will be writtes explitely and explained
+Here, every step will be written explicitly and explained
 
 #### Read trimming and barcode identification
 This is comprised of three steps, all working on read 1. First handle 1 is trimmed from the 5' end and reads with 
