@@ -22,7 +22,7 @@ sudo apt-get install prerequisites.txt
 
 It will also be required to have downloaded the programs below. 
 
-  - [fragScaff](https://sourceforge.net/projects/fragscaff/)
+  - [fragScaff](https://sourceforge.net/projects/fragscaff/files/?source=navbar)
   - [Picard Tools](http://broadinstitute.github.io/picard/)
 
 Lastly, a Bowtie2 reference genome (e.g. GR38) is needed, available at Illuminas iGenomes.
@@ -88,7 +88,7 @@ bowtie2 [-OPTIONS] <read_1.fq> <read_2.fq> <reference/Bowtie2/genome> <output>
 #### Scaffolding
 The first step is to tag the bam file with the clustering information by using tag_bam.py. After this, picardtools
 can be used to remove duplicates (whilst taking barcodes into account). By now, fragScaff can be run twice, first
-to estimate N90 of the data and then to perform the final scaffolding
+to estimate N90 of the data and then to perform the final scaffolding.
 
 ```
 python tag_bam.py [-OPTIONS] <mapped_inserts.bam> <barcodes.clstr> <output_file>
