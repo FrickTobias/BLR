@@ -3,3 +3,6 @@ pictures/
 
 # Personal script for fetching paths to softwares and folders.
 paths.sh
+
+# .idea folder
+.idea/
