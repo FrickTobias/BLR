@@ -3,23 +3,29 @@
 This is a pipeline to perform scaffolding on WGH data. It uses numerous bioinformatics tools with some custom make
 parsing tools for formatting in between steps. 
 
-TL;DR: Look at flowchart at the bottom of the page to see which softwares are used for what.
+TL;DR: Look at flowchart at the bottom of the page to see pipeline.
 
 ## Prerequisites
 
-To install the required software for this pipeline, write the following in your terminal.
-```
-sudo apt-get install prerequisites.txt
-```
-This will install UMItools, cutadapt, CD-HIT-454 and bowtie2 (fragScaff, cdhit_prep and tag_bam.py do not require installation and can be 
-run by writing perl/python before the softwares name). 
+To run the pipeline, the following software need to be installed:
 
   - cd-hit-45
   - cutadapt
   - UMItools
   - bowtie2
   
-Furthermore you will also need a Bowtie2 reference genome (e.g. GR38), which can be downloaded from Illuminas iGenomes.
+This can be done by writing the following command in your terminal.
+
+```
+sudo apt-get install prerequisites.txt
+```
+
+It will also be required to have downloaded the programs below. 
+
+  - [fragScaff](https://sourceforge.net/projects/fragscaff/)
+  - [Picard Tools](http://broadinstitute.github.io/picard/)
+
+Lastly, a Bowtie2 reference genome (e.g. GR38) is needed, available at Illuminas iGenomes.
 
 [Illumina iGenomes](https://support.illumina.com/sequencing/sequencing_software/igenome.html)
 
@@ -27,23 +33,26 @@ Furthermore you will also need a Bowtie2 reference genome (e.g. GR38), which can
 
 ### Automated analysis
 The whole pipeline can be run be using the automation script instead of running all commands individually using 
-WGH_Analysis. First however, the script need to know some paths (to picard tools, bowtie2 reference and fragScaff)
-which can be set using setpath.sh.
+WGH_Analysis.sh. First however the script need to know where non-pathed software is located on your computer, (Picard 
+Tools, bowtie2 reference and fragScaff) which can be set using setpath.sh.
 
 ```
 bash setpath.sh <picard_path> <bowtie2_reference> <fragScaff_path>
+```
+Then the analysis can be started with the following command.
+```
 bash WGH_automation.sh <read_1.fq> <read_2.fq> <output>
 ```
 
 ### Step by step
-Here, every step will be written explicitly and explained
+Here, every step will be explained in detail.
 
 #### Read trimming and barcode identification
 This is comprised of three steps, all working on read 1. First handle 1 is trimmed from the 5' end and reads with 
-those handles are kept. Then the next 20 bases are moved from the sequence up to the heade using UMItools extract 
-followed by another trimming of handle 2 as in the first step.
+those handles are kept. Then the next 20 bases are moved from the sequence up to the header using UMItools extract 
+followed by another trimming of handle 2 as in the first step (this only need to be run once to generate paths.sh).
 
-Recommendations for cutoff values are:
+Recommendations for options:
    - stuff
    - in 
    - bash script
