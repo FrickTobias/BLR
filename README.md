@@ -11,15 +11,15 @@ To install the required software for this pipeline, write the following in your 
 ```
 sudo apt-get install prerequisites.txt
 ```
-This will install fragScaff, cdhit_prep, UMItools and bowtie2 (tag_bam.py scripts do not require installation and can 
-be run by writing perl/python before the softwares name). 
+This will install UMItools and bowtie2 (fragScaff, cdhit_prep and tag_bam.py do not require installation and can be 
+run by writing perl/python before the softwares name). 
 
   - cd-hit-45
   - cutadapt
   - UMItools
   - bowtie2
   
-Furthermore you will also need a Bowtie2 reference genome, which can be downloaded from Illuminas iGenomes.
+Furthermore you will also need a Bowtie2 reference genome (e.g. GR38), which can be downloaded from Illuminas iGenomes.
 
 [Illumina iGenomes](https://support.illumina.com/sequencing/sequencing_software/igenome.html)
 
@@ -27,8 +27,15 @@ Furthermore you will also need a Bowtie2 reference genome, which can be download
 
 ### Automated analysis
 The whole pipeline can be run be using the automation script instead of running all commands individually using 
-WGH_automation.sh.
+WGH_Analysis. First however, the script need to know some paths (to picard tools, bowtie2 reference and fragScaff)
+which can be set using setpath.sh. NB: the bowtie2 path should be set to something like
 ```
+~/references/Bowtie2/genome
+```
+where the Bowtie2 folder contains multiple genome files.
+
+```
+bash setpath.sh <picard_path> <bowtie2_reference> <>
 bash WGH_automation.sh <read_1.fq> <read_2.fq> <output>
 ```
 
