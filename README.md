@@ -31,6 +31,12 @@ Lastly, a Bowtie2 reference genome (e.g. GR38) is needed, available at Illuminas
 
 ## Useage
 
+First, download the github repository by writing the cloning command in your terminal.
+
+```
+git clone https://github.com/FrickTobias/WGH_Analysis.git
+```
+
 ### Automated analysis
 The whole pipeline can be run be using the automation script instead of running all commands individually using 
 WGH_Analysis.sh. First however the script need to know where non-pathed software/folders is located on your computer, (Picard 
