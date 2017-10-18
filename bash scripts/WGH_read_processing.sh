@@ -16,7 +16,6 @@ name_ext=$(basename "$file")
 name="${name_ext%.*}"
 file_name="$path/${name_ext%.*}"
 
-
 file2=$2
 name_ext2=$(basename "$file2")
 name2="${name_ext2%.*}"
