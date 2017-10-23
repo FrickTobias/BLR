@@ -35,7 +35,7 @@ def main():
         read_bc = read.query_name.split('_')[-1]
         try: bc_id = summaryInstance.read_to_barcode_dict[read_bc]
         except KeyError:
-            Summary.writeLog(summaryInstance, ('KeyError: ' + str(read_bc))
+            Summary.writeLog(summaryInstance, ('KeyError: ' + str(read_bc)))
         read.set_tag('RG', str(bc_id), value_type='Z') # Stores as string, makes duplicate removal possible. Can do it as integer as well.
         out.write(read)
     infile.close()
