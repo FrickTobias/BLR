@@ -99,7 +99,7 @@ to estimate N90 of the data and then to perform the final scaffolding.
 ```
 python tag_bam.py [-OPTIONS] <mapped_inserts.bam> <barcodes.clstr> <output_file>
 picardtools rmdup
-fragscaff [-OPTIONS]
+perl fragScaff [-OPTIONS] <mapped_inserts_tagged.bam> <output>
 ```
 
 ## Overview
