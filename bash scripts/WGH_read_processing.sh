@@ -16,6 +16,7 @@ name_ext=$(basename "$file")
 name="${name_ext%.*}"
 file_name="$path/${name_ext%.*}"
 
+
 file2=$2
 name_ext2=$(basename "$file2")
 name2="${name_ext2%.*}"
@@ -25,20 +26,17 @@ file_name2="$path/${name_ext2%.*}"
 
 mkdir -p $path &&
 
+echo $date | mail -s 'wgh processing test: start' tobias.frick@scilifelab.se &&
 printf '#1 START PROCESSING \n' &&
-echo 'Starting' | mail -s 'wgh' tobias.frick@scilifelab.se &&
 
-
-# Trim away E handle on R1 5'.
-cutadapt -g CAGTTGATCATCAGCAGGTAATCTGG \
+# Trim away E handle on R1 5'. Also removes reads shorter than 85 bp.
+cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
     -o $file_name".e_removed.fastq" \
     -p $file_name2".e_removed.fastq" $1 $2 \
-    --discard-untrimmed -e 0.2 &&
+    --discard-untrimmed -e 0.2 -m 65 && # Tosses reads shorter than len(e+bc+handle+TES)
 
-
+echo $date | mail -s 'wgh processing test: e trimmed' tobias.frick@scilifelab.se &&
 printf '\n\n#2 TRIMMED E \n' &&
-echo 'first handle' | mail -s 'wgh' tobias.frick@scilifelab.se &&
-
 
 # Get DBS using UMI-Tools -> _BDHVBDVHBDVHBDVH in header.
 umi_tools extract --stdin=$file_name".e_removed.fastq" \
@@ -48,10 +46,8 @@ umi_tools extract --stdin=$file_name".e_removed.fastq" \
     --read2-out=$file_name2".cut_n_extract.fastq" \
     -L $file_name".cut_n_extract_log.txt" &&
 
-
+echo $date | mail -s 'wgh processing test: bc extracted' tobias.frick@scilifelab.se &&
 printf '\n\n#3 GOT DBS USING UMI-TOOLs \n' &&
-echo 'bc extracted' | mail -s 'wgh' tobias.frick@scilifelab.se &&
-
 
 #Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed.
 cutadapt -g AGATGTGTATAAGAGACAG -o $file_name".TES1_removed.fastq" \
@@ -59,10 +55,8 @@ cutadapt -g AGATGTGTATAAGAGACAG -o $file_name".TES1_removed.fastq" \
     $file_name".cut_n_extract.fastq" \
     $file_name2".cut_n_extract.fastq" --discard-untrimmed -e 0.2 &&
 
-
+echo $date | mail -s 'wgh processing test: TES 5prim trimmed' tobias.frick@scilifelab.se &&
 printf '\n\n#4 TRIMMED TES1 \n' &&
-echo 'Second handle' | mail -s 'wgh' tobias.frick@scilifelab.se &&
-
 
 #Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT
 cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
@@ -71,14 +65,14 @@ cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
 	$file_name".TES1_removed.fastq" \
 	$file_name2".TES1_removed.fastq" -e 0.2 &&
 
+echo $date | mail -s 'wgh processing test: TESprim from 3prim trimmed' tobias.frick@scilifelab.se &&
 printf '\n\n#5 TRIMMED TES2 \n' &&
-echo 'Trimmed 3prim' | mail -s 'wgh' tobias.frick@scilifelab.se &&
 
 bowtie2 --maxins 2000 -x /shared/reference/Bowtie2Index/genome \
     -1 $1 -2 $2 -S $path/"mappedInserts.sam" | samtools view -bh - > $path/"mappedInserts.bam" &&
 
+echo $date | mail -s 'wgh processing test: mapped' tobias.frick@scilifelab.se &&
 printf '\n\n#6 MAPPED READS \n' &&
-echo 'Mapped' | mail -s 'wgh' tobias.frick@scilifelab.se &&
 
 rm $path/"mappedInserts.sam" &&
 
@@ -87,8 +81,7 @@ printf '\n\n#7 REMOVED SAM-FILE \n' &&
 samtools sort $path/"mappedInserts.bam" \
     -o $path/"mappedInserts.sort.bam" &&
 
-echo 'Sorted' | mail -s 'wgh' tobias.frick@scilifelab.se &&
-#samtools index $path/"mappedInserts.sort.bam" &&
+samtools index $path/"mappedInserts.sort.bam" &&
 
 printf '\n\n#8 SORTED AND INDEXED BAM-FILE \n' &&
 
