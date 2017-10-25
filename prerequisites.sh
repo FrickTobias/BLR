@@ -12,4 +12,4 @@ apt-get install bowtie2
 #
 
 pip install cutadapt
-pip install UMItools
+pip install umi_tools
