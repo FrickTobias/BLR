@@ -22,7 +22,7 @@ sudo bash prerequisites.sh
 
 It will also be required to have downloaded the programs below. 
 
-  - [fragScaff](https://sourceforge.net/projects/fragscaff/files/?source=navbar)
+  - [fragScaff](https://sourceforge.net/projects/fragscaff/files/?source=navbar) (download fragScaff.pl)
   - [Picard Tools](https://github.com/broadinstitute/picard)
 
 Lastly, a Bowtie2 reference genome (e.g. GR38) is needed, available at Illuminas iGenomes.
