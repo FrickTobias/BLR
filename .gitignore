@@ -1,5 +1,5 @@
 # exaplanatory figure folder for linking in README.md.
-pictures/
+pictures/*
 
 # Personal script for fetching paths to softwares and folders.
 paths.sh
