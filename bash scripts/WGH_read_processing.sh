@@ -26,7 +26,7 @@ file_name2="$path/${name_ext2%.*}"
 
 mkdir -p $path &&
 
-echo $date | mail -s 'wgh processing test: start' tobias.frick@scilifelab.se &&
+echo 'Starting 1st trim '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se &&
 printf '#1 START PROCESSING \n' &&
 
 # Trim away E handle on R1 5'. Also removes reads shorter than 85 bp.
@@ -35,7 +35,7 @@ cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
     -p $file_name2".e_removed.fastq" $1 $2 \
     --discard-untrimmed -e 0.2 -m 65 && # Tosses reads shorter than len(e+bc+handle+TES)
 
-echo $date | mail -s 'wgh processing test: e trimmed' tobias.frick@scilifelab.se &&
+echo 'Starting umi extraction '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se &&
 printf '\n\n#2 TRIMMED E \n' &&
 
 # Get DBS using UMI-Tools -> _BDHVBDVHBDVHBDVH in header.
@@ -46,7 +46,7 @@ umi_tools extract --stdin=$file_name".e_removed.fastq" \
     --read2-out=$file_name2".cut_n_extract.fastq" \
     -L $file_name".cut_n_extract_log.txt" &&
 
-echo $date | mail -s 'wgh processing test: bc extracted' tobias.frick@scilifelab.se &&
+echo 'Starting 2nd trim '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se &&
 printf '\n\n#3 GOT DBS USING UMI-TOOLs \n' &&
 
 #Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed.
@@ -55,7 +55,7 @@ cutadapt -g AGATGTGTATAAGAGACAG -o $file_name".TES1_removed.fastq" \
     $file_name".cut_n_extract.fastq" \
     $file_name2".cut_n_extract.fastq" --discard-untrimmed -e 0.2 &&
 
-echo $date | mail -s 'wgh processing test: TES 5prim trimmed' tobias.frick@scilifelab.se &&
+echo 'Starting 3rd trim (final) '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se &&
 printf '\n\n#4 TRIMMED TES1 \n' &&
 
 #Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT
@@ -65,13 +65,13 @@ cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
 	$file_name".TES1_removed.fastq" \
 	$file_name2".TES1_removed.fastq" -e 0.2 &&
 
-echo $date | mail -s 'wgh processing test: TESprim from 3prim trimmed' tobias.frick@scilifelab.se &&
+echo 'Starting mapping '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se &&
 printf '\n\n#5 TRIMMED TES2 \n' &&
 
 bowtie2 --maxins 2000 -x /shared/reference/Bowtie2Index/genome \
     -1 $1 -2 $2 -S $path/"mappedInserts.sam" | samtools view -bh - > $path/"mappedInserts.bam" &&
 
-echo $date | mail -s 'wgh processing test: mapped' tobias.frick@scilifelab.se &&
+echo 'Starting bam file sorting '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se &&
 printf '\n\n#6 MAPPED READS \n' &&
 
 rm $path/"mappedInserts.sam" &&
@@ -83,6 +83,7 @@ samtools sort $path/"mappedInserts.bam" \
 
 samtools index $path/"mappedInserts.sort.bam" &&
 
+echo 'Finished '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se &&
 printf '\n\n#8 SORTED AND INDEXED BAM-FILE \n' &&
 
 printf 'RUN COMPLETE (>'-')  (>'-')>  ^('-')^'
