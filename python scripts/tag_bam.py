@@ -32,11 +32,12 @@ def main():
     infile = pysam.AlignmentFile(args.input_mapped_bam, 'rb')
     out = pysam.AlignmentFile(args.output_tagged_bam, 'wb', template=infile)
     for read in infile.fetch(until_eof=True):
-        read_bc = read.query_name.split('_')[-1]
+        read_bc = read.query_name.split()[0].split('_')[-1]
         try: bc_id = summaryInstance.read_to_barcode_dict[read_bc]
         except KeyError:
             Summary.writeLog(summaryInstance, ('KeyError: ' + str(read_bc)))
         read.set_tag('RG', str(bc_id), value_type='Z') # Stores as string, makes duplicate removal possible. Can do it as integer as well.
+        read.query_name = read.query_name + '_@RG' + str(bc_id)
         out.write(read)
     infile.close()
     out.close()
