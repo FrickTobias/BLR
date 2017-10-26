@@ -1,4 +1,0 @@
-
-picard_path=/Users/tobiasfrick/ChIB/picard-tools-1.114/
-bowtie2_reference=/Users/tobiasfrick/references/Bowtie2Index/genome
-fragScaff_path=/Users/tobiasfrick/external/fragScaff.pl
