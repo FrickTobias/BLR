@@ -64,6 +64,13 @@ def main():
             not_atgc_dict[clusterId] = 1
             header_dict['RG'].append({'ID':str(clusterId), 'SM':'1'})
 
+    for clusterId in add_to_RG_headers:
+        try:
+            not_atgc_dict[clusterId] += 1
+        except KeyError:
+            not_atgc_dict[clusterId] = 1
+            header_dict['RG'].append({'ID':str(clusterId), 'SM':'1'})
+
     out = pysam.AlignmentFile(args.output_tagged_bam, 'wb', header=header_dict)
 
     for read in infile.fetch(until_eof=True):
