@@ -31,7 +31,8 @@ def main():
     add_to_RG_headers = list()
     # Tagging bam mapping entries with RG:Z:clusterid
     infile = pysam.AlignmentFile(args.input_mapped_bam, 'rb')
-    out = pysam.AlignmentFile(args.output_tagged_bam, 'wb', template=infile)
+    out = pysam.AlignmentFile(args.output_tagged_bam+'.temp.bam', 'wb', template=infile)
+
     for read in infile.fetch(until_eof=True):
         read_bc = read.query_name.split()[0].split('_')[-1]
 
@@ -43,17 +44,30 @@ def main():
             add_to_RG_headers.append(bc_id) # For RG headers later
 
         # Set tag to bc_id
-        read.set_tag('BC', str(bc_id), value_type='Z') # Stores as string, makes duplicate removal possible. Can do it as integer as well.
-        #read.query_name = read.query_name + '_@RG' + str(bc_id)
+        read.set_tag('RG', str(bc_id), value_type='Z') # Stores as string, makes duplicate removal possible. Can do it as integer as well.
+        read.query_name = (read.query_name + '_@RG:Z:' + str(bc_id))
         out.write(read)
 
-    # @RG headers (Correctly clustered)
-    for clusterId in range(1,len(summaryInstance.read_to_barcode_dict.keys())):
-        out.write('@RG\tID:'+str(clusterId))
+    not_atgc_dict = dict()
 
-    # @RG headers (KeyErrors)
-    for bc_string_RG in add_to_RG_headers:
-        out.write('@RG\tID:' + str(bc_string_RG))
+    infile.close()
+    out.close()
+
+    infile = pysam.AlignmentFile(args.output_tagged_bam+'.temp.bam', 'rb')
+    header_dict = infile.header.copy()
+    header_dict['RG'] = list()
+
+    for clusterId in summaryInstance.read_to_barcode_dict.values():
+        try:
+            not_atgc_dict[clusterId] += 1
+        except KeyError:
+            not_atgc_dict[clusterId] = 1
+            header_dict['RG'].append({'ID':str(clusterId), 'SM':'1'})
+
+    out = pysam.AlignmentFile(args.output_tagged_bam, 'wb', header=header_dict)
+
+    for read in infile.fetch(until_eof=True):
+        out.write(read)
 
     infile.close()
     out.close()
@@ -171,7 +185,6 @@ class Summary(object):
 
     def __init__(self):
         self.read_to_barcode_dict = dict()
-        self.reverse_dict()
         self.CurrentClusterId = 0
         self.barcodeLength = int()
         log = args.output_tagged_bam.split('.')[:-1]
