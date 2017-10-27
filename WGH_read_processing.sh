@@ -111,7 +111,7 @@ rm $path/"mappedInserts.bam"
 
 samtools index $path/"mappedInserts.sort.bam"
 
-#echo 'Finished '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se &&
+echo 'Finished '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se &&
 printf '\n\n#8 SORTED AND INDEXED BAM-FILE \n'
 
 printf 'RUN COMPLETE (>'-')  (>'-')>  ^('-')^'
