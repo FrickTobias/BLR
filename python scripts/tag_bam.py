@@ -36,17 +36,32 @@ def main():
     for read in infile.fetch(until_eof=True):
         read_bc = read.query_name.split()[0].split('_')[-1]
 
-        # Doesn't always work, added try-except.
-        try: bc_id = summaryInstance.read_to_barcode_dict[read_bc]
-        except KeyError:
-            Summary.writeLog(summaryInstance, ('KeyError: ' + str(read_bc)))
-            bc_id = read_bc
-            add_to_RG_headers.append(bc_id) # For RG headers later
+        # Won't write read to out if read=>bc dict gets KeyError (only happens when N is in first three bases.)
+        if args.exclude_N:
+            try: bc_id = summaryInstance.read_to_barcode_dict[read_bc]
+            except KeyError:
+                Summary.writeLog(summaryInstance, ('KeyError, removed: ' + str(read_bc)))
+                continue
 
-        # Set tag to bc_id
-        read.set_tag('RG', str(bc_id), value_type='Z') # Stores as string, makes duplicate removal possible. Can do it as integer as well.
-        read.query_name = (read.query_name + '_@RG:Z:' + str(bc_id))
-        out.write(read)
+            # Set tag to bc_id
+            read.set_tag('RG', str(bc_id), value_type='Z')  # Stores as string, makes duplicate removal possible. Can do it as integer as well.
+            read.query_name = (read.query_name + '_@RG:Z:' + str(bc_id))
+            out.write(read)
+
+        # Includes barcodes with N first three bases (but they won't be clustered, RG=bc_seq)
+        else:
+            try:
+                bc_id = summaryInstance.read_to_barcode_dict[read_bc]
+            except KeyError:
+                Summary.writeLog(summaryInstance, ('KeyError: ' + str(read_bc)))
+                bc_id = read_bc
+                add_to_RG_headers.append(bc_id)  # For RG headers later
+
+            # Set tag to bc_id
+            read.set_tag('RG', str(bc_id),
+                         value_type='Z')  # Stores as string, makes duplicate removal possible. Can do it as integer as well.
+            read.query_name = (read.query_name + '_@RG:Z:' + str(bc_id))
+            out.write(read)
 
     not_atgc_dict = dict()
 
@@ -146,6 +161,8 @@ class readArgs(object):
         parser.add_argument("-p", "--processors", type=int, default=multiprocessing.cpu_count(),
                             help="Thread analysis in p number of processors. Example: python "
                                  "TagGD_prep.py -p 2 insert_r1.fq unique.fa")
+        parser.add_argument("-e", "--exclude_N", type=Bool, default=True, help="If True (default), excludes .bam file "
+                                                                               "reads with barcodes containing N.")
 
         args = parser.parse_args()
 
