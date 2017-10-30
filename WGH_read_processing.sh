@@ -79,6 +79,8 @@ printf '\n\n#4 TRIMMED TES1 \n'
 cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
 	-o $file_name".trimmed.fastq" \
 	-p $file_name2".trimmed.fastq" \
+	-m 25 \
+	-M 70 \
 	$file_name".h1.bc.h2.fastq" \
 	$file_name2".h1.bc.h2.fastq" -e 0.2
 
