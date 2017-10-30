@@ -86,32 +86,32 @@ cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
 rm $file_name".h1.bc.h2.fastq"
 rm $file_name2".h1.bc.h2.fastq"
 
-echo 'Starting mapping '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
-printf '\n\n#5 TRIMMED TES2 \n'
-
-bowtie2 --maxins 2000 -x $bowtie2_reference \
-    -1 $file_name".trimmed.fastq" -2 $file_name2".trimmed.fastq" -S $path/"mappedInserts.sam"
-
-samtools view -bh $path/"mappedInserts.sam" > $path/"mappedInserts.bam"
-
-pigz $file_name".trimmed.fastq"
-pigz $file_name2".trimmed.fastq"
-
-echo 'Starting bam file sorting '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
-printf '\n\n#6 MAPPED READS \n'
-
-rm $path/"mappedInserts.sam"
-
-printf '\n\n#7 REMOVED SAM-FILE \n'
-
-samtools sort $path/"mappedInserts.bam" \
-    -o $path/"mappedInserts.sort.bam"
-
-rm $path/"mappedInserts.bam"
-
-samtools index $path/"mappedInserts.sort.bam"
-
+#echo 'Starting mapping '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
+#printf '\n\n#5 TRIMMED TES2 \n'
+#
+#bowtie2 --maxins 2000 -x $bowtie2_reference \
+#    -1 $file_name".trimmed.fastq" -2 $file_name2".trimmed.fastq" -S $path/"mappedInserts.sam"
+#
+#samtools view -bh $path/"mappedInserts.sam" > $path/"mappedInserts.bam"
+#
+#pigz $file_name".trimmed.fastq"
+#pigz $file_name2".trimmed.fastq"
+#
+#echo 'Starting bam file sorting '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
+#printf '\n\n#6 MAPPED READS \n'
+#
+#rm $path/"mappedInserts.sam"
+#
+#printf '\n\n#7 REMOVED SAM-FILE \n'
+#
+#samtools sort $path/"mappedInserts.bam" \
+#    -o $path/"mappedInserts.sort.bam"
+#
+#rm $path/"mappedInserts.bam"
+#
+#samtools index $path/"mappedInserts.sort.bam"
+#
 echo 'Finished '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
-printf '\n\n#8 SORTED AND INDEXED BAM-FILE \n'
-
-printf 'RUN COMPLETE (>'-')  (>'-')>  ^('-')^'
+#printf '\n\n#8 SORTED AND INDEXED BAM-FILE \n'
+#
+#printf 'RUN COMPLETE (>'-')  (>'-')>  ^('-')^'
