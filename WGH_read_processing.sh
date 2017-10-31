@@ -57,8 +57,8 @@ umi_tools extract --stdin=$file_name".h1.fastq" \
     --read2-out=$file_name2".h1.bc.fastq" \
     -L $file_name".h1.bc.txt"
 
-rm $file_name".h1.fastq"
-rm $file_name2".h1.fastq"
+pigz $file_name".h1.fastq"
+pigz $file_name2".h1.fastq"
 
 echo 'Starting 2nd trim '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
 printf '\n\n#3 GOT DBS USING UMI-TOOLs \n'
@@ -69,8 +69,8 @@ cutadapt -g AGATGTGTATAAGAGACAG -o $file_name".h1.bc.h2.fastq" \
     $file_name".h1.bc.fastq" \
     $file_name2".h1.bc.fastq" --discard-untrimmed -e 0.2
 
-rm $file_name".h1.bc.fastq"
-rm $file_name2".h1.bc.fastq"
+pigz $file_name".h1.bc.fastq"
+pigz $file_name2".h1.bc.fastq"
 
 echo 'Starting 3rd trim (final) '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
 printf '\n\n#4 TRIMMED TES1 \n'
@@ -84,8 +84,8 @@ cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
 	$file_name2".h1.bc.h2.fastq" -e 0.2
 
 
-rm $file_name".h1.bc.h2.fastq"
-rm $file_name2".h1.bc.h2.fastq"
+pigz $file_name".h1.bc.h2.fastq"
+pigz $file_name2".h1.bc.h2.fastq"
 
 #echo 'Starting mapping '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
 #printf '\n\n#5 TRIMMED TES2 \n'
