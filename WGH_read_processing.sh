@@ -92,15 +92,15 @@ wgh_path=$(dirname "$0")
 #   - fragScaff:            $fragScafff_path
 . $wgh_path'/paths.txt'
 
-path=$3
+path=$ARG3
 
-file=$1
+file=$ARG1
 name_ext=$(basename "$file")
 name="${name_ext%.*}"
 file_name="$path/${name_ext%.*}"
 
 
-file2=$2
+file2=$ARG2
 name_ext2=$(basename "$file2")
 name2="${name_ext2%.*}"
 file_name2="$path/${name_ext2%.*}"
@@ -116,7 +116,7 @@ printf '#1 START PROCESSING \n'
 # Trim away E handle on R1 5'. Also removes reads shorter than 85 bp.
 cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
     -o $file_name".h1.fastq" \
-    -p $file_name2".h1.fastq" $1 $2 \
+    -p $file_name2".h1.fastq" $ARG1 $ARG2 \
     --discard-untrimmed -e 0.2 -m 65 # Tosses reads shorter than len(e+bc+handle+TES)
 
 if [ $mailing == True ]
