@@ -24,10 +24,10 @@ while getopts "m:hp:" OPTION; do
 	case ${OPTION} in
 
 	    p)
-	        processors={OPTARG}
+	        processors=${OPTARG}
 		    ;;
         m)
-            email={OPTARG}
+            email=${OPTARG}
             mailing=True
             ;;
 		h)
