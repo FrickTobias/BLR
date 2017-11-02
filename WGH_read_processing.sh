@@ -51,6 +51,10 @@ while getopts "m:hp:" OPTION; do
 	esac
 done
 
+ARG1=${@:$OPTIND:1}
+ARG2=${@:$OPTIND+1:1}
+ARG3=${@:$OPTIND+2:1}
+
 if [ $mailing == True ]
         then
         if [[ $email == *"@"* ]]
@@ -63,6 +67,16 @@ if [ $mailing == True ]
                 echo '(got "'$email'" instead)'
                 exit 0
         fi
+fi
+
+if [ -z "$ARG1" ] || [ -z "$ARG2" ] || [ -z "$ARG3" ]
+        then
+        echo ""
+        echo "ARGUMENT ERROR"
+        echo "Did not find all three positional arguments, see -h for more information."
+        echo "(got r1:"$ARG1", r2:"$ARG2" and output:"$ARG3" instead)"
+        echo ""
+        exit 0
 fi
 
 #
