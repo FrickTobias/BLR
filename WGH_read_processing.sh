@@ -13,6 +13,20 @@
 # Fetching paths to external programs (from paths.txt)
 #
 
+while getopts "uph" OPTION; do
+	case $OPTION in 
+		h)
+			echo 'Useage: bash WGH_read_processing.sh <r1.fq | r1.fq.gz> <r2.fq | r2.fq.gz> <output_directory>'
+			echo ''
+			echo 'This runs the trimming parts of the WGH pipeline. Output is a directory containing four sets of.gz
+			files. The final .fq you want to continue with is the .trimmed.fq files.'
+			echo "args.sh -h "
+			echo "	-h	help (this output)"
+			exit 0
+			;;
+	esac
+done
+
 # PATH to WGH_Analysis folder
 wgh_path=$(dirname "$0")
 

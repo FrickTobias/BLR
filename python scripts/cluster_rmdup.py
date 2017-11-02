@@ -2,24 +2,6 @@
 
 def main():
 
-    #######
-    #
-    #   read dup. file and build list
-    #
-    #   for position in dup_list:
-    #
-    #       while True:
-    #
-    #           possible_cluster_dup = find_close_dup()
-    #           if possible_cluster_dup==True:
-    #               
-    #               fetch_window_from_bam()
-    #               fetch_reads_with_same_bc_in_window()
-    #               merge()
-    #               ??? if len(uncheck_pos) > 0; don't break
-    #               ??? if len(uncheck_pos) i -= 1 (counter on multiplex position stuff)
-    #
-    #######
 
     #
     # Imports & globals
@@ -42,44 +24,57 @@ def main():
     # Data processing & writing output
     #
 
-    # Generate read:cluster dictionary from concatenated .clstr file (stores in Summary instance)
-    with open(args.input_clstr, 'r') as openInfile:
-        readAndProcessClusters(openInfile)
 
-    # Tag bam file and write to output file
-    infile = pysam.AlignmentFile(args.input_mapped_bam, 'rb')
-    out = pysam.AlignmentFile(args.output_tagged_bam, 'wb', template=infile)
+    #######
+    #
+    #   read dup. file and build list
+    #
+    #   for position in dup_list:
+    #
+    #       while True:
+    #
+    #           possible_cluster_dup = find_close_dup()
+    #           if possible_cluster_dup==True:
+    #
+    #               fetch_window_from_bam()
+    #               fetch_reads_with_same_bc_in_window()
+    #               merge()
+    #               ??? if len(uncheck_pos) > 0; don't break
+    #               ??? if len(uncheck_pos) i -= 1 (counter on multiplex position stuff)
+    #
+    #######
+
+    # read duplicate file and build position list which is to be investigated.
+    duplicate_position_dict = dict()
+    infile = pysam.AlignmentFile(args.input_duplicate_bam, 'rb')
     for read in infile.fetch(until_eof=True):
-        read_bc = read.query_name.split('_')[-1]
-        try: bc_id = summaryInstance.read_to_barcode_dict[read_bc]
+        try: duplicate_position_list[read.pos] += 1
         except KeyError:
-            Summary.writeLog(summaryInstance, ('KeyError: ' + str(read_bc)))
-        read.set_tag('RG', str(bc_id), value_type='Z') # Stores as string, makes duplicate removal possible. Can do it as integer as well.
-        out.write(read)
+            duplicate_position_dict[read.pos] = 1
     infile.close()
-    out.close()
 
-def readAndProcessClusters(openInfile):
-    """ Reads clstr file and builds read:clusterId dict in Summary instance."""
+    for duplicate_position in sorted(duplicate_position_dict.copy.keys()):
 
-    # Set clusterInstance for first loop
-    for first_line in openInfile:
-        clusterInstance = ClusterObject(clusterId=first_line)
-        break
+        position_duplicate = proximal_position(duplicate_position, max_phase_window)
 
-    for line in openInfile:
+        if position_duplicate:
 
-        # Reports cluster to master dict and start new cluster instance
-        if line.startswith('>'):
-            summaryInstance.updateReadToClusterDict(clusterInstance.barcode_to_bc_dict)
-            clusterInstance = ClusterObject(clusterId=line)
+            read_list = fetch_single_position_reads(position_duplicate[0])
+            read_list.append(fetch_single_position_reads(position_duplicate[1]))
 
-        # Add accession entry for current cluster id
-        else:
-            clusterInstance.addRead(line)
+            match_bc(read_list)
 
-    # Add last cluster to master dict
-    summaryInstance.updateReadToClusterDict(clusterInstance.barcode_to_bc_dict)
+            # if match barcode:
+
+                positions_updated = True
+                while positions_updated:
+
+                    # Fetch ALL reads within phase window
+                    for read_to_check in fetched_reads():
+
+                        if match_bc(read_to_check):
+                            positions_updated
+                            read_to_check.set_tag('@RG', )
 
 class ClusterObject(object):
     """ Cluster object"""
@@ -115,9 +110,10 @@ class readArgs(object):
         parser = argparse.ArgumentParser(description=__doc__)
 
         # Arguments
-        parser.add_argument("input_mapped_bam", help=".bam file with mapped reads which is to be tagged with barcode id:s.")
-        parser.add_argument("input_clstr", help=".clstr file from cdhit clustering.")
-        parser.add_argument("output_tagged_bam", help=".bam file with barcode cluster id in the bc tag.")
+        parser.add_argument("input_tagged_bam", help=".bam file tagged with @RG tags.")
+        parser.add_argument("input_duplicate_bam", help=".bam file with positions marked as duplicates (without regard "
+                                                        "to @RG flag.)")
+        parser.add_argument("output_bam", help=".bam file without cluster duplicates")
 
         # Options
         parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
