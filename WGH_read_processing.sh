@@ -10,22 +10,62 @@
 #    $ bash wfa_processing.sh <r1.fastq> <r2.fastq> <out.dir> > log.txt  2>$1
 
 #
-# Fetching paths to external programs (from paths.txt)
+# Initials
 #
 
-while getopts "uph" OPTION; do
-	case $OPTION in 
+processors=1
+mailing=False
+
+#
+# Argument parsing
+#
+
+while getopts "m:hp:" OPTION; do
+	case ${OPTION} in
+
+	    p)
+	        processors={OPTARG}
+		    ;;
+        m)
+            email={OPTARG}
+            mailing=True
+            ;;
 		h)
-			echo 'Useage: bash WGH_read_processing.sh <r1.fq | r1.fq.gz> <r2.fq | r2.fq.gz> <output_directory>'
+			echo 'Useage: bash WGH_read_processing.sh <r1.fq> <r2.fq> <output_dir>'
 			echo ''
-			echo 'This runs the trimming parts of the WGH pipeline. Output is a directory containing four sets of.gz
-			files. The final .fq you want to continue with is the .trimmed.fq files.'
-			echo "args.sh -h "
+			echo 'This script runs the trimming parts of the WGH pipeline. Input are two WGH read files and output is written to a directory containing four sets of compressed fastq files. The final files are the ".trimmed.fq" files.'
+			echo ""
+			echo "Positional arguments:"
+			echo "  <r1.fq>         Read one in .fastq format. Also handles gzip files (.fastq.gz)"
+			echo "  <r2.fq>         Read two in .fastq format. Also handles gzip files (.fastq.gz)"
+			echo "  <output_dir>    Output directory for analysis results"
+			echo ""
+			echo "Optional arguments"
 			echo "	-h	help (this output)"
+			echo "  -m  mails the supplied email when analysis is finished"
+			echo "  -p  processors for threading, not implemented yet"
 			exit 0
 			;;
 	esac
 done
+
+if [ $mailing == True ]
+        then
+        if [[ $email == *"@"* ]]
+                then
+                echo 'Mailing '$email' when finished.'
+        else
+                echo 'FORMAT ERROR: -m '
+                echo ''
+                echo 'Please supply email on format john.doe@domain.org'
+                echo '(got "'$email'" instead)'
+                exit 0
+        fi
+fi
+
+#
+# Fetching paths to external programs (from paths.txt)
+#
 
 # PATH to WGH_Analysis folder
 wgh_path=$(dirname "$0")
@@ -51,7 +91,10 @@ file_name2="$path/${name_ext2%.*}"
 
 mkdir -p $path
 
-echo 'Starting 1st trim '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
+if [ $mailing == True ]
+    then
+    echo 'Starting 1st trim '$(date) | mail -s 'wgh' $email
+fi
 printf '#1 START PROCESSING \n'
 
 # Trim away E handle on R1 5'. Also removes reads shorter than 85 bp.
@@ -60,7 +103,10 @@ cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
     -p $file_name2".h1.fastq" $1 $2 \
     --discard-untrimmed -e 0.2 -m 65 # Tosses reads shorter than len(e+bc+handle+TES)
 
-echo 'Starting umi extraction '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
+if [ $mailing == True ]
+    then
+    echo 'Starting umi extraction '$(date) | mail -s 'wgh' $email
+fi
 printf '\n\n#2 TRIMMED E \n'
 
 # Get DBS using UMI-Tools -> _BDHVBDVHBDVHBDVH in header.
@@ -74,7 +120,11 @@ umi_tools extract --stdin=$file_name".h1.fastq" \
 pigz $file_name".h1.fastq"
 pigz $file_name2".h1.fastq"
 
-echo 'Starting 2nd trim '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
+if [ $mailing == True ]
+    then
+    echo 'Starting 2nd trim '$(date) | mail -s 'wgh' $email
+fi
+
 printf '\n\n#3 GOT DBS USING UMI-TOOLs \n'
 
 #Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed.
@@ -86,7 +136,10 @@ cutadapt -g AGATGTGTATAAGAGACAG -o $file_name".h1.bc.h2.fastq" \
 pigz $file_name".h1.bc.fastq"
 pigz $file_name2".h1.bc.fastq"
 
-echo 'Starting 3rd trim (final) '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
+if [ $mailing == True ]
+    then
+    echo 'Starting 3rd trim (final) '$(date) | mail -s 'wgh' $email
+fi
 printf '\n\n#4 TRIMMED TES1 \n'
 
 #Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT
@@ -96,7 +149,6 @@ cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
 	-m 25 \
 	$file_name".h1.bc.h2.fastq" \
 	$file_name2".h1.bc.h2.fastq" -e 0.2
-
 
 pigz $file_name".h1.bc.h2.fastq"
 pigz $file_name2".h1.bc.h2.fastq"
@@ -126,7 +178,12 @@ pigz $file_name2".h1.bc.h2.fastq"
 #
 #samtools index $path/"mappedInserts.sort.bam"
 #
-echo 'Finished '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
+
+if [ $mailing == True ]
+    then
+    echo 'Finished '$(date) | mail -s 'wgh' $email
+fi
+
 #printf '\n\n#8 SORTED AND INDEXED BAM-FILE \n'
 #
 #printf 'RUN COMPLETE (>'-')  (>'-')>  ^('-')^'
