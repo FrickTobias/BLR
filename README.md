@@ -43,7 +43,7 @@ WGH_Analysis.sh. First however the script need to know where non-pathed software
 Tools, bowtie2 reference, fragScaff and the WGH folder) which can be set using setpath.sh.
 
 ```
-bash setpath.sh <WGH_path> <picard_path> <bowtie2_reference> <fragScaff_path>
+bash setpath.sh <picard_path> <bowtie2_reference> <fragScaff_path>
 ```
 Then the analysis can be started with the following command:
 ```
