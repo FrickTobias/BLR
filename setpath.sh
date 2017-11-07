@@ -61,13 +61,26 @@ fi
 # If relative path is used, converts to absolute
 #
 
-if ! [[ $str == /* ]]
-        echo 'set_paths: Paths supplied as relative, writing as absolute'
+if [[ "$ARG1" != /* ]]
+then
+        echo 'set_paths: picard_path supplied as relative, writing as absolute'
         work_dir=$(pwd)
-        ARG1=$work_dir$ARG1
-        ARG2=$work_dir$ARG2
-        ARG3=$work_dir$ARG3
+        ARG1=$work_dir'/'$ARG1
+
+elif [[ "$ARG2" != /* ]]
+then
+        echo 'set_paths: bowtie2_ref supplied as relative, writing as absolute'
+        work_dir=$(pwd)
+        ARG2=$work_dir'/'$ARG2
+
+elif [[ "$ARG3" != /* ]]
+then
+        echo 'set_paths: fragScaff_path supplied as relative, writing as absolute'
+        work_dir=$(pwd)
+        ARG3=$work_dir'/'$ARG3
 fi
+
+
 
 wgh_path=$(dirname "$0")
 echo 'set_paths: Creating paths.txt in your WGH_Analysis folder'
