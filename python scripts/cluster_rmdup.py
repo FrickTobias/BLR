@@ -24,6 +24,10 @@ def main():
     # Data processing & writing output
     #
 
+    # Consist of three main steps
+    #   - Create duplication list/dict
+    #   - Filter said list/dict for entries which cannot be duplicates
+    #   - Check remaining positions & merge if needed
 
     #######
     #
@@ -53,28 +57,57 @@ def main():
             duplicate_position_dict[read.pos] = 1
     infile.close()
 
-    for duplicate_position in sorted(duplicate_position_dict.copy.keys()):
+    proximity_duplication_list = reduce_list(sorted(duplicate_position.keys()), window=100000)
 
-        position_duplicate = proximal_position(duplicate_position, max_phase_window)
+    for duplicate_position in proximity_duplication_list:
 
-        if position_duplicate:
+        read_list = fetch_single_position_reads(position_duplicate[0])
+        read_list.append(fetch_single_position_reads(position_duplicate[1]))
 
-            read_list = fetch_single_position_reads(position_duplicate[0])
-            read_list.append(fetch_single_position_reads(position_duplicate[1]))
+        bc_match = match_bc(read_list)
 
-            match_bc(read_list)
+        if bc_match:
 
-            # if match barcode:
+            positions_updated = True
+            while positions_updated:
 
-                positions_updated = True
-                while positions_updated:
+                # Fetch ALL reads within phase window
+                for read_to_check in fetched_reads():
 
-                    # Fetch ALL reads within phase window
-                    for read_to_check in fetched_reads():
+                    if match_bc(read_to_check):
+                        positions_updated
+                        read_to_check.set_tag('@RG', )
 
-                        if match_bc(read_to_check):
-                            positions_updated
-                            read_to_check.set_tag('@RG', )
+def reduce_list(unfiltered_position_list, window):
+    """ Removes sorted list elements which are not within the window size from the next/previous entry."""
+
+    add_anyway = False
+    filtered_position_list = list()
+
+    for i in range(len(unfiltered_position_list)-1):
+
+        position=unfiltered_position_list[i]
+        next_pos=unfiltered_position_list[i+1]
+
+        if (position+window) >= next_pos:
+            filtered_position_list.append(position)
+            add_anyway = True # Flags for
+
+        elif add_anyway:
+            filtered_position_list.append(position)
+            add_anyway = False
+
+        else:
+            pass
+
+    #
+    # Stats
+    #
+
+    len(filtered_position_list)
+    len(unfiltered_position_list)
+
+    return filtered_position_list
 
 class ClusterObject(object):
     """ Cluster object"""
@@ -167,10 +200,22 @@ class Summary(object):
     """ Summarizes chunks"""
 
     def __init__(self):
-        self.read_to_barcode_dict = dict()
-        self.CurrentClusterId = 0
-        self.barcodeLength = int()
-        log = args.output_tagged_bam.split('.')[:-1]
+
+        #
+        # Overall stats
+        #
+        self.total_positions_marked_as_duplicates = int()
+        self.not_real_duplicates = int() # tracks how many duplicate positions which are NOT merged
+
+        #
+        # Individual steps
+        #
+        self.non_proximal_duplicates = int()
+        self.proximal_duplicates = int()
+        self.proximal_duplicates_with_same_bc_sequence = int()
+
+        self.merged_clusters = int()
+
         self.log = '.'.join(log) + '.log'
         with open(self.log, 'w') as openout:
             pass
