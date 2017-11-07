@@ -57,9 +57,21 @@ if [ -z "$ARG1" ] || [ -z "$ARG2" ] || [ -z "$ARG3" ]
         exit 0
 fi
 
-wgh_path=$(dirname "$0")
-echo 'WGH_Analysis: Creating paths.txt in your WGH_Analysis folder'
+#
+# If relative path is used, converts to absolute
+#
 
-printf '\npicard_path='$1 > $wgh_path/paths.txt
-printf '\nbowtie2_reference='$2 >> $wgh_path/paths.txt
-printf '\nfragScaff_path='$3 >> $wgh_path/paths.txt
+if ! [[ $str == /* ]]
+        echo 'set_paths: Paths supplied as relative, writing as absolute'
+        work_dir=$(pwd)
+        ARG1=$work_dir$ARG1
+        ARG2=$work_dir$ARG2
+        ARG3=$work_dir$ARG3
+fi
+
+wgh_path=$(dirname "$0")
+echo 'set_paths: Creating paths.txt in your WGH_Analysis folder'
+
+printf '\npicard_path='$ARG1 > $wgh_path/paths.txt
+printf '\nbowtie2_reference='$ARG2 >> $wgh_path/paths.txt
+printf '\nfragScaff_path='$ARG3 >> $wgh_path/paths.txt
