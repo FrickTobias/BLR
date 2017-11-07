@@ -1,13 +1,4 @@
 #!/bin/bash
-#
-# Script to process WFA reads without using the DBS_Analysis pipline
-#
-
-# RUN std
-#    $ bash wfa_processing.sh <r1.fastq> <r2.fastq> <out.dir>
-#
-# RUN with log 
-#    $ bash wfa_processing.sh <r1.fastq> <r2.fastq> <out.dir> > log.txt  2>$1
 
 #
 # Initials
@@ -20,7 +11,8 @@ mailing=False
 # Argument parsing
 #
 
-while getopts "m:hp:" OPTION; do
+while getopts "m:hp:r" OPTION
+do
 	case ${OPTION} in
 
 	    p)
@@ -29,6 +21,9 @@ while getopts "m:hp:" OPTION; do
         m)
             email=${OPTARG}
             mailing=True
+            ;;
+        r)
+            remove=True
             ;;
 		h)
 		    echo ''
@@ -45,38 +40,51 @@ while getopts "m:hp:" OPTION; do
 			echo "  -h  help (this output)"
 			echo "  -m  mails the supplied email when analysis is finished"
 			echo "  -p  processors for threading, not implemented yet"
+			echo "  -r  removes files generated during analysis instead of just compressing them"
 			echo ''
 			exit 0
 			;;
 	esac
 done
 
+#
+# Positonal redundancy for option useage
+#
+
 ARG1=${@:$OPTIND:1}
 ARG2=${@:$OPTIND+1:1}
 ARG3=${@:$OPTIND+2:1}
 
+#
+# Mailing option
+#
+
 if [ $mailing == True ]
-        then
-        if [[ $email == *"@"* ]]
-                then
-                echo 'Mailing '$email' when finished.'
-        else
-                echo 'FORMAT ERROR: -m '
-                echo ''
-                echo 'Please supply email on format john.doe@domain.org'
-                echo '(got "'$email'" instead)'
-                exit 0
-        fi
+then
+    if [[ $email == *"@"* ]]
+    then
+        echo 'Mailing '$email' when finished.'
+    else
+        echo 'FORMAT ERROR: -m '
+        echo ''
+        echo 'Please supply email on format john.doe@domain.org'
+        echo '(got "'$email'" instead)'
+        exit 0
+    fi
 fi
 
+#
+# Error handling
+#
+
 if [ -z "$ARG1" ] || [ -z "$ARG2" ] || [ -z "$ARG3" ]
-        then
-        echo ""
-        echo "ARGUMENT ERROR"
-        echo "Did not find all three positional arguments, see -h for more information."
-        echo "(got r1:"$ARG1", r2:"$ARG2" and output:"$ARG3" instead)"
-        echo ""
-        exit 0
+then
+    echo ""
+    echo "ARGUMENT ERROR"
+    echo "Did not find all three positional arguments, see -h for more information."
+    echo "(got r1:"$ARG1", r2:"$ARG2" and output:"$ARG3" instead)"
+    echo ""
+    exit 0
 fi
 
 #
@@ -99,7 +107,6 @@ name_ext=$(basename "$file")
 name="${name_ext%.*}"
 file_name="$path/${name_ext%.*}"
 
-
 file2=$ARG2
 name_ext2=$(basename "$file2")
 name2="${name_ext2%.*}"
@@ -107,6 +114,7 @@ file_name2="$path/${name_ext2%.*}"
 
 mkdir -p $path
 
+# Mailing
 if [ $mailing == True ]
     then
     echo 'Starting 1st trim '$(date) | mail -s 'wgh' $email
@@ -119,6 +127,7 @@ cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
     -p $file_name2".h1.fastq" $ARG1 $ARG2 \
     --discard-untrimmed -e 0.2 -m 65 # Tosses reads shorter than len(e+bc+handle+TES)
 
+# Mailing
 if [ $mailing == True ]
     then
     echo 'Starting umi extraction '$(date) | mail -s 'wgh' $email
@@ -133,9 +142,17 @@ umi_tools extract --stdin=$file_name".h1.fastq" \
     --read2-out=$file_name2".h1.bc.fastq" \
     -L $file_name".h1.bc.txt"
 
-pigz $file_name".h1.fastq"
-pigz $file_name2".h1.fastq"
+# Compress/remove
+if $remove
+then
+    pigz $file_name".h1.fastq"
+    pigz $file_name2".h1.fastq"
+else
+    pigz $file_name".h1.fastq"
+    pigz $file_name2".h1.fastq"
+fi
 
+# Mailing
 if [ $mailing == True ]
     then
     echo 'Starting 2nd trim '$(date) | mail -s 'wgh' $email
@@ -149,9 +166,17 @@ cutadapt -g AGATGTGTATAAGAGACAG -o $file_name".h1.bc.h2.fastq" \
     $file_name".h1.bc.fastq" \
     $file_name2".h1.bc.fastq" --discard-untrimmed -e 0.2
 
-pigz $file_name".h1.bc.fastq"
-pigz $file_name2".h1.bc.fastq"
+# Compress/remove
+if $remove
+then
+    rm $file_name".h1.bc.fastq"
+    rm $file_name2".h1.bc.fastq"
+else
+    pigz $file_name".h1.bc.fastq"
+    pigz $file_name2".h1.bc.fastq"
+fi
 
+# Mailing
 if [ $mailing == True ]
     then
     echo 'Starting 3rd trim (final) '$(date) | mail -s 'wgh' $email
@@ -166,8 +191,15 @@ cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
 	$file_name".h1.bc.h2.fastq" \
 	$file_name2".h1.bc.h2.fastq" -e 0.2
 
-pigz $file_name".h1.bc.h2.fastq"
-pigz $file_name2".h1.bc.h2.fastq"
+# Compress/remove
+if $remove
+then
+    rm $file_name".h1.bc.h2.fastq"
+    rm $file_name2".h1.bc.h2.fastq"
+else
+    pigz $file_name".h1.bc.h2.fastq"
+    pigz $file_name2".h1.bc.h2.fastq"
+fi
 
 #echo 'Starting mapping '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
 #printf '\n\n#5 TRIMMED TES2 \n'
