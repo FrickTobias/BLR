@@ -135,6 +135,9 @@ if [ $mailing == True ]
 fi
 printf '\n\n#2 TRIMMED E \n'
 
+pigz $file_name".h1.fastq"
+pigz $file_name2".h1.fastq"
+
 # Get DBS using UMI-Tools -> _BDHVBDVHBDVHBDVH in header.
 umi_tools extract --stdin=$file_name".h1.fastq" \
     --stdout=$file_name".h1.bc.fastq" \
@@ -143,6 +146,7 @@ umi_tools extract --stdin=$file_name".h1.fastq" \
     --read2-out=$file_name2".h1.bc.fastq" \
     -L $file_name".h1.bc.txt"
 
+<<<<<<< HEAD
 # Compress/remove
 if $remove
 then
@@ -154,10 +158,15 @@ else
 fi
 
 # Mailing
+=======
+>>>>>>> 5626301243b8a25850f732538e90e5bbadc87459
 if [ $mailing == True ]
     then
     echo 'Starting 2nd trim '$(date) | mail -s 'wgh' $email
 fi
+
+pigz $file_name".h1.bc.fastq"
+pigz $file_name2".h1.bc.fastq"
 
 printf '\n\n#3 GOT DBS USING UMI-TOOLs \n'
 
@@ -167,6 +176,7 @@ cutadapt -g AGATGTGTATAAGAGACAG -o $file_name".h1.bc.h2.fastq" \
     $file_name".h1.bc.fastq" \
     $file_name2".h1.bc.fastq" --discard-untrimmed -e 0.2
 
+<<<<<<< HEAD
 # Compress/remove
 if $remove
 then
@@ -178,11 +188,16 @@ else
 fi
 
 # Mailing
+=======
+>>>>>>> 5626301243b8a25850f732538e90e5bbadc87459
 if [ $mailing == True ]
     then
     echo 'Starting 3rd trim (final) '$(date) | mail -s 'wgh' $email
 fi
 printf '\n\n#4 TRIMMED TES1 \n'
+
+pigz $file_name".h1.bc.h2.fastq"
+pigz $file_name2".h1.bc.h2.fastq"
 
 #Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT
 cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
@@ -192,6 +207,7 @@ cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
 	$file_name".h1.bc.h2.fastq" \
 	$file_name2".h1.bc.h2.fastq" -e 0.2
 
+<<<<<<< HEAD
 # Compress/remove
 if $remove
 then
@@ -202,13 +218,14 @@ else
     pigz $file_name2".h1.bc.h2.fastq"
 fi
 
+=======
+>>>>>>> 5626301243b8a25850f732538e90e5bbadc87459
 #echo 'Starting mapping '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
 #printf '\n\n#5 TRIMMED TES2 \n'
 #
 #bowtie2 --maxins 2000 -x $bowtie2_reference \
-#    -1 $file_name".trimmed.fastq" -2 $file_name2".trimmed.fastq" -S $path/"mappedInserts.sam"
+#    -1 $file_name".trimmed.fastq" -2 $file_name2".trimmed.fastq" | samtools view -bS - > $path/"mappedInserts.bam"
 #
-#samtools view -bh $path/"mappedInserts.sam" > $path/"mappedInserts.bam"
 #
 #pigz $file_name".trimmed.fastq"
 #pigz $file_name2".trimmed.fastq"
