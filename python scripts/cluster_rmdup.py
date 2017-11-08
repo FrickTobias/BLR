@@ -48,6 +48,15 @@ def main():
     #
     #######
 
+    ###
+    #
+    #
+    # ANANE'S TIP: pysam.fetch
+    # for fetching position specific regions in .bam files (need sort+index)
+    #
+    #
+    ###
+
     # read duplicate file and build position list which is to be investigated.
     duplicate_position_dict = dict()
     infile = pysam.AlignmentFile(args.input_duplicate_bam, 'rb')
@@ -103,9 +112,8 @@ def reduce_list(unfiltered_position_list, window):
     #
     # Stats
     #
-
-    len(filtered_position_list)
-    len(unfiltered_position_list)
+    summaryInstance.proximal_duplicates = len(filtered_position_list)
+    summaryInstance.total_positions_marked_as_duplicates = len(unfiltered_position_list)
 
     return filtered_position_list
 

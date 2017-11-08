@@ -6,6 +6,7 @@
 
 processors=1
 mailing=False
+remove=False
 
 #
 # Argument parsing
