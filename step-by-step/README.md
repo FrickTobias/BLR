@@ -49,4 +49,3 @@ python tag_bam.py [-OPTIONS] <mapped_inserts.bam> <barcodes.clstr> <output_file>
 picardtools rmdup
 perl fragScaff [-OPTIONS] <mapped_inserts_tagged.bam> <output>
 ```
-### Step by step
