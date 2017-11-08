@@ -1,5 +1,11 @@
-### Step by step
+### Main steps
 Here, every step will be explained in detail. For more details about in-house option useage, see example folder.
+
+The analysis is comprised of four main steps
+   - Read trimming and barcode extraction (demultiplexing)
+   - Clustering
+   - Mapping
+   - Downstream analysis
 
 #### Read trimming and barcode identification
 This is comprised of three steps, all working on read 1. First handle 1 is trimmed from the 5' end and reads with 
