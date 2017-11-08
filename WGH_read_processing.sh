@@ -173,9 +173,8 @@ cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
 #printf '\n\n#5 TRIMMED TES2 \n'
 #
 #bowtie2 --maxins 2000 -x $bowtie2_reference \
-#    -1 $file_name".trimmed.fastq" -2 $file_name2".trimmed.fastq" -S $path/"mappedInserts.sam"
+#    -1 $file_name".trimmed.fastq" -2 $file_name2".trimmed.fastq" | samtools view -bS - > $path/"mappedInserts.bam"
 #
-#samtools view -bh $path/"mappedInserts.sam" > $path/"mappedInserts.bam"
 #
 #pigz $file_name".trimmed.fastq"
 #pigz $file_name2".trimmed.fastq"
