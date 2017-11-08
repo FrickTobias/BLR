@@ -3,7 +3,7 @@
 This is a pipeline to perform scaffolding on WGH data. It uses numerous bioinformatics tools with some custom make
 parsing tools for formatting in between steps. 
 
-TL;DR: Look at [flowchart](https://github.com/FrickTobias/WGH_Analysis/blob/master/README.md#overview) to see and overview of the pipeline.
+TL;DR: Look at the [flowchart](https://github.com/FrickTobias/WGH_Analysis/blob/master/README.md#overview) to see and overview of the pipeline.
 
 ## Prerequisites
 
