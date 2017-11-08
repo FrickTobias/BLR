@@ -60,7 +60,7 @@ ARG3=${@:$OPTIND+2:1}
 # Mailing option
 #
 
-if [ $mailing == True ]
+if $mailing
 then
     if [[ $email == *"@"* ]]
     then
@@ -116,7 +116,7 @@ file_name2="$path/${name_ext2%.*}"
 mkdir -p $path
 
 # Mailing
-if [ $mailing == True ]
+if $mailing
     then
     echo 'Starting 1st trim '$(date) | mail -s 'wgh' $email
 fi
@@ -129,7 +129,7 @@ cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
     --discard-untrimmed -e 0.2 -m 65 # Tosses reads shorter than len(e+bc+handle+TES)
 
 # Mailing
-if [ $mailing == True ]
+if $mailing
     then
     echo 'Starting umi extraction '$(date) | mail -s 'wgh' $email
 fi
@@ -139,87 +139,77 @@ pigz $file_name".h1.fastq"
 pigz $file_name2".h1.fastq"
 
 # Get DBS using UMI-Tools -> _BDHVBDVHBDVHBDVH in header.
-umi_tools extract --stdin=$file_name".h1.fastq" \
+umi_tools extract --stdin=$file_name".h1.fastq.gz" \
     --stdout=$file_name".h1.bc.fastq" \
     --bc-pattern=NNNNNNNNNNNNNNNNNNNN --bc-pattern2= \
-    --read2-in=$file_name2".h1.fastq" \
+    --read2-in=$file_name2".h1.fastq.gz" \
     --read2-out=$file_name2".h1.bc.fastq" \
     -L $file_name".h1.bc.txt"
 
-<<<<<<< HEAD
-# Compress/remove
+# Remove
 if $remove
 then
-    pigz $file_name".h1.fastq"
-    pigz $file_name2".h1.fastq"
-else
-    pigz $file_name".h1.fastq"
-    pigz $file_name2".h1.fastq"
+    rm $file_name".h1.fastq.gz"
+    rm $file_name2".h1.fastq.gz"
 fi
 
+# Compress
+pigz $file_name".h1.bc.fastq"
+pigz $file_name2".h1.bc.fastq"
+
 # Mailing
-=======
->>>>>>> 5626301243b8a25850f732538e90e5bbadc87459
-if [ $mailing == True ]
+if $mailing
     then
     echo 'Starting 2nd trim '$(date) | mail -s 'wgh' $email
 fi
-
-pigz $file_name".h1.bc.fastq"
-pigz $file_name2".h1.bc.fastq"
 
 printf '\n\n#3 GOT DBS USING UMI-TOOLs \n'
 
 #Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed.
 cutadapt -g AGATGTGTATAAGAGACAG -o $file_name".h1.bc.h2.fastq" \
     -p $file_name2".h1.bc.h2.fastq" \
-    $file_name".h1.bc.fastq" \
-    $file_name2".h1.bc.fastq" --discard-untrimmed -e 0.2
+    $file_name".h1.bc.fastq.gz" \
+    $file_name2".h1.bc.fastq.gz" --discard-untrimmed -e 0.2
 
-<<<<<<< HEAD
-# Compress/remove
+# Remove
 if $remove
 then
-    rm $file_name".h1.bc.fastq"
-    rm $file_name2".h1.bc.fastq"
-else
-    pigz $file_name".h1.bc.fastq"
-    pigz $file_name2".h1.bc.fastq"
+    rm $file_name".h1.bc.fastq.gz"
+    rm $file_name2".h1.bc.fastq.gz"
 fi
 
+# Compress
+pigz $file_name".h1.bc.h2.fastq"
+pigz $file_name2".h1.bc.h2.fastq"
+
+
 # Mailing
-=======
->>>>>>> 5626301243b8a25850f732538e90e5bbadc87459
-if [ $mailing == True ]
+if $mailing
     then
     echo 'Starting 3rd trim (final) '$(date) | mail -s 'wgh' $email
 fi
-printf '\n\n#4 TRIMMED TES1 \n'
 
-pigz $file_name".h1.bc.h2.fastq"
-pigz $file_name2".h1.bc.h2.fastq"
+printf '\n\n#4 TRIMMED TES1 \n'
 
 #Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT
 cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
 	-o $file_name".trimmed.fastq" \
 	-p $file_name2".trimmed.fastq" \
 	-m 25 \
-	$file_name".h1.bc.h2.fastq" \
-	$file_name2".h1.bc.h2.fastq" -e 0.2
+	$file_name".h1.bc.h2.fastq.gz" \
+	$file_name2".h1.bc.h2.fastq.gz" -e 0.2
 
-<<<<<<< HEAD
-# Compress/remove
+# Remove
 if $remove
 then
-    rm $file_name".h1.bc.h2.fastq"
-    rm $file_name2".h1.bc.h2.fastq"
-else
-    pigz $file_name".h1.bc.h2.fastq"
-    pigz $file_name2".h1.bc.h2.fastq"
+    rm $file_name".h1.bc.h2.fastq.gz"
+    rm $file_name2".h1.bc.h2.fastq.gz"
 fi
 
-=======
->>>>>>> 5626301243b8a25850f732538e90e5bbadc87459
+# Compress/remove
+pigz $file_name".trimmed.fastq"
+pigz $file_name2".trimmed.fastq"
+
 #echo 'Starting mapping '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
 #printf '\n\n#5 TRIMMED TES2 \n'
 #
@@ -245,7 +235,7 @@ fi
 #samtools index $path/"mappedInserts.sort.bam"
 #
 
-if [ $mailing == True ]
+if $mailing
     then
     echo 'Finished '$(date) | mail -s 'wgh' $email
 fi
