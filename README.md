@@ -50,7 +50,7 @@ Then the analysis can be started with the following command:
 bash WGH_automation.sh <read_1.fq> <read_2.fq> <output>
 ```
 
-For details, see the step-by-step folder which describes all steps performed by WGH_automation.
+For details, see the [step-by-step](https://cdn.rawgit.com/FrickTobias/WGH_Analysis/tree/master/step-by-step) folder which describes all steps performed by WGH_automation.
 
 ## Overview
 
