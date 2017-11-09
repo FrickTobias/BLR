@@ -5,8 +5,8 @@
 #
 
 processors=1
-mailing=False
-remove=False
+mailing=false
+remove=false
 
 #
 # Argument parsing
@@ -14,38 +14,38 @@ remove=False
 
 while getopts "m:hp:r" OPTION
 do
-	case ${OPTION} in
-
-	    p)
-	        processors=${OPTARG}
-		    ;;
+    case ${OPTION} in
+    
+        p)
+            processors=${OPTARG}
+            ;;
         m)
             email=${OPTARG}
-            mailing=True
+            mailing=true
             ;;
         r)
-            remove=True
+            remove=true
             ;;
-		h)
-		    echo ''
-			echo 'This script runs the trimming parts of the WGH pipeline. Input are two WGH read files and output is written to a directory containing four sets of compressed fastq files. The final files are the ".trimmed.fq" files.'
-			echo ""
-			echo 'Useage: bash WGH_read_processing.sh <r1.fq> <r2.fq> <output_dir>'
-			echo ''
-			echo "Positional arguments (required)"
-			echo "  <r1.fq>         Read one in .fastq format. Also handles gzip files (.fastq.gz)"
-			echo "  <r2.fq>         Read two in .fastq format. Also handles gzip files (.fastq.gz)"
-			echo "  <output_dir>    Output directory for analysis results"
-			echo ""
-			echo "Optional arguments"
-			echo "  -h  help (this output)"
-			echo "  -m  mails the supplied email when analysis is finished"
-			echo "  -p  processors for threading, not implemented yet"
-			echo "  -r  removes files generated during analysis instead of just compressing them"
-			echo ''
-			exit 0
-			;;
-	esac
+        h)
+            echo ''
+	    echo 'This script runs the trimming parts of the WGH pipeline. Input are two WGH read files and output is written to a directory containing four sets of compressed fastq files. The final files are the ".trimmed.fq" files.'
+	    echo ""
+	    echo 'Useage: bash WGH_read_processing.sh <r1.fq> <r2.fq> <output_dir>'
+	    echo ''
+	    echo "Positional arguments (required)"
+	    echo "  <r1.fq>         Read one in .fastq format. Also handles gzip files (.fastq.gz)"
+	    echo "  <r2.fq>         Read two in .fastq format. Also handles gzip files (.fastq.gz)"
+	    echo "  <output_dir>    Output directory for analysis results"
+	    echo ""
+	    echo "Optional arguments"
+	    echo "  -h  help (this output)"
+	    echo "  -m  mails the supplied email when analysis is finished"
+	    echo "  -p  processors for threading, not implemented yet"
+	    echo "  -r  removes files generated during analysis instead of just compressing them"
+	    echo ''
+	    exit 0
+	    ;;
+    esac
 done
 
 #
