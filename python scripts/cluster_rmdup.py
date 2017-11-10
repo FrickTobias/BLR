@@ -26,27 +26,8 @@ def main():
 
     # Consist of three main steps
     #   - Create duplication list/dict
-    #   - Filter said list/dict for entries which cannot be duplicates
-    #   - Check remaining positions & merge if needed
-
-    #######
-    #
-    #   read dup. file and build list
-    #
-    #   for position in dup_list:
-    #
-    #       while True:
-    #
-    #           possible_cluster_dup = find_close_dup()
-    #           if possible_cluster_dup==True:
-    #
-    #               fetch_window_from_bam()
-    #               fetch_reads_with_same_bc_in_window()
-    #               merge()
-    #               ??? if len(uncheck_pos) > 0; don't break
-    #               ??? if len(uncheck_pos) i -= 1 (counter on multiplex position stuff)
-    #
-    #######
+    #   - Filter said list/dict for entries which cannot be duplicates (proximity)
+    #   - Check remaining (unique) positions & merge if needed
 
     ###
     #
@@ -59,63 +40,124 @@ def main():
 
     # read duplicate file and build position list which is to be investigated.
     duplicate_position_dict = dict()
-    infile = pysam.AlignmentFile(args.input_duplicate_bam, 'rb')
+    infile = pysam.AlignmentFile(args.input_bam, 'rb')
     for read in infile.fetch(until_eof=True):
-        try: duplicate_position_list[read.pos] += 1
+
+        # Only fetch positions marked as duplicates
+        if not read.is_duplicate: continue
+
+        # fetch barcode
+        cluster_id = read.query_name.split()[0]('_')[-1]
+        try: duplicate_position_dict[read.pos].append(cluster_id)
         except KeyError:
-            duplicate_position_dict[read.pos] = 1
+            duplicate_position_dict[read.pos] = [cluster_id]
+
+    window = 100000
+    proximity_duplication_dict = reduce_dict(duplicate_position_dict, window)  # Window is the strict cutoff value for how far a read can be for it being in the same cluster id.
+
+    duplicate_position_list = sorted(proximity_duplication_dict.copy().keys())
+    merge_dict = dict()
+    for i in range(len(proximity_duplication_dict.copy().keys()-1)):
+
+        j = i + 1
+        while True:
+
+            if duplicate_position_list[i]+window >= duplicate_position_list[j]:
+                # if new_matches >= 1
+                    # for discovered_match_positions:
+                        # unchecked_positions.append(duplicate_position_list[j])
+                    # unchecked_positions = sorted(unchecked_positions)
+                    # i = unchecked_positions[0]
+                    # unchecked_positions = unchecked_positions[1:]
+                    # new_matches = 0
+                    # j = i + 1
+                # elif len(unchecked_position) >= 1 # same as for new_matches >= 1 but skips the adding part.
+                    # i = unchecked_positions[0]
+                    # unchecked_positions = unchecked_positions[1:]
+                    # new_matches = 0
+                    # j = i + 1
+                # else =>
+                    # Check if duplicate criteria met
+                        # merge
+                        # compare_id = None
+                        # try: compare_id = merge_dict[from]
+                        # except KeyError:
+                            # merge_dict[from] = to
+                        # if compare_id:
+                            # if compare_id == to:
+                                # pass
+                            # elif compare_id >= to:
+                                # del dict[from] (which gives compare_id currently)
+                                # dict[from] = to
+                                # dict[compare_id] = to
+                            # else:
+                                # dict[to].append(compare_id)
+                    # break
+
+            # Takes two lists and compared how many matches there is in between the two.
+            matches = match_bc(duplicate_position_dict[duplicate_position_list[i]],duplicate_position_dict[duplicate_position_list[j]])
+
+            if len(matches) >= 1:
+                match_list.append(matches)
+                # For match_pair in matches
+                    # Fetch cluster_ids
+                    # Sort cluster_ids
+                    # store match cluster_id_x => cluster_id_y (from => to)
+                    # Number of total matches += 1
+                    # New_matches += 1
+                    # discovered_match_positions.append(j)
+
+    # ALL READS:
+        # if read.tag in merge_dict:
+            # merge
+
     infile.close()
 
-    proximity_duplication_list = reduce_list(sorted(duplicate_position.keys()), window=100000)
-
-    for duplicate_position in proximity_duplication_list:
-
-        read_list = fetch_single_position_reads(position_duplicate[0])
-        read_list.append(fetch_single_position_reads(position_duplicate[1]))
-
-        bc_match = match_bc(read_list)
-
-        if bc_match:
-
-            positions_updated = True
-            while positions_updated:
-
-                # Fetch ALL reads within phase window
-                for read_to_check in fetched_reads():
-
-                    if match_bc(read_to_check):
-                        positions_updated
-                        read_to_check.set_tag('@RG', )
-
-def reduce_list(unfiltered_position_list, window):
-    """ Removes sorted list elements which are not within the window size from the next/previous entry."""
+def reduce_dict(unfiltered_position_list, window):
+    """ Removes sorted list elements which are not within the window size from the next/previous entry and formats to
+    dict instead of list."""
 
     add_anyway = False
-    filtered_position_list = list()
+    filtered_position_dict = dict()
 
     for i in range(len(unfiltered_position_list)-1):
-
         position=unfiltered_position_list[i]
         next_pos=unfiltered_position_list[i+1]
 
-        if (position+window) >= next_pos:
-            filtered_position_list.append(position)
-            add_anyway = True # Flags for
+        if position == next_pos: # The other sequence, fetches sequences for values later
+            pass
+
+        elif (position+window) >= next_pos:
+            filtered_position_dict.append(position)
+            add_anyway = True
 
         elif add_anyway:
-            filtered_position_list.append(position)
+            filtered_position_dict.append(position)
             add_anyway = False
 
         else:
             pass
 
+    if add_anyway:
+        filtered_position_dict.append(position)
+
     #
     # Stats
     #
-    summaryInstance.proximal_duplicates = len(filtered_position_list)
+    summaryInstance.proximal_duplicates = len(filtered_position_dict.keys())
     summaryInstance.total_positions_marked_as_duplicates = len(unfiltered_position_list)
 
-    return filtered_position_list
+    return filtered_position_dict
+
+def match_bc(barcode_list_one, barode_list_two):
+    """ Takes two lists and compared how many matches there is in between the two. """
+
+    for barcode_one in barcode_list_one:
+        for barcode_two in barcode_list_two:
+            if barcode_one == barcode_two:
+                match_list.append(barcode_one)
+
+    return match_list
 
 class ClusterObject(object):
     """ Cluster object"""
@@ -151,9 +193,8 @@ class readArgs(object):
         parser = argparse.ArgumentParser(description=__doc__)
 
         # Arguments
-        parser.add_argument("input_tagged_bam", help=".bam file tagged with @RG tags.")
-        parser.add_argument("input_duplicate_bam", help=".bam file with positions marked as duplicates (without regard "
-                                                        "to @RG flag.)")
+        parser.add_argument("input_tagged_bam", help=".bam file tagged with @RG tags and duplicates marked (not taking "
+                                                     "cluster id into account).")
         parser.add_argument("output_bam", help=".bam file without cluster duplicates")
 
         # Options
