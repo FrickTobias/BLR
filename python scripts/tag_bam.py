@@ -161,7 +161,7 @@ class readArgs(object):
         parser.add_argument("-p", "--processors", type=int, default=multiprocessing.cpu_count(),
                             help="Thread analysis in p number of processors. Example: python "
                                  "TagGD_prep.py -p 2 insert_r1.fq unique.fa")
-        parser.add_argument("-e", "--exclude_N", type=Bool, default=True, help="If True (default), excludes .bam file "
+        parser.add_argument("-e", "--exclude_N", type=bool, default=True, help="If True (default), excludes .bam file "
                                                                                "reads with barcodes containing N.")
 
         args = parser.parse_args()
