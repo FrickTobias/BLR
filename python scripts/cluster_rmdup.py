@@ -60,56 +60,84 @@ def main():
     for i in range(len(proximity_duplication_dict.copy().keys()-1)):
 
         j = i + 1
+        unchecked_positions = list()
+        unchecked_positions_set = set()
+        pos_to_cluster_id_dict = dict()
+
+        # Continue loop until all duplicates have been saved in merge dict for the current window.
+        # Extends window if duplciate is found
         while True:
 
-            if duplicate_position_list[i]+window >= duplicate_position_list[j]:
-                # if new_matches >= 1
-                    # for discovered_match_positions:
-                        # unchecked_positions.append(duplicate_position_list[j])
-                    # unchecked_positions = sorted(unchecked_positions)
-                    # i = unchecked_positions[0]
-                    # unchecked_positions = unchecked_positions[1:]
-                    # new_matches = 0
-                    # j = i + 1
-                # elif len(unchecked_position) >= 1 # same as for new_matches >= 1 but skips the adding part.
-                    # i = unchecked_positions[0]
-                    # unchecked_positions = unchecked_positions[1:]
-                    # new_matches = 0
-                    # j = i + 1
-                # else =>
-                    # Check if duplicate criteria met
-                        # merge
-                        # compare_id = None
-                        # try: compare_id = merge_dict[from]
-                        # except KeyError:
-                            # merge_dict[from] = to
-                        # if compare_id:
-                            # if compare_id == to:
-                                # pass
-                            # elif compare_id >= to:
-                                # del dict[from] (which gives compare_id currently)
-                                # dict[from] = to
-                                # dict[compare_id] = to
-                            # else:
-                                # dict[to].append(compare_id)
-                    # break
+            new_matches_pos = function(duplicate_position_list, i, j, window)
+            pos_to_cluster_id_dict.append(new_matches_pos)
 
-            # Takes two lists and compared how many matches there is in between the two.
-            matches = match_bc(duplicate_position_dict[duplicate_position_list[i]],duplicate_position_dict[duplicate_position_list[j]])
+            if len(new_matches_pos) >= 1:
+                for match_pos in new_matches_pos:
+                    unchecked_positions_set.add(match_pos)
+                unchecked_positions = sorted(unchecked_positions_set) # Converting back to list and sorting
+                new_matches_pos = []
 
-            if len(matches) >= 1:
-                match_list.append(matches)
-                # For match_pair in matches
-                    # Fetch cluster_ids
-                    # Sort cluster_ids
-                    # store match cluster_id_x => cluster_id_y (from => to)
-                    # Number of total matches += 1
-                    # New_matches += 1
-                    # discovered_match_positions.append(j)
+                ### RETHINK IF REMOVAL WORKS CORRECTLY?
+                    # can it be removed and then added again?
+                    # Does it matter since merge_dict checks for existing entries?
+                    #
 
-    # ALL READS:
-        # if read.tag in merge_dict:
-            # merge
+                i = unchecked_positions[0]
+                unchecked_positions = unchecked_positions[1:]
+                unchecked_positions_set.remove(i)
+                j = i + 1
+
+            elif len(unchecked_positions) >= 1:
+                i = unchecked_positions[0]
+                unchecked_positions = sorted(unchecked_positions_set)
+                unchecked_positions_set.remove(i)
+                j = i + 1
+
+            else:
+                true_duplicates = check_duplicate(pos_to_cluster_id_dict, window):    # Take window size into account!
+                for duplicate in true_duplicates:
+
+                    lower_cluster_id = duplicate[0]
+                    higher_cluster_id = duplicate[1]
+
+                    prev_value = None
+                    try: prev_value = merge_dict[lower_cluster_id]
+                    except KeyError:
+                        merge_dict[higher_cluster_id] = lower_cluster_id
+                    if not prev_value == None:
+                        if prev_value == lower_cluster_id:
+                            pass
+                        elif prev_value < cluster_id_low:
+                            merge_dict[higher_cluster_id] = prev_value
+                            merge_dict[lower_cluster_id] = prev_value
+                        else:
+                            del merge_dict[higher_cluster_id]
+                            merge_dict[higher_cluster_id] = lower_cluster_id
+                            merge_dict[prev_value] = lower_cluster_id
+                break
+
+    # Merges dict cases where {5:3, 3:1} to {5:1, 3:1} since reads are not ordered according to cluster id.
+    for cluster_id_to_merge in sorted(merge_dict.copy.values()):
+
+        # Try to find value for
+        try: lower_value = merge_dict[merge_dict[cluster_id_to_merge]]
+        except KeyError:
+            continue
+
+        higher_value = merge_dict[cluster_id_to_merge]
+        del merge_dict[cluster_id_to_merge]
+        merge_dict[cluster_id_to_merge] = lower_value
+        merge_dict[higher_value] = lower_value
+
+    for read in infile.fetch(until_eof=True):
+
+        # If RG tag i merge dict, change its RG to the lower number
+        try: read.tags = str(merge_dict[int(read.tags)])
+        except KeyError:
+            pass
+
+        # Write read to out.
+        out.write(read)
 
     infile.close()
 
@@ -149,7 +177,7 @@ def reduce_dict(unfiltered_position_list, window):
 
     return filtered_position_dict
 
-def match_bc(barcode_list_one, barode_list_two):
+def match_bc(barcode_list_one, barcode_list_two):
     """ Takes two lists and compared how many matches there is in between the two. """
 
     for barcode_one in barcode_list_one:
