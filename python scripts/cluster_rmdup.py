@@ -24,100 +24,84 @@ def main():
     # Data processing & writing output
     #
 
-    # Consist of three main steps
-    #   - Create duplication list/dict
-    #   - Filter said list/dict for entries which cannot be duplicates (proximity)
-    #   - Check remaining (unique) positions & merge if needed
-
-    ###
-    #
-    #
-    # ANANE'S TIP: pysam.fetch
-    # for fetching position specific regions in .bam files (need sort+index)
-    #
-    #
-    ###
-
     # read duplicate file and build position list which is to be investigated.
     duplicate_position_dict = dict()
-    infile = pysam.AlignmentFile(args.input_bam, 'rb')
+    infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
     for read in infile.fetch(until_eof=True):
 
         # Only fetch positions marked as duplicates
         if not read.is_duplicate: continue
 
         # fetch barcode
-        cluster_id = read.query_name.split()[0]('_')[-1]
-        try: duplicate_position_dict[read.pos].append(cluster_id)
+        cluster_id = read.query_name.split()[0].split('_')[-1].split(':')[-1]
+        try: duplicate_position_dict[read.pos].append(int(cluster_id))
         except KeyError:
-            duplicate_position_dict[read.pos] = [cluster_id]
+            duplicate_position_dict[read.pos] = [int(cluster_id)]
 
     window = 100000
     proximity_duplication_dict = reduce_dict(duplicate_position_dict, window)  # Window is the strict cutoff value for how far a read can be for it being in the same cluster id.
 
     duplicate_position_list = sorted(proximity_duplication_dict.copy().keys())
     merge_dict = dict()
-    for i in range(len(proximity_duplication_dict.copy().keys()-1)):
+    max_j = len(duplicate_position_list)
+    for i in range(len(duplicate_position_list)-2):
 
         j = i + 1
         unchecked_positions = list()
         unchecked_positions_set = set()
-        pos_to_cluster_id_dict = dict()
+        current_match_dict = dict()
 
         # Continue loop until all duplicates have been saved in merge dict for the current window.
-        # Extends window if duplciate is found
+        # Extends window if duplicate is found
         while True:
 
-            new_matches_pos = function(duplicate_position_list, i, j, window)
-            pos_to_cluster_id_dict.append(new_matches_pos)
+            # Returns list of matching clusterid:s
+            # Does not discriminate between window/extended window
+            new_matches_clusterid = match_clusterid(duplicate_position_dict[duplicate_position_list[i]], duplicate_position_dict[duplicate_position_list[j]])
 
-            if len(new_matches_pos) >= 1:
-                for match_pos in new_matches_pos:
+            if not len(new_matches_clusterid) == 0:
+                #print(new_matches_clusterid)
+                # Keeps track of matching clusterid and their positions for the current phase window.
+                try: current_match_dict[duplicate_position_list[i]].add(new_matches_clusterid)
+                except KeyError:
+                    current_match_dict[duplicate_position_list[i]] = set(new_matches_clusterid)
+                try: current_match_dict[duplicate_position_list[j]].add(new_matches_clusterid)
+                except KeyError:
+                    current_match_dict[duplicate_position_list[j]] = set(new_matches_clusterid)
+
+            #print(current_match_dict)
+            # Check if new positions have been found
+            if len(new_matches_clusterid) >= 1:
+                for match_pos in new_matches_clusterid:
                     unchecked_positions_set.add(match_pos)
                 unchecked_positions = sorted(unchecked_positions_set) # Converting back to list and sorting
-                new_matches_pos = []
+                new_matches_clusterid = []
 
-                ### RETHINK IF REMOVAL WORKS CORRECTLY?
-                    # can it be removed and then added again?
-                    # Does it matter since merge_dict checks for existing entries?
-                    #
-
-                i = unchecked_positions[0]
+                remove_from_set = unchecked_positions[0]
                 unchecked_positions = unchecked_positions[1:]
-                unchecked_positions_set.remove(i)
-                j = i + 1
+                unchecked_positions_set.remove(remove_from_set)
+                j = j + 1
 
+            # Checks if old positions need to be investigated.
             elif len(unchecked_positions) >= 1:
-                i = unchecked_positions[0]
-                unchecked_positions = sorted(unchecked_positions_set)
-                unchecked_positions_set.remove(i)
-                j = i + 1
+                remove_from_set = unchecked_positions[0]
+                unchecked_positions = unchecked_positions[1:]
+                unchecked_positions_set.remove(remove_from_set)
+                j = j + 1
 
             else:
-                true_duplicates = check_duplicate(pos_to_cluster_id_dict, window):    # Take window size into account!
-                for duplicate in true_duplicates:
-
-                    lower_cluster_id = duplicate[0]
-                    higher_cluster_id = duplicate[1]
-
-                    prev_value = None
-                    try: prev_value = merge_dict[lower_cluster_id]
-                    except KeyError:
-                        merge_dict[higher_cluster_id] = lower_cluster_id
-                    if not prev_value == None:
-                        if prev_value == lower_cluster_id:
-                            pass
-                        elif prev_value < cluster_id_low:
-                            merge_dict[higher_cluster_id] = prev_value
-                            merge_dict[lower_cluster_id] = prev_value
-                        else:
-                            del merge_dict[higher_cluster_id]
-                            merge_dict[higher_cluster_id] = lower_cluster_id
-                            merge_dict[prev_value] = lower_cluster_id
+                report_matches(current_match_dict, merge_dict)#, duplicate_position_list)
                 break
 
+            # Checks if j is about to be out of range for list
+            if j > max_j:
+                report_matches(current_match_dict, merge_dict)#, duplicate_position_list)
+                break
+
+    infile.close()
+
     # Merges dict cases where {5:3, 3:1} to {5:1, 3:1} since reads are not ordered according to cluster id.
-    for cluster_id_to_merge in sorted(merge_dict.copy.values()):
+    for cluster_id_to_merge in sorted(merge_dict.copy().values()):
 
         # Try to find value for
         try: lower_value = merge_dict[merge_dict[cluster_id_to_merge]]
@@ -129,24 +113,34 @@ def main():
         merge_dict[cluster_id_to_merge] = lower_value
         merge_dict[higher_value] = lower_value
 
+    infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
+    out = pysam.AlignmentFile(args.output_bam + '.temp.bam', 'wb', template=infile)
+
     for read in infile.fetch(until_eof=True):
 
-        # If RG tag i merge dict, change its RG to the lower number
-        try: read.tags = str(merge_dict[int(read.tags)])
-        except KeyError:
-            pass
+        #print(str(int(dict(read.tags)['RG'])))
 
-        # Write read to out.
+        # If RG tag i merge dict, change its RG to the lower number
+        try: read_tag = str(merge_dict[int(dict(read.tags)['RG'])])
+        except KeyError:
+            read_tag = None
+
+        if read_tag:
+            read.set_tag('RG', read_tag, value_type='Z')
+            read.query_name = '_'.join(read.query_name.split('_')[:-1])+'_RG:Z:'+read_tag
+
         out.write(read)
 
     infile.close()
+    out.close()
 
-def reduce_dict(unfiltered_position_list, window):
+def reduce_dict(unfiltered_position_dict, window):
     """ Removes sorted list elements which are not within the window size from the next/previous entry and formats to
     dict instead of list."""
 
     add_anyway = False
     filtered_position_dict = dict()
+    unfiltered_position_list = list(unfiltered_position_dict.keys())
 
     for i in range(len(unfiltered_position_list)-1):
         position=unfiltered_position_list[i]
@@ -156,18 +150,18 @@ def reduce_dict(unfiltered_position_list, window):
             pass
 
         elif (position+window) >= next_pos:
-            filtered_position_dict.append(position)
+            filtered_position_dict[position] = unfiltered_position_dict[position]
             add_anyway = True
 
         elif add_anyway:
-            filtered_position_dict.append(position)
+            filtered_position_dict[position] = unfiltered_position_dict[position]
             add_anyway = False
 
         else:
             pass
 
     if add_anyway:
-        filtered_position_dict.append(position)
+        filtered_position_dict[position] = unfiltered_position_dict[position]
 
     #
     # Stats
@@ -177,15 +171,50 @@ def reduce_dict(unfiltered_position_list, window):
 
     return filtered_position_dict
 
-def match_bc(barcode_list_one, barcode_list_two):
-    """ Takes two lists and compared how many matches there is in between the two. """
+def match_clusterid(clusterid_list_one, clusterid_list_two):
+    """ Takes two lists returns matching entries between the two. """
 
-    for barcode_one in barcode_list_one:
-        for barcode_two in barcode_list_two:
-            if barcode_one == barcode_two:
-                match_list.append(barcode_one)
+    match_set = set()
+    for clusterid_one in clusterid_list_one:
+        for clusterid_two in clusterid_list_two:
 
-    return match_list
+            if clusterid_one == clusterid_two:
+                match_set.add(int(clusterid_one))
+
+    match_sorted_list = sorted(match_set)
+    return match_sorted_list
+
+def report_matches(current_match_dict, merge_dict):#, duplicate_position_list):
+    """ Reports matches by updating merge_dict with newfound matches. Dictionary will be mutually exclusive for
+    key > value (can't contain key with more than one value)."""
+
+    # Updates merge_dict() with new matches for every position pair and for every match found at those positions.
+    for position, duplicate_set in current_match_dict.items():
+
+
+        # print(duplicate_list)
+        duplicate_list = sorted(duplicate_set)
+        lower_cluster_id = duplicate_list[0]
+
+        # If multiple matches found on one position, takes one at the time for easier code structure
+        for higher_cluster_id in duplicate_list[1:]:
+            prev_value = None
+            try:
+                prev_value = merge_dict[lower_cluster_id]
+            except KeyError:
+                merge_dict[higher_cluster_id] = lower_cluster_id
+            if not prev_value == None:
+                if prev_value == lower_cluster_id:
+                    pass
+                elif prev_value < lower_cluster_id:
+                    merge_dict[higher_cluster_id] = prev_value
+                    merge_dict[lower_cluster_id] = prev_value
+                else:
+                    del merge_dict[higher_cluster_id]
+                    merge_dict[higher_cluster_id] = lower_cluster_id
+                    merge_dict[prev_value] = lower_cluster_id
+
+    return merge_dict
 
 class ClusterObject(object):
     """ Cluster object"""
@@ -293,7 +322,7 @@ class Summary(object):
 
         self.merged_clusters = int()
 
-        self.log = '.'.join(log) + '.log'
+        self.log = args.output_bam + '.log'
         with open(self.log, 'w') as openout:
             pass
 
