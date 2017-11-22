@@ -32,73 +32,80 @@ def main():
         # Only fetch positions marked as duplicates
         if not read.is_duplicate: continue
 
+        try: duplicate_position_dict[read.reference_name]
+        except KeyError:
+            duplicate_position_dict[read.reference_name] = dict()
+
         # fetch barcode
         cluster_id = read.query_name.split()[0].split('_')[-1].split(':')[-1]
-        try: duplicate_position_dict[read.pos].append(int(cluster_id))
+        try: duplicate_position_dict[read.reference_name][read.pos].append(int(cluster_id))
         except KeyError:
-            duplicate_position_dict[read.pos] = [int(cluster_id)]
-
-    window = 100000
-    proximity_duplication_dict = reduce_dict(duplicate_position_dict, window)  # Window is the strict cutoff value for how far a read can be for it being in the same cluster id.
-
-    duplicate_position_list = sorted(proximity_duplication_dict.copy().keys())
-    merge_dict = dict()
-    max_j = len(duplicate_position_list)
-    for i in range(len(duplicate_position_list)-2):
-
-        j = i + 1
-        unchecked_positions = list()
-        unchecked_positions_set = set()
-        current_match_dict = dict()
-
-        # Continue loop until all duplicates have been saved in merge dict for the current window.
-        # Extends window if duplicate is found
-        while True:
-
-            # Returns list of matching clusterid:s
-            # Does not discriminate between window/extended window
-            new_matches_clusterid = match_clusterid(duplicate_position_dict[duplicate_position_list[i]], duplicate_position_dict[duplicate_position_list[j]])
-
-            if not len(new_matches_clusterid) == 0:
-                #print(new_matches_clusterid)
-                # Keeps track of matching clusterid and their positions for the current phase window.
-                try: current_match_dict[duplicate_position_list[i]].add(new_matches_clusterid)
-                except KeyError:
-                    current_match_dict[duplicate_position_list[i]] = set(new_matches_clusterid)
-                try: current_match_dict[duplicate_position_list[j]].add(new_matches_clusterid)
-                except KeyError:
-                    current_match_dict[duplicate_position_list[j]] = set(new_matches_clusterid)
-
-            #print(current_match_dict)
-            # Check if new positions have been found
-            if len(new_matches_clusterid) >= 1:
-                for match_pos in new_matches_clusterid:
-                    unchecked_positions_set.add(match_pos)
-                unchecked_positions = sorted(unchecked_positions_set) # Converting back to list and sorting
-                new_matches_clusterid = []
-
-                remove_from_set = unchecked_positions[0]
-                unchecked_positions = unchecked_positions[1:]
-                unchecked_positions_set.remove(remove_from_set)
-                j = j + 1
-
-            # Checks if old positions need to be investigated.
-            elif len(unchecked_positions) >= 1:
-                remove_from_set = unchecked_positions[0]
-                unchecked_positions = unchecked_positions[1:]
-                unchecked_positions_set.remove(remove_from_set)
-                j = j + 1
-
-            else:
-                report_matches(current_match_dict, merge_dict)#, duplicate_position_list)
-                break
-
-            # Checks if j is about to be out of range for list
-            if j > max_j:
-                report_matches(current_match_dict, merge_dict)#, duplicate_position_list)
-                break
+            duplicate_position_dict[read.reference_name][read.pos] = [int(cluster_id)]
 
     infile.close()
+
+    window = 100000
+    proximity_duplication_dict_with_chromosomes = reduce_dict(duplicate_position_dict, window)  # Window is the strict cutoff value for how far a read can be for it being in the same cluster id.
+
+    merge_dict = dict()
+
+    for chromosome, proximity_duplication_dict in proximity_duplication_dict_with_chromosomes.items():
+
+        duplicate_position_list = sorted(proximity_duplication_dict.copy().keys())
+        max_j = len(duplicate_position_list)
+
+        for i in range(len(duplicate_position_list)-2):
+
+            j = i + 1
+            unchecked_positions = list()
+            unchecked_positions_set = set()
+            current_match_dict = dict()
+
+
+            # Continue loop until all duplicates have been saved in merge dict for the current window.
+            # Extends window if duplicate is found
+            while True:
+
+                # Returns list of matching clusterid:s
+                # Does not discriminate between window/extended window
+                new_matches_clusterid = match_clusterid(duplicate_position_dict[chromosome][duplicate_position_list[i]], duplicate_position_dict[chromosome][duplicate_position_list[j]])
+
+                if not len(new_matches_clusterid) == 0:
+                    # Keeps track of matching clusterid and their positions for the current phase window.
+                    try: current_match_dict[duplicate_position_list[i]] = current_match_dict[duplicate_position_list[i]].union(new_matches_clusterid)
+                    except KeyError:
+                        current_match_dict[duplicate_position_list[i]] = set(new_matches_clusterid)
+                    try: current_match_dict[duplicate_position_list[j]] = current_match_dict[duplicate_position_list[j]].union(new_matches_clusterid)
+                    except KeyError:
+                        current_match_dict[duplicate_position_list[j]] = set(new_matches_clusterid)
+
+                # Check if new positions have been found
+                if len(new_matches_clusterid) >= 1:
+                    for match_pos in new_matches_clusterid:
+                        unchecked_positions_set.add(match_pos)
+                    unchecked_positions = sorted(unchecked_positions_set) # Converting back to list and sorting
+                    new_matches_clusterid = []
+
+                    remove_from_set = unchecked_positions[0]
+                    unchecked_positions = unchecked_positions[1:]
+                    unchecked_positions_set.remove(remove_from_set)
+                    j = j + 1
+
+                # Checks if old positions need to be investigated.
+                elif len(unchecked_positions) >= 1:
+                    remove_from_set = unchecked_positions[0]
+                    unchecked_positions = unchecked_positions[1:]
+                    unchecked_positions_set.remove(remove_from_set)
+                    j = j + 1
+
+                else:
+                    merge_dict = report_matches(current_match_dict, merge_dict, chromosome)#, duplicate_position_list)
+                    break
+
+                # Checks if j is about to be out of range for list
+                if j >= max_j:
+                    merge_dict = report_matches(current_match_dict, merge_dict, chromosome)#, duplicate_position_list)
+                    break
 
     # Merges dict cases where {5:3, 3:1} to {5:1, 3:1} since reads are not ordered according to cluster id.
     for cluster_id_to_merge in sorted(merge_dict.copy().values()):
@@ -114,7 +121,7 @@ def main():
         merge_dict[higher_value] = lower_value
 
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
-    out = pysam.AlignmentFile(args.output_bam + '.temp.bam', 'wb', template=infile)
+    out = pysam.AlignmentFile(args.output_bam, 'wb', template=infile)
 
     for read in infile.fetch(until_eof=True):
 
@@ -138,36 +145,42 @@ def reduce_dict(unfiltered_position_dict, window):
     """ Removes sorted list elements which are not within the window size from the next/previous entry and formats to
     dict instead of list."""
 
-    add_anyway = False
     filtered_position_dict = dict()
-    unfiltered_position_list = list(unfiltered_position_dict.keys())
+    for chromosome, contig_dict in unfiltered_position_dict.items():
 
-    for i in range(len(unfiltered_position_list)-1):
-        position=unfiltered_position_list[i]
-        next_pos=unfiltered_position_list[i+1]
+        try: filtered_position_dict[chromosome]
+        except KeyError:
+            filtered_position_dict[chromosome] = dict()
 
-        if position == next_pos: # The other sequence, fetches sequences for values later
-            pass
+        add_anyway = False
+        unfiltered_position_list = list(contig_dict.keys())
 
-        elif (position+window) >= next_pos:
-            filtered_position_dict[position] = unfiltered_position_dict[position]
-            add_anyway = True
+        for i in range(len(unfiltered_position_list)-1):
+            position=unfiltered_position_list[i]
+            next_pos=unfiltered_position_list[i+1]
 
-        elif add_anyway:
-            filtered_position_dict[position] = unfiltered_position_dict[position]
-            add_anyway = False
+            if position == next_pos: # The other sequence, fetches sequences for values later
+                pass
 
-        else:
-            pass
+            elif (position+window) >= next_pos:
+                filtered_position_dict[chromosome][position] = contig_dict[position]
+                add_anyway = True
 
-    if add_anyway:
-        filtered_position_dict[position] = unfiltered_position_dict[position]
+            elif add_anyway:
+                filtered_position_dict[chromosome][position] = contig_dict[position]
+                add_anyway = False
+
+            else:
+                pass
+
+        if add_anyway:
+            filtered_position_dict[chromosome][position] = contig_dict[position]
 
     #
     # Stats
     #
-    summaryInstance.proximal_duplicates = len(filtered_position_dict.keys())
-    summaryInstance.total_positions_marked_as_duplicates = len(unfiltered_position_list)
+    #summaryInstance.proximal_duplicates = len(filtered_position_dict.keys())
+    #summaryInstance.total_positions_marked_as_duplicates = len(unfiltered_position_list)
 
     return filtered_position_dict
 
@@ -184,13 +197,13 @@ def match_clusterid(clusterid_list_one, clusterid_list_two):
     match_sorted_list = sorted(match_set)
     return match_sorted_list
 
-def report_matches(current_match_dict, merge_dict):#, duplicate_position_list):
+def report_matches(current_match_dict, merge_dict, chromosome):#, duplicate_position_list):
     """ Reports matches by updating merge_dict with newfound matches. Dictionary will be mutually exclusive for
     key > value (can't contain key with more than one value)."""
 
+
     # Updates merge_dict() with new matches for every position pair and for every match found at those positions.
     for position, duplicate_set in current_match_dict.items():
-
 
         # print(duplicate_list)
         duplicate_list = sorted(duplicate_set)
