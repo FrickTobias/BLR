@@ -29,8 +29,12 @@ def main():
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
     for read in infile.fetch(until_eof=True):
 
+        summaryInstance.totalReadPairsCount += 1
+
         # Only fetch positions marked as duplicates
         if not read.is_duplicate: continue
+        else:
+            summaryInstance.totalReadPairsMarkedAsDuplicates += 1
 
         try: duplicate_position_dict[read.reference_name]
         except KeyError:
@@ -49,6 +53,7 @@ def main():
 
     merge_dict = dict()
 
+    # Builds merge_dict from positions
     for chromosome, proximity_duplication_dict in proximity_duplication_dict_with_chromosomes.items():
 
         duplicate_position_list = sorted(proximity_duplication_dict.copy().keys())
@@ -107,7 +112,7 @@ def main():
                     merge_dict = report_matches(current_match_dict, merge_dict, chromosome)#, duplicate_position_list)
                     break
 
-    # Merges dict cases where {5:3, 3:1} to {5:1, 3:1} since reads are not ordered according to cluster id.
+    # Reduces merge_dict cases where {5:3, 3:1} to {5:1, 3:1} since reads are not ordered according to cluster id.
     for cluster_id_to_merge in sorted(merge_dict.copy().values()):
 
         # Try to find value for
@@ -120,12 +125,18 @@ def main():
         merge_dict[cluster_id_to_merge] = lower_value
         merge_dict[higher_value] = lower_value
 
+    # Saves merging history (later written to log file)
+    summaryInstance.reportMergeDict(merge_dict)
+
+    counter = int()
+    for clusterid_to_remove in merge_dict.keys():
+        counter += 1
+    summaryInstance.ClustersRemovedDueToMerge = counter
+
+    # Translate read file according to merge_dict (at both RG tag and in header)
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
     out = pysam.AlignmentFile(args.output_bam, 'wb', template=infile)
-
     for read in infile.fetch(until_eof=True):
-
-        #print(str(int(dict(read.tags)['RG'])))
 
         # If RG tag i merge dict, change its RG to the lower number
         try: read_tag = str(merge_dict[int(dict(read.tags)['RG'])])
@@ -135,11 +146,14 @@ def main():
         if read_tag:
             read.set_tag('RG', read_tag, value_type='Z')
             read.query_name = '_'.join(read.query_name.split('_')[:-1])+'_RG:Z:'+read_tag
+            summaryInstance.readPairsMerged += 1
 
         out.write(read)
 
     infile.close()
     out.close()
+
+    summaryInstance.writeLog()
 
 def reduce_dict(unfiltered_position_dict, window):
     """ Removes sorted list elements which are not within the window size from the next/previous entry and formats to
@@ -179,8 +193,7 @@ def reduce_dict(unfiltered_position_dict, window):
     #
     # Stats
     #
-    #summaryInstance.proximal_duplicates = len(filtered_position_dict.keys())
-    #summaryInstance.total_positions_marked_as_duplicates = len(unfiltered_position_list)
+    #summaryInstance.duplicatePositionWithoutProximity = len(unfiltered_position_dict.values().values()) - len(filtered_position_dict.values().values())
 
     return filtered_position_dict
 
@@ -320,37 +333,36 @@ class Summary(object):
 
     def __init__(self):
 
-        #
-        # Overall stats
-        #
-        self.total_positions_marked_as_duplicates = int()
-        self.not_real_duplicates = int() # tracks how many duplicate positions which are NOT merged
+        self.totalReadPairsCount = int()
+        self.totalReadPairsMarkedAsDuplicates = int()
+        self.duplicatePositionWithoutProximity = int()# Duplicates without proximity to other duplicates (=> cannot be cluster duplicate)
 
-        #
-        # Individual steps
-        #
-        self.non_proximal_duplicates = int()
-        self.proximal_duplicates = int()
-        self.proximal_duplicates_with_same_bc_sequence = int()
+        self.readPairsMerged = int() # Rather the count of reads that have changed cluster ID.
 
-        self.merged_clusters = int()
+        self.ClustersRemovedDueToMerge = int()
 
+        # self.totalClusterCount
+        # self.totalClusterCountPostMerge
+
+        self.mergeDict = str()
         self.log = args.output_bam + '.log'
         with open(self.log, 'w') as openout:
             pass
 
-    def updateReadToClusterDict(self, input_dict):
-        """ Merges cluster specific dictionaries to a master dictionary."""
+    def reportMergeDict(self, merge_dict):
+        """ Saves a readable string format of merge_dict to write to out."""
 
-        self.CurrentClusterId += 1
-        for barcode in input_dict.keys():
-            self.read_to_barcode_dict[barcode] = self.CurrentClusterId
+        for high_clusterId, low_clusterId in merge_dict.items():
+            self.mergeDict += str(high_clusterId) + '\t=>\t' + str(low_clusterId) + '\n'
 
-    def writeLog(self, line):
+    def writeLog(self):
 
         import time
         with open(self.log, 'a') as openout:
             openout.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\n')
-            openout.write(line + '\n')
+            for objectVariable, value in vars(self).items():
+                print('\n'+objectVariable)
+                print(value)
+                #print(self.attributes)
 
 if __name__=="__main__": main()
