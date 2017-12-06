@@ -6,8 +6,8 @@ def main():
     #
     # Imports & globals
     #
-    import pysam
-    global args, summaryInstance, output_tagged_bamfile, sys, time
+    import pysam, sys, time
+    global args, summaryInstance, output_tagged_bamfile
 
     #
     # Argument parsing
