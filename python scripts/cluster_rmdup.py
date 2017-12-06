@@ -36,7 +36,7 @@ def main():
     for read in infile.fetch(until_eof=True):
 
         summaryInstance.totalReadPairsCount += 1
-        if summaryInstance < summaryInstance.totalReadPairsCount:
+        if current_read_count < summaryInstance.totalReadPairsCount:
             sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + "{:,}".format(current_read_count) + ' pairs read\n')
             current_read_count += 1000000
 
