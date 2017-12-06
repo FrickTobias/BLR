@@ -7,7 +7,7 @@ def main():
     # Imports & globals
     #
     import pysam
-    global args, summaryInstance, output_tagged_bamfile
+    global args, summaryInstance, output_tagged_bamfile, sys, time
 
     #
     # Argument parsing
@@ -21,15 +21,24 @@ def main():
     summaryInstance = Summary()
 
     #
+    # Progress
+    #
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tReading input file and building duplicate position list\n')
+
+    #
     # Data processing & writing output
     #
 
     # read duplicate file and build position list which is to be investigated.
     duplicate_position_dict = dict()
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
+    current_read_count = 1000000
     for read in infile.fetch(until_eof=True):
 
         summaryInstance.totalReadPairsCount += 1
+        if summaryInstance < summaryInstance.totalReadPairsCount:
+            sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + "{:,}".format(current_read_count) + ' pairs read\n')
+            current_read_count += 1000000
 
         # Only fetch positions marked as duplicates
         if not read.is_duplicate: continue
@@ -48,8 +57,21 @@ def main():
 
     infile.close()
 
+    #
+    # Progress
+    #
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tDuplicate position list built\n')
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tTotal mapped read pair count: ' + "{:,}".format(summaryInstance.totalReadPairsCount) + '\n')
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tReducing duplicate dictionary (proximity)\n')
+
     window = 100000
     proximity_duplication_dict_with_chromosomes = reduce_dict(duplicate_position_dict, window)  # Window is the strict cutoff value for how far a read can be for it being in the same cluster id.
+
+    #
+    # Progress
+    #
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tDuplicate dictionary reduced\n')
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tBuilding merging dictionary\n')
 
     merge_dict = dict()
 
@@ -59,8 +81,19 @@ def main():
         duplicate_position_list = sorted(proximity_duplication_dict.copy().keys())
         max_j = len(duplicate_position_list)
 
+        #
+        # Progress
+        #
+        sys.stderr.write('\n' + time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + str(chromosome) + '\n')
+        sys.stderr.write('|------------------------------------------------|\n')
+        two_percent = int(max_j/50)
+        current_percentage = two_percent
+
         for i in range(len(duplicate_position_list)-2):
 
+            if current_percentage < i:
+                sys.stderr.write('#')
+                current_percentage += two_percent
             j = i + 1
             unchecked_positions = list()
             unchecked_positions_set = set()
@@ -112,6 +145,12 @@ def main():
                     merge_dict = report_matches(current_match_dict, merge_dict, chromosome)#, duplicate_position_list)
                     break
 
+    #
+    # Progress
+    #
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tMerging dictionary built\n')
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tReducing merging dictionary (several step redundancy)\n')
+
     # Reduces merge_dict cases where {5:3, 3:1} to {5:1, 3:1} since reads are not ordered according to cluster id.
     for cluster_id_to_merge in sorted(merge_dict.copy().values()):
 
@@ -125,6 +164,15 @@ def main():
         merge_dict[cluster_id_to_merge] = lower_value
         merge_dict[higher_value] = lower_value
 
+    #
+    # Progress
+    #
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tMerging dictionary reduced\n')
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tWriting output file\n')
+    sys.stderr.write('|------------------------------------------------|\n')
+    two_percent = int(summaryInstance.totalReadPairsCount/50)
+    current_percentage = two_percent
+
     # Saves merging history (later written to log file)
     summaryInstance.reportMergeDict(merge_dict)
 
@@ -137,6 +185,10 @@ def main():
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
     out = pysam.AlignmentFile(args.output_bam, 'wb', template=infile)
     for read in infile.fetch(until_eof=True):
+
+        if current_percentage < current_percentage:
+            sys.stderr.write('#')
+            current_percentage += two_percent
 
         # If RG tag i merge dict, change its RG to the lower number
         try: read_tag = str(merge_dict[int(dict(read.tags)['RG'])])
@@ -153,6 +205,11 @@ def main():
     infile.close()
     out.close()
 
+    #
+    # Progress
+    #
+    sys.stderr.write('\n')
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tFinished\n')
     summaryInstance.writeLog()
 
 def reduce_dict(unfiltered_position_dict, window):
