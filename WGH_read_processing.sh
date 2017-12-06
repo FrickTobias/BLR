@@ -120,10 +120,12 @@ if $mailing
     then
     echo 'Starting 1st trim '$(date) | mail -s 'wgh' $email
 fi
+printf 'Running with '$processors' threads\n'
 printf '#1 START PROCESSING \n'
 
 # Trim away E handle on R1 5'. Also removes reads shorter than 85 bp.
 cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
+    -j $processors \
     -o $file_name".h1.fastq" \
     -p $file_name2".h1.fastq" $ARG1 $ARG2 \
     --discard-untrimmed -e 0.2 -m 65 # Tosses reads shorter than len(e+bc+handle+TES)
@@ -167,6 +169,7 @@ printf '\n\n#3 GOT DBS USING UMI-TOOLs \n'
 
 #Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed.
 cutadapt -g AGATGTGTATAAGAGACAG -o $file_name".h1.bc.h2.fastq" \
+    -j $processors \
     -p $file_name2".h1.bc.h2.fastq" \
     $file_name".h1.bc.fastq.gz" \
     $file_name2".h1.bc.fastq.gz" --discard-untrimmed -e 0.2
@@ -193,6 +196,7 @@ printf '\n\n#4 TRIMMED TES1 \n'
 
 #Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT
 cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
+    -j $processors \
 	-o $file_name".trimmed.fastq" \
 	-p $file_name2".trimmed.fastq" \
 	-m 25 \
