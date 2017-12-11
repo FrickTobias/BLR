@@ -168,25 +168,28 @@ def main():
     # Progress
     #
     sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tMerging dictionary reduced\n')
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tWriting output file\n')
-    sys.stderr.write('|------------------------------------------------|\n')
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tCounting number of merges\n')
     two_percent = int(summaryInstance.totalReadPairsCount/50)
     current_percentage = two_percent
+    read_counter = 0
 
     # Saves merging history (later written to log file)
     summaryInstance.reportMergeDict(merge_dict)
 
-    counter = int()
-    for clusterid_to_remove in merge_dict.keys():
-        counter += 1
-    summaryInstance.ClustersRemovedDueToMerge = counter
+    #
+    # Progress
+    #
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + str(summaryInstance.ClustersRemovedDueToMerge) + ' Clusters removed due to being duplicates\n')
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tWriting output file\n')
+    sys.stderr.write('|------------------------------------------------|\n')
 
     # Translate read file according to merge_dict (at both RG tag and in header)
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
     out = pysam.AlignmentFile(args.output_bam, 'wb', template=infile)
     for read in infile.fetch(until_eof=True):
 
-        if current_percentage < current_percentage:
+        read_counter += 1
+        if current_percentage < read_counter:
             sys.stderr.write('#')
             current_percentage += two_percent
 
@@ -410,6 +413,7 @@ class Summary(object):
         """ Saves a readable string format of merge_dict to write to out."""
 
         for high_clusterId, low_clusterId in merge_dict.items():
+            self.ClustersRemovedDueToMerge += 1
             self.mergeDict += str(high_clusterId) + '\t=>\t' + str(low_clusterId) + '\n'
 
     def writeLog(self):

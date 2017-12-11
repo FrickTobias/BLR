@@ -217,8 +217,8 @@ pigz $file_name2".trimmed.fastq"
 #echo 'Starting mapping '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
 #printf '\n\n#5 TRIMMED TES2 \n'
 #
-#bowtie2 --maxins 2000 -x $bowtie2_reference \
-#    -1 $file_name".trimmed.fastq" -2 $file_name2".trimmed.fastq" | samtools view -bS - > $path/"mappedInserts.bam"
+#bowtie2 --maxins 2000 -p $processors -x $bowtie2_reference \
+#    -1 $file_name".trimmed.fastq" -2 $file_name2".trimmed.fastq" | samtools view -@ $processors -bS - > $path/"mappedInserts.bam"
 #
 #
 #pigz $file_name".trimmed.fastq"
@@ -232,6 +232,7 @@ pigz $file_name2".trimmed.fastq"
 #printf '\n\n#7 REMOVED SAM-FILE \n'
 #
 #samtools sort $path/"mappedInserts.bam" \
+#    -@ $processors
 #    -o $path/"mappedInserts.sort.bam"
 #
 #rm $path/"mappedInserts.bam"
