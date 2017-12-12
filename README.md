@@ -1,7 +1,6 @@
 # WGH_Analysis
 
-This is a pipeline to perform scaffolding on WGH data. It uses numerous bioinformatics tools with some custom make
-parsing tools for formatting in between steps. 
+This is a pipeline for handling of [WGH]() data. It takes fastq files as input and outputs a filtered bam file.
 
 TL;DR: Look at the [flowchart](https://github.com/FrickTobias/WGH_Analysis/blob/master/README.md#overview) to see and overview of the pipeline.
 
@@ -11,8 +10,8 @@ To run the pipeline, the following software need to be installed:
 
   - cd-hit-454
   - cutadapt
-  - UMItools
   - bowtie2
+  - samtools
   
 This can be done by writing the following command in your terminal.
 
@@ -22,7 +21,6 @@ sudo bash prerequisites.sh
 
 It will also be required to have downloaded the programs below. 
 
-  - [fragScaff](https://sourceforge.net/projects/fragscaff/files/?source=navbar) (download fragScaff.pl)
   - [Picard Tools](https://github.com/broadinstitute/picard)
 
 Lastly, a Bowtie2 reference genome (e.g. GR38) is needed, available at Illuminas iGenomes.
@@ -31,26 +29,31 @@ Lastly, a Bowtie2 reference genome (e.g. GR38) is needed, available at Illuminas
 
 ## Useage
 
+### Setup
+
 First, download the github repository by writing the cloning command in your terminal.
 
 ```
 git clone https://github.com/FrickTobias/WGH_Analysis.git
 ```
 
+Then provide WGH_Analysis with the appropriate paths for Picard Tools and your Bowtie2 reference data. 
+
+
+```
+bash setpath.sh <picard_path> <bowtie2_reference>
+```
+
 ### Automated analysis
-The whole pipeline can be run be using the automation script instead of running all commands individually using 
-WGH_Analysis.sh. First however the script need to know where non-pathed software/folders is located on your computer, (Picard 
-Tools, bowtie2 reference, fragScaff and the WGH folder) which can be set using setpath.sh.
+The whole pipeline can be run be using the automation script WGH_Analysis.sh. For standard useage, run the following command.
 
 ```
-bash setpath.sh <picard_path> <bowtie2_reference> <fragScaff_path>
-```
-Then the analysis can be started with the following command:
-```
-bash WGH_automation.sh <read_1.fq> <read_2.fq> <output>
+bash WGH_automation.sh <read_1.fq> <read_2.fq> <output> -m <john.doe@myworkplace.com -p <processors>
 ```
 
-For more details, see the [step-by-step](https://github.com/FrickTobias/WGH_Analysis/tree/master/step-by-step) folder which describes all steps performed by WGH_automation. For example useage, see the [example folder](https://github.com/FrickTobias/WGH_Analysis/tree/master/example) where an example run is thouroughly described.
+For all available options, see -h (--help) and for more details consult the [step-by-step](https://github.com/FrickTobias/WGH_Analysis/tree/master/step-by-step) 
+folder which describes all steps performed by WGH_automation. For example useage, see the [example folder](https://github.com/FrickTobias/WGH_Analysis/tree/master/example) 
+where an example run is thouroughly described.
 
 ## Overview
 

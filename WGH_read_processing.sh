@@ -214,32 +214,6 @@ fi
 pigz $file_name".trimmed.fastq"
 pigz $file_name2".trimmed.fastq"
 
-#echo 'Starting mapping '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
-#printf '\n\n#5 TRIMMED TES2 \n'
-#
-#bowtie2 --maxins 2000 -p $processors -x $bowtie2_reference \
-#    -1 $file_name".trimmed.fastq" -2 $file_name2".trimmed.fastq" | samtools view -@ $processors -bS - > $path/"mappedInserts.bam"
-#
-#
-#pigz $file_name".trimmed.fastq"
-#pigz $file_name2".trimmed.fastq"
-#
-#echo 'Starting bam file sorting '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
-#printf '\n\n#6 MAPPED READS \n'
-#
-#rm $path/"mappedInserts.sam"
-#
-#printf '\n\n#7 REMOVED SAM-FILE \n'
-#
-#samtools sort $path/"mappedInserts.bam" \
-#    -@ $processors
-#    -o $path/"mappedInserts.sort.bam"
-#
-#rm $path/"mappedInserts.bam"
-#
-#samtools index $path/"mappedInserts.sort.bam"
-#
-
 if $mailing
     then
     echo 'Finished '$(date) | mail -s 'wgh' $email
@@ -247,4 +221,4 @@ fi
 
 #printf '\n\n#8 SORTED AND INDEXED BAM-FILE \n'
 #
-#printf 'RUN COMPLETE (>'-')  (>'-')>  ^('-')^'
+printf 'RUN COMPLETE (>'-')  (>'-')>  ^('-')^'
