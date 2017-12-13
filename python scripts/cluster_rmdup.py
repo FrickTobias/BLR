@@ -227,7 +227,7 @@ def reduce_dict(unfiltered_position_dict, window):
             filtered_position_dict[chromosome] = dict()
 
         add_anyway = False
-        unfiltered_position_list = list(contig_dict.keys())
+        unfiltered_position_list = sorted(contig_dict.keys())
 
         for i in range(len(unfiltered_position_list)-1):
             position=unfiltered_position_list[i]
@@ -422,8 +422,6 @@ class Summary(object):
         with open(self.log, 'a') as openout:
             openout.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\n')
             for objectVariable, value in vars(self).items():
-                print('\n'+objectVariable)
-                print(value)
-                #print(self.attributes)
+                openout.write('\n'+str(objectVariable) + '\t' + str(value))
 
 if __name__=="__main__": main()
