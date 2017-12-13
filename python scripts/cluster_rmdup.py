@@ -84,15 +84,32 @@ def main():
         #
         # Progress
         #
-        sys.stderr.write('\n' + time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + str(chromosome) + '\n')
-        sys.stderr.write('|------------------------------------------------|\n')
-        two_percent = int(max_j/50)
+        if max_j < 2:
+            continue
+        else:
+            sys.stderr.write('\n' + time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + str(chromosome) + '\n')
+            sys.stderr.write('|------------------------------------------------|\n')
+
+        # Corrects progress bar for when very few duplicates are found.
+        progress_string = '#'
+        two_percent = float((max_j-2) / 50)
+        if two_percent < 1:
+            progress_length = int(50/(max_j-2))
+            progress_string = '#' * progress_length
+            sys.stderr.write(progress_string)
+
         current_percentage = two_percent
+
+
+
+#        print('max j: ' + str(max_j))
+#        print('two_percent: ' + str(two_percent))
 
         for i in range(len(duplicate_position_list)-2):
 
-            if current_percentage < i:
-                sys.stderr.write('#')
+            if current_percentage <= i:
+                sys.stderr.write(progress_string)
+                #print(i)
                 current_percentage += two_percent
             j = i + 1
             unchecked_positions = list()
@@ -104,6 +121,7 @@ def main():
             # Extends window if duplicate is found
             while True:
 
+#                print('j: ' + str(j))
                 # Returns list of matching clusterid:s
                 # Does not discriminate between window/extended window
                 new_matches_clusterid = match_clusterid(duplicate_position_dict[chromosome][duplicate_position_list[i]], duplicate_position_dict[chromosome][duplicate_position_list[j]])
@@ -148,7 +166,8 @@ def main():
     #
     # Progress
     #
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tMerging dictionary built\n')
+    sys.stderr.write('\n\n')
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tMerging dictionary done\n')
     sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tReducing merging dictionary (several step redundancy)\n')
 
     # Reduces merge_dict cases where {5:3, 3:1} to {5:1, 3:1} since reads are not ordered according to cluster id.
@@ -181,7 +200,7 @@ def main():
     #
     sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + str(summaryInstance.ClustersRemovedDueToMerge) + ' Clusters removed due to being duplicates\n')
     sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tWriting output file\n')
-    sys.stderr.write('|------------------------------------------------|\n')
+    sys.stderr.write('\n|------------------------------------------------|\n')
 
     # Translate read file according to merge_dict (at both RG tag and in header)
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
