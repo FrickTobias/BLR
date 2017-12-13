@@ -100,17 +100,13 @@ def main():
 
         current_percentage = two_percent
 
-
-
-#        print('max j: ' + str(max_j))
-#        print('two_percent: ' + str(two_percent))
-
-        for i in range(len(duplicate_position_list)-2):
+        for i in range(len(duplicate_position_list)-1):
 
             if current_percentage <= i:
                 sys.stderr.write(progress_string)
                 #print(i)
                 current_percentage += two_percent
+
             j = i + 1
             unchecked_positions = list()
             unchecked_positions_set = set()
