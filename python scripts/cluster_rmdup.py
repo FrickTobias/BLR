@@ -96,7 +96,7 @@ def main():
         if two_percent < 1:
             progress_length = int(50/(max_j-2))
             progress_string = '#' * progress_length
-            sys.stderr.write(progress_string)
+            #sys.stderr.write(progress_string)
 
         current_percentage = two_percent
 
@@ -111,7 +111,6 @@ def main():
             unchecked_positions = list()
             unchecked_positions_set = set()
             current_match_dict = dict()
-
 
             # Continue loop until all duplicates have been saved in merge dict for the current window.
             # Extends window if duplicate is found
@@ -214,9 +213,27 @@ def main():
             read_tag = None
 
         if read_tag:
+            prev_tag = int(dict(read.tags)['RG'])
             read.set_tag('RG', read_tag, value_type='Z')
+
             read.query_name = '_'.join(read.query_name.split('_')[:-1])+'_RG:Z:'+read_tag
             summaryInstance.readPairsMerged += 1
+
+            # If it belongs to the duplicate reads
+            # Won't check if it is a duplicate btw another barcode
+            # GREPFRICK: This is only an estimate (overestimate) since it will include reads marked as duplicates, even if it was to a 'singleton overlap' to another barcode then the one being translated.
+            if read.is_duplicate:
+                # Add barcode to overlap dict
+                try: summaryInstance.overlap_dict[int(read_tag)][prev_tag] += 1
+                except KeyError:
+                    try: summaryInstance.overlap_dict[int(read_tag)]
+                    except KeyError:
+                        summaryInstance.overlap_dict[int(read_tag)] = dict()
+                    summaryInstance.overlap_dict[int(read_tag)][prev_tag] = 1
+
+                    #print('adding ' + str(prev_tag) + ' under key ' + str(read_tag) + ' to dict at value 1')
+                    #summaryInstance.overlap_dict[int(read_tag)] = dict()
+                    #summaryInstance.overlap_dict[int(read_tag)][prev_tag] = 1
 
         out.write(read)
 
@@ -224,10 +241,19 @@ def main():
     out.close()
 
     #
+    # Calculates the number of read overlaps per barcode and summarises according to # barcodes in droplets.
+    #
+    summaryInstance.coupling_analysis()
+
+    #
     # Progress
     #
     sys.stderr.write('\n')
     sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tFinished\n')
+
+    #
+    # Write logfile containing everything in summaryinstance
+    #
     summaryInstance.writeLog()
 
 def reduce_dict(unfiltered_position_dict, window):
@@ -411,16 +437,14 @@ class Summary(object):
         self.totalReadPairsCount = int()
         self.totalReadPairsMarkedAsDuplicates = int()
         self.duplicatePositionWithoutProximity = int()# Duplicates without proximity to other duplicates (=> cannot be cluster duplicate)
-
         self.readPairsMerged = int() # Rather the count of reads that have changed cluster ID.
-
         self.ClustersRemovedDueToMerge = int()
-
-        # self.totalClusterCount
-        # self.totalClusterCountPostMerge
-
         self.mergeDict = str()
+        self.overlap_dict = dict() # Format for tracking # barcode overlap occurrances during writing of file
+        self.coupling_dict = dict() # Summarises overlap_dict (bins values)
+        self.readable_coupling_dict = str()
         self.log = args.output_bam + '.log'
+
         with open(self.log, 'w') as openout:
             pass
 
@@ -431,12 +455,35 @@ class Summary(object):
             self.ClustersRemovedDueToMerge += 1
             self.mergeDict += str(high_clusterId) + '\t=>\t' + str(low_clusterId) + '\n'
 
+    def coupling_analysis(self):
+        """ Summarises overlap into a a coupling analysis dictionary (~bins values)."""
+
+        # Iterate over 'droplet defining' clusterids
+        for lower_barcode in self.overlap_dict.keys():
+            barcodes_in_drop = len(self.overlap_dict[lower_barcode].keys())
+
+            # iterates over translation event and counts # of puts into key according to how many duplicate reads that event had
+            for translation_events, number_of_reads in self.overlap_dict[lower_barcode].items():
+                try: self.coupling_dict[barcodes_in_drop][number_of_reads] += 1
+                except KeyError:
+                    try: self.coupling_dict[barcodes_in_drop]
+                    except KeyError:
+                        self.coupling_dict[barcodes_in_drop] = dict()
+                    self.coupling_dict[barcodes_in_drop][number_of_reads] = 1
+
+        self.readable_coupling_dict += 'bc/drop\toverlap\t#occurances\n'
+        for number_of_bc_in_droplet in sorted(self.coupling_dict.keys()):
+
+            for number_of_overlapping_reads in sorted(self.coupling_dict[number_of_bc_in_droplet].keys()):
+
+                self.readable_coupling_dict += str(number_of_bc_in_droplet) + '\t' + str(number_of_overlapping_reads) + '\t' + str(self.coupling_dict[number_of_bc_in_droplet][number_of_overlapping_reads]) + '\n'
+
     def writeLog(self):
 
         import time
         with open(self.log, 'a') as openout:
-            openout.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\n')
+            openout.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()))
             for objectVariable, value in vars(self).items():
-                openout.write('\n'+str(objectVariable) + '\t' + str(value))
+                openout.write('\n\n'+str(objectVariable) + '\n' + str(value))
 
 if __name__=="__main__": main()
