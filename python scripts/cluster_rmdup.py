@@ -188,7 +188,7 @@ def main():
     read_counter = 0
 
     # Saves merging history (later written to log file)
-    summaryInstance.reportMergeDict(merge_dict)
+    #summaryInstance.reportMergeDict(merge_dict)
 
     #
     # Progress
