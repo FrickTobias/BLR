@@ -188,6 +188,7 @@ def main():
     read_counter = 0
 
     # Saves merging history (later written to log file)
+    # Currently removed since there are A LOT OF BARCODES
     #summaryInstance.reportMergeDict(merge_dict)
 
     #
@@ -230,10 +231,6 @@ def main():
                     except KeyError:
                         summaryInstance.overlap_dict[int(read_tag)] = dict()
                     summaryInstance.overlap_dict[int(read_tag)][prev_tag] = 1
-
-                    #print('adding ' + str(prev_tag) + ' under key ' + str(read_tag) + ' to dict at value 1')
-                    #summaryInstance.overlap_dict[int(read_tag)] = dict()
-                    #summaryInstance.overlap_dict[int(read_tag)][prev_tag] = 1
 
         out.write(read)
 
@@ -439,7 +436,7 @@ class Summary(object):
         self.duplicatePositionWithoutProximity = int()# Duplicates without proximity to other duplicates (=> cannot be cluster duplicate)
         self.readPairsMerged = int() # Rather the count of reads that have changed cluster ID.
         self.ClustersRemovedDueToMerge = int()
-        self.mergeDict = str()
+        #self.mergeDict = str() # Removed since there are A LOT of clusters being merged
         self.overlap_dict = dict() # Format for tracking # barcode overlap occurrances during writing of file
         self.coupling_dict = dict() # Summarises overlap_dict (bins values)
         self.readable_coupling_dict = str()
@@ -476,6 +473,7 @@ class Summary(object):
 
             for number_of_overlapping_reads in sorted(self.coupling_dict[number_of_bc_in_droplet].keys()):
 
+                self.readable_coupling_dict += str(number_of_bc_in_droplet) + '\t' + str(number_of_overlapping_reads) + '\t' + str(self.coupling_dict[number_of_bc_in_droplet][number_of_overlapping_reads]) + '\n'
                 self.readable_coupling_dict += str(number_of_bc_in_droplet) + '\t' + str(number_of_overlapping_reads) + '\t' + str(self.coupling_dict[number_of_bc_in_droplet][number_of_overlapping_reads]) + '\n'
 
     def writeLog(self):
