@@ -19,13 +19,7 @@ This can be done by writing the following command in your terminal.
 sudo bash prerequisites.sh
 ```
 
-It will also be required to have downloaded the programs below. 
-
-  - [Picard Tools](https://github.com/broadinstitute/picard)
-
-Lastly, a Bowtie2 reference genome (e.g. GRCh38) is needed, available at e.g. Illuminas iGenomes.
-
-[Illumina iGenomes](https://support.illumina.com/sequencing/sequencing_software/igenome.html)
+It will also be required to have downloaded [Picard Tools](https://github.com/broadinstitute/picard) and a Bowtie2 reference genome (e.g. GRCh38), available at e.g. [Illumina iGenomes](https://support.illumina.com/sequencing/sequencing_software/igenome.html).
 
 ## Useage
 
