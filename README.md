@@ -8,10 +8,10 @@ TL;DR: Look at the [flowchart](https://github.com/FrickTobias/WGH_Analysis/blob/
 
 To run the pipeline, the following software need to be installed:
 
-  - cd-hit-454
-  - cutadapt
-  - bowtie2
-  - samtools
+  - [cd-hit-454](https://github.com/weizhongli/cdhit.git)
+  - [cutadapt](https://github.com/marcelm/cutadapt.git)
+  - [bowtie2](https://github.com/BenLangmead/bowtie2)
+  - [samtools](https://github.com/samtools/samtools)
   
 This can be done by writing the following command in your terminal.
 
