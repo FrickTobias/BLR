@@ -23,7 +23,7 @@ It will also be required to have downloaded the programs below.
 
   - [Picard Tools](https://github.com/broadinstitute/picard)
 
-Lastly, a Bowtie2 reference genome (e.g. GR38) is needed, available at Illuminas iGenomes.
+Lastly, a Bowtie2 reference genome (e.g. GRCh38) is needed, available at e.g. Illuminas iGenomes.
 
 [Illumina iGenomes](https://support.illumina.com/sequencing/sequencing_software/igenome.html)
 
@@ -52,7 +52,7 @@ bash WGH_automation.sh <read_1.fq> <read_2.fq> <output> -m <john.doe@myworkplace
 ```
 
 For all available options, see -h (--help) and for more details consult the [step-by-step](https://github.com/FrickTobias/WGH_Analysis/tree/master/step-by-step) 
-folder which describes all steps performed by WGH_automation. For example useage, see the [example folder](https://github.com/FrickTobias/WGH_Analysis/tree/master/example) 
+folder which describes all steps performed by WGH_automation. For examples, see the [example folder](https://github.com/FrickTobias/WGH_Analysis/tree/master/example) 
 where an example run is thouroughly described.
 
 ## Overview
