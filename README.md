@@ -1,8 +1,6 @@
 # WGH_Analysis
 
-This is a pipeline for handling of [WGH]() data. It takes fastq files as input and outputs a filtered bam file.
-
-TL;DR: Look at the [flowchart](https://github.com/FrickTobias/WGH_Analysis/blob/master/README.md#overview) to see and overview of the pipeline.
+This is a pipeline for handling of [WGH]() data. It takes fastq files as input and outputs a bam file ready for variant calling. For a quick overview, look at the [flowchart](https://github.com/FrickTobias/WGH_Analysis/blob/master/README.md#overview) to see what the pipeline does.
 
 ## Prerequisites
 
