@@ -96,6 +96,7 @@ def main():
         if two_percent < 1:
             progress_length = int(50/(max_j-2))
             progress_string = '#' * progress_length
+
             #sys.stderr.write(progress_string)
 
         current_percentage = two_percent
@@ -104,7 +105,8 @@ def main():
 
             if current_percentage <= i:
                 sys.stderr.write(progress_string)
-                #print(i)
+                sys.stderr.flush()
+                time.sleep(0.01)
                 current_percentage += two_percent
 
             j = i + 1
@@ -206,6 +208,8 @@ def main():
         read_counter += 1
         if current_percentage < read_counter:
             sys.stderr.write('#')
+            sys.stderr.flush()
+            time.sleep(0.001)
             current_percentage += two_percent
 
         # If RG tag i merge dict, change its RG to the lower number
