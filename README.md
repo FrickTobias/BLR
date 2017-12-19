@@ -1,17 +1,15 @@
 # WGH_Analysis
 
-This is a pipeline for handling of [WGH]() data. It takes fastq files as input and outputs a filtered bam file.
-
-TL;DR: Look at the [flowchart](https://github.com/FrickTobias/WGH_Analysis/blob/master/README.md#overview) to see and overview of the pipeline.
+This is a pipeline for handling of [WGH]() data. It takes fastq files as input and outputs a bam file ready for variant calling. For a quick overview, look at the [flowchart](https://github.com/FrickTobias/WGH_Analysis/blob/master/README.md#overview) to see what the pipeline does.
 
 ## Prerequisites
 
 To run the pipeline, the following software need to be installed:
 
-  - cd-hit-454
-  - cutadapt
-  - bowtie2
-  - samtools
+  - [cd-hit-454](https://github.com/weizhongli/cdhit.git)
+  - [cutadapt](https://github.com/marcelm/cutadapt.git)
+  - [bowtie2](https://github.com/BenLangmead/bowtie2)
+  - [samtools](https://github.com/samtools/samtools)
   
 This can be done by writing the following command in your terminal.
 
@@ -19,13 +17,7 @@ This can be done by writing the following command in your terminal.
 sudo bash prerequisites.sh
 ```
 
-It will also be required to have downloaded the programs below. 
-
-  - [Picard Tools](https://github.com/broadinstitute/picard)
-
-Lastly, a Bowtie2 reference genome (e.g. GR38) is needed, available at Illuminas iGenomes.
-
-[Illumina iGenomes](https://support.illumina.com/sequencing/sequencing_software/igenome.html)
+It will also be required to have downloaded [Picard Tools](https://github.com/broadinstitute/picard) and a Bowtie2 reference genome (e.g. GRCh38), available at e.g. [Illumina iGenomes](https://support.illumina.com/sequencing/sequencing_software/igenome.html).
 
 ## Useage
 
@@ -52,7 +44,7 @@ bash WGH_automation.sh <read_1.fq> <read_2.fq> <output> -m <john.doe@myworkplace
 ```
 
 For all available options, see -h (--help) and for more details consult the [step-by-step](https://github.com/FrickTobias/WGH_Analysis/tree/master/step-by-step) 
-folder which describes all steps performed by WGH_automation. For example useage, see the [example folder](https://github.com/FrickTobias/WGH_Analysis/tree/master/example) 
+folder which describes all steps performed by WGH_automation. For examples, see the [example folder](https://github.com/FrickTobias/WGH_Analysis/tree/master/example) 
 where an example run is thouroughly described.
 
 ## Overview
