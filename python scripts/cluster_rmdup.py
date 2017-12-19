@@ -191,7 +191,7 @@ def main():
 
     # Saves merging history (later written to log file)
     # Currently removed since there are A LOT OF BARCODES
-    #summaryInstance.reportMergeDict(merge_dict)
+    summaryInstance.reportMergeDict(merge_dict)
 
     #
     # Progress
@@ -452,9 +452,7 @@ class Summary(object):
     def reportMergeDict(self, merge_dict):
         """ Saves a readable string format of merge_dict to write to out."""
 
-        for high_clusterId, low_clusterId in merge_dict.items():
-            self.ClustersRemovedDueToMerge += 1
-            self.mergeDict += str(high_clusterId) + '\t=>\t' + str(low_clusterId) + '\n'
+        self.ClustersRemovedDueToMerge = len(merge_dict.keys())
 
     def coupling_analysis(self):
         """ Summarises overlap into a a coupling analysis dictionary (~bins values)."""
