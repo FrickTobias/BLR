@@ -93,7 +93,7 @@ def main():
         # Corrects progress bar for when very few duplicates are found.
         progress_string = '#'
         two_percent = float((max_j-2) / 50)
-        if two_percent < 1:
+        if two_percent < 1 and not max_j==2:
             progress_length = int(50/(max_j-2))
             progress_string = '#' * progress_length
 
