@@ -2,7 +2,6 @@
 
 def main():
 
-
     #
     # Imports & globals
     #
@@ -29,14 +28,53 @@ def main():
     # Data processing & writing output
     #
 
+    # Settings & initals
+    num_bins = 1001
+    bin_width = args.bin
+    bin_list = list()
+
+    # Initials: metadata
+    bin_pos_list = range(0, num_bins * bin_width, bin_width)
+
     # Open bam file
+    infile = pysam.AlignmentFile(args.sort_tag_bam, 'rb')
 
-    # Fetch initial window
+    for i in range(len(bin_temp_list)-1):
 
-    # Loop over bins and save significant values.
-        significant = test_bin(bin_list)
-        if significant:
-            summaryInstance.
+        bin_start = bin_pos_list[i]
+        bin_stop = bin_pos_list[i+1]
+        barcode_set = set()
+
+        for read in infile.fetch(chr1, bin_start, bin_stop):
+
+            barcode_ID = read.tag['@RG']
+            barcode_set.add(barcode_ID)
+
+        bin_list.append(len(barcode_set))
+
+    # Test first window
+
+    for chromsome in infile.header['@SQ']:
+
+        # Continues until end of chromosome
+        while True:
+
+            # shift window
+            window[]
+
+            # Fetch new bin's num_bc
+
+            # Test
+            significant = test_bin(bin_list)
+
+            # If significant
+            if significant:
+                SignificantBin(bin_pos=, p_value=, num_bc=, chromosome=, distribution_mean=)
+
+
+    # Close input
+    infile.close()
+    # Close output
 
     #
     # Write logfile containing everything in summaryinstance
@@ -48,8 +86,6 @@ def count_barcodes(bin_pos):
 
     num_bc = int()
 
-    # fetch window pysam
-
     # add bc seq to set()
 
     # num_bc = len(list(set))
@@ -59,14 +95,21 @@ def count_barcodes(bin_pos):
 def test_bin(bin_list):
 
     significant = bool()
+    p-value = 1
 
     # Create normal distribution from 475 first and last values
+    # Calculate distribution_mean
 
     # Calculate P(num_bc(bin_500), current_normal_distribution)
+    #a = np.array([0.7972, 0.0767, 0.4383, 0.7866, 0.8091, 0.1954, 0.6307, 0.6599, 0.1065, 0.0508])
+    #from scipy import stats
+    #stats.zscore(a)
 
     # Test bin 500 for significant difference: two-tailed binomial test
+    # x = sum(51 middle bins)
+    #scipy.stats.binom_test(x, n=51, p=0.5, alternative='two-sided')
 
-    return significant
+    return significant, p-value, current_normal_distribution, distribution_mean
 
 def report_progress(string):
     """ Writes a time stamp followed by a message (=string) to standard out."""
@@ -90,6 +133,9 @@ class SignificantBin(object):
             self.duplication = False
             self.deletion = True
 
+    def write_to_out(self):
+        """ Writes all significant indels to output file in vcf format"""
+
 class ClusterObject(object):
     """ Cluster object"""
 
@@ -108,7 +154,7 @@ class readArgs(object):
     """ Reads arguments and handles basic error handling like python version control etc."""
 
     def __init__(self):
-        """ Main funcion for overview of what is run. """
+        """ Main funcion"""
 
         readArgs.parse(self)
         readArgs.pythonVersion(self)
@@ -124,7 +170,7 @@ class readArgs(object):
         parser = argparse.ArgumentParser(description=__doc__)
 
         # Arguments
-        parser.add_argument("tagged_bam", help=".bam file tagged with @RG tags and duplicates marked (not taking "
+        parser.add_argument("sort_tag_bam", help=".bam file tagged with @RG tags and duplicates marked (not taking "
                                                      "cluster id into account).")
         parser.add_argument("vcf", help=".bam file without cluster duplicates")
 
@@ -178,7 +224,7 @@ class readArgs(object):
         return processor_count
 
 class Summary(object):
-    """ Summarizes chunks"""
+    """ Summary"""
 
     def __init__(self):
 
