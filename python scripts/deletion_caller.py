@@ -5,8 +5,9 @@ def main():
     #
     # Imports & globals
     #
-    import pysam, sys, time
-    global args, summaryInstance, output_tagged_bamfile
+    global args, summaryInstance, output_tagged_bamfile, sys, time, pysam, stats
+    import pysam, sys, time, scipy, numpy
+    from scipy import stats
 
     #
     # Argument parsing
@@ -22,7 +23,7 @@ def main():
     #
     # Progress
     #
-    report_progress('Reading input file and building duplicate position list')
+    report_progress('Building inital binning window')
 
     #
     # Data processing & writing output
@@ -34,43 +35,73 @@ def main():
     bin_list = list()
 
     # Initials: metadata
-    bin_pos_list = range(0, num_bins * bin_width, bin_width)
+    window_size = num_bins*bin_width
+    bin_pos_list = range(0, window_size, bin_width)
 
     # Open bam file
     infile = pysam.AlignmentFile(args.sort_tag_bam, 'rb')
 
-    for i in range(len(bin_temp_list)-1):
+    # Loop over chromosomes
+    for chromosome in infile.header['@SQ']:
 
-        bin_start = bin_pos_list[i]
-        bin_stop = bin_pos_list[i+1]
-        barcode_set = set()
+        # Error handling: Check that total length of chromosome is bigger than one window
+        chromosome_length = chromosome.split()[1].split(':')[1]
+        if chromosome_length <= window_size:
+            report_progress(str(chromosome) + ' is only ' + chromosome_length + ' bp. Cannot call indels with current bin size. Consider making bin size smaller if this is an important area.')
+            report_progress('Skipping ' + str(chromosome))
+            continue
+        else:
 
-        for read in infile.fetch(chr1, bin_start, bin_stop):
+        #
+        # 1. Initial window
+        #
 
-            barcode_ID = read.tag['@RG']
-            barcode_set.add(barcode_ID)
+        # Progress
+        report_progress('Counting barcodes in initial bins for ' + str(chromosome))
 
-        bin_list.append(len(barcode_set))
+        # Loop over all bins and count number of unique barcode ID:s found.
+        for i in range(len(bin_pos_list) - 1):
+            bin_start = bin_pos_list[i]
+            bin_stop = bin_pos_list[i + 1]
+            num_bc = count_haplotyped_barcodes(chromosome=chr1, bin_start=bin_start, bin_stop=bin_stop)
+            bin_list.append(num_bc)
 
-    # Test first window
+        # Progress
+        report_progress('Initial bins counted')
+        report_progress('Starting indel calling')
 
-    for chromsome in infile.header['@SQ']:
+        # Test initial window
+        # if significant: report
+
+        #
+        # 2. Main analysis: calling indels for the whole chromosome
+        #
 
         # Continues until end of chromosome
-        while True:
+        # Length of every chromosome given in the third element, but the first is probably only dict part.
+        # @SQ   SN:chr1   LN:240000000    ...
 
-            # shift window
-            window[]
+        # Divide chromosome into bins
+        total_bin_pos_list = range(num_bins * bin_width, chromosome_length, bin_width)
+
+        for new_pos in total_bin_pos_list:
+
+            # Shift window
+            bin_pos_list = bin_pos_list[1:].append(new_pos)
 
             # Fetch new bin's num_bc
+            num_bc = count_haplotyped_barcodes(chromosome=chromsome, bin_start=bin_pos_list[-2], bin_stop=bin_pos_list[-1])
+
+            # Shift window for bin value list
+            bin_list = bin_list[1:].append(num_bc)
 
             # Test
             significant = test_bin(bin_list)
 
             # If significant
             if significant:
+                # report significant hit, aka write to out!
                 SignificantBin(bin_pos=, p_value=, num_bc=, chromosome=, distribution_mean=)
-
 
     # Close input
     infile.close()
@@ -81,43 +112,69 @@ def main():
     #
     summaryInstance.writeLog()
 
-def count_barcodes(bin_pos):
-    """ Counts how many unique barcodes was found within two positions (bin_pos=tuple(star,stop))"""
+def count_haplotyped_barcodes(chromosome, bin_start, bin_stop):
+    """
+    Counts how many unique barcodes was found within two positions (bin_pos=tuple(star,stop)).
+    Input: Bin coordinates
+    Output: Count of how many unique barcodes was found within the bin
 
-    num_bc = int()
+    """
 
-    # add bc seq to set()
+    # Fetches all reads within window and count unique barcode ID:s found.
+    barcode_set = set()
 
-    # num_bc = len(list(set))
+    # Keeps track of which which barcode ID:s which has already been accounted for
+    barcode_set_H1 = set()
+    barcode_set_H2 = set()
 
+    # Keeps track of which PS ID:s which already have been assigned to a haplotype
+    PS_set_H1 = set()
+    PS_set_H2 = set()
+
+    for read in infile.fetch(chromosome, bin_start, bin_stop):
+        barcode_ID = read.tag['@RG']
+        barcode_set.add(barcode_ID)
+    num_bc = len(barcode_set)
     return num_bc
 
 def test_bin(bin_list):
+    """
+    Calculates p-value for h0 = bin500 belongs to the normal distribution fitted from bins[0:475 , 526:1001]
+    Input: bin list containing num_bc found in 1001 bins
+    Output: p-value and corresponding statistical measures
+    """
 
-    significant = bool()
-    p-value = 1
+    # Create array for normal distribution numbers
+    normal_distribution_list = bin_list[0:475] + bin_list[526:1001]
+    normal_distribution_array = numpy.array(normal_distribution_list)
 
-    # Create normal distribution from 475 first and last values
-    # Calculate distribution_mean
+    # Calculate mean(mu) and standard deviation (sigma)
+    std_devitation = numpy.std(normal_distribution_array)
+    mean = numpy.mean(normal_distribution_array)
 
-    # Calculate P(num_bc(bin_500), current_normal_distribution)
-    #a = np.array([0.7972, 0.0767, 0.4383, 0.7866, 0.8091, 0.1954, 0.6307, 0.6599, 0.1065, 0.0508])
-    #from scipy import stats
-    #stats.zscore(a)
+    # Calculates the possibility of to get the number of barcodes that is present in the middle bin, bin500
+    z1 = ((bin_list[500]-1)-mean)/std_devitation
+    z2 = (bin_list[500]-mean)/std_devitation
+    possibility_of_value = z2 - z1
 
-    # Test bin 500 for significant difference: two-tailed binomial test
-    # x = sum(51 middle bins)
-    #scipy.stats.binom_test(x, n=51, p=0.5, alternative='two-sided')
+    # Two-tailed binomial test to discern whether the middle bin belongs to the normal distribution
+    p-value = scipy.stats.binom_test(x=bin_list[500], n=1, p=possibility_of_value, alternative='two-sided')
 
-    return significant, p-value, current_normal_distribution, distribution_mean
+    return p-value, normal_distribution_list, mean, std_devitation, possibility_of_value
 
 def report_progress(string):
-    """ Writes a time stamp followed by a message (=string) to standard out."""
+    """
+    Writes a time stamp followed by a message (=string) to standard out.
+    Input: String
+    Output: [date]  string
+    """
     sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
 
 
 class SignificantBin(object):
-    """ Object for saving data for significant deletions."""
+    """
+    Object for saving data for significant deletions.
+    """
 
     def __init__(self, bin_pos, p_value, num_bc, chromosome, distribution_mean):
 
@@ -134,27 +191,16 @@ class SignificantBin(object):
             self.deletion = True
 
     def write_to_out(self):
-        """ Writes all significant indels to output file in vcf format"""
-
-class ClusterObject(object):
-    """ Cluster object"""
-
-    def __init__(self, clusterId):
-
-        self.barcode_to_bc_dict = dict()
-        self.Id = int(clusterId.split()[1]) # Remove 'Cluster' string and \n from end
-
-    def addRead(self, line):
-
-        accession = line.split()[2].rstrip('.')
-        barcode = accession.split(':')[-1]
-        self.barcode_to_bc_dict[barcode] = self.Id # Extract header and remove '...'
+        """
+        Writes all significant indels to output file in vcf format
+        """
 
 class readArgs(object):
-    """ Reads arguments and handles basic error handling like python version control etc."""
+    """
+    Reads arguments and handles basic error handling like python version control etc.
+    """
 
     def __init__(self):
-        """ Main funcion"""
 
         readArgs.parse(self)
         readArgs.pythonVersion(self)
@@ -172,7 +218,7 @@ class readArgs(object):
         # Arguments
         parser.add_argument("sort_tag_bam", help=".bam file tagged with @RG tags and duplicates marked (not taking "
                                                      "cluster id into account).")
-        parser.add_argument("vcf", help=".bam file without cluster duplicates")
+        parser.add_argument("output_vcf", help=".vcf file with statistically significantly different barcode abundances.")
 
         # Options
         parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
@@ -224,7 +270,6 @@ class readArgs(object):
         return processor_count
 
 class Summary(object):
-    """ Summary"""
 
     def __init__(self):
 
