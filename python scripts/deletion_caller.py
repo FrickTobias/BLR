@@ -1,11 +1,11 @@
-#! /usr/bin/env python2
+ #! /usr/bin/env python2
 
 def main():
 
     #
     # Imports & globals
     #
-    global args, summaryInstance, output_tagged_bamfile, sys, time, pysam, stats
+    global args, summaryInstance, output_tagged_bamfile, sys, time, pysam, stats, PS_set_H1, PS_set_H2
     import pysam, sys, time, scipy, numpy
     from scipy import stats
 
@@ -47,7 +47,8 @@ def main():
         # Error handling: Check that total length of chromosome is bigger than one window
         chromosome_length = chromosome.split()[1].split(':')[1]
         if chromosome_length <= window_size:
-            report_progress(str(chromosome) + ' is only ' + chromosome_length + ' bp. Cannot call indels with current bin size. Consider making bin size smaller if this is an important area.')
+            report_progress(str(chromosome) + ' is only ' + chromosome_length + ' bp. Cannot call indels with current \
+            bin size. Consider making bin size smaller if this is an important area.')
             report_progress('Skipping ' + str(chromosome))
             continue
         else:
@@ -58,6 +59,10 @@ def main():
 
         # Progress
         report_progress('Counting barcodes in initial bins for ' + str(chromosome))
+
+        # Keeps track of which PS ID:s which already have been assigned to a haplotype
+        PS_set_H1 = set()
+        PS_set_H2 = set()
 
         # Loop over all bins and count number of unique barcode ID:s found.
         for i in range(len(bin_pos_list) - 1):
@@ -70,11 +75,14 @@ def main():
         report_progress('Initial bins counted')
         report_progress('Starting indel calling')
 
+        #
         # Test initial window
+        #
         # if significant: report
+        #
 
         #
-        # 2. Main analysis: calling indels for the whole chromosome
+        # 2. Main analysis: Counting barcodes and calling indels for the whole chromosome
         #
 
         # Continues until end of chromosome
@@ -84,6 +92,7 @@ def main():
         # Divide chromosome into bins
         total_bin_pos_list = range(num_bins * bin_width, chromosome_length, bin_width)
 
+        # Iterate all bins
         for new_pos in total_bin_pos_list:
 
             # Shift window
@@ -127,38 +136,64 @@ def count_haplotyped_barcodes(chromosome, bin_start, bin_stop):
     barcode_set_H1 = set()
     barcode_set_H2 = set()
 
-    # Keeps track of which PS ID:s which already have been assigned to a haplotype
-    PS_set_H1 = set()
-    PS_set_H2 = set()
+    # Tracks which
+    last_H = 'H2'
 
+    # Fetch all reads within bin
     for read in infile.fetch(chromosome, bin_start, bin_stop):
         barcode_ID = read.tag['@RG']
-        barcode_set.add(barcode_ID)
-    num_bc = len(barcode_set)
+        PS_ID = read.tag['@PS']
+
+        # Check if the @PS tag already has been assigned to a Haplotype
+        if PS_ID in PS_set_H1:
+            barcode_set_H1.add(barcode_ID)
+            last_H = 'H1'
+        elif PS_ID in PS_set_H2:
+            barcode_set_H2.add(barcode_ID)
+            last_H = 'H2'
+        else:
+
+            # Will assign wrongly if last read was assigned to the PS which just ended.
+            if last_H == 'H1':
+                PS_set_H2.add(PS_ID)
+                barcode_set_H2.add(barcode_ID)
+            else:
+                PS_set_H1.add(PS_ID)
+                barcode_set_H1.add(barcode_ID)
+
+    # How many barcodes where assigned to the different Haplotypes
+    num_bc_H1 = len(barcode_set_H1)
+    num_bc_H2 = len(barcode_set_H2)
+    H1_H2_distribution = num_bc_H2 / (num_bc_H1 + num_bc_H2)
+    num_bc = (H1_H2_distribution, num_bc_H1, num_bc_H2)
+
     return num_bc
 
 def test_bin(bin_list):
     """
     Calculates p-value for h0 = bin500 belongs to the normal distribution fitted from bins[0:475 , 526:1001]
-    Input: bin list containing num_bc found in 1001 bins
+    Input: bin list containing num_bc tuples found in 1001 bins
     Output: p-value and corresponding statistical measures
     """
 
     # Create array for normal distribution numbers
-    normal_distribution_list = bin_list[0:475] + bin_list[526:1001]
-    normal_distribution_array = numpy.array(normal_distribution_list)
+    tmp_bin_list = bin_list[0:475] + bin_list[526:1001]
+    distribution_bin_list = [fraction[0] for fraction in tmp_bin_list]
+
+    # Build array for mean and std deviation calculation
+    distribution_array = numpy.array(distribution_bin_list)
 
     # Calculate mean(mu) and standard deviation (sigma)
-    std_devitation = numpy.std(normal_distribution_array)
-    mean = numpy.mean(normal_distribution_array)
+    #std_devitation = numpy.std(distribution_array)
+    mean = numpy.mean(distribution_array)
 
     # Calculates the possibility of to get the number of barcodes that is present in the middle bin, bin500
-    z1 = ((bin_list[500]-1)-mean)/std_devitation
-    z2 = (bin_list[500]-mean)/std_devitation
-    possibility_of_value = z2 - z1
+    #z1 = ((bin_list[500]-1)-mean)/std_devitation
+    #z2 = (bin_list[500]-mean)/std_devitation
+    #possibility_of_value = z2 - z1
 
     # Two-tailed binomial test to discern whether the middle bin belongs to the normal distribution
-    p-value = scipy.stats.binom_test(x=bin_list[500], n=1, p=possibility_of_value, alternative='two-sided')
+    p-value = scipy.stats.binom_test(x=bin_list[500][1:3], p=mean, alternative='two-sided')
 
     return p-value, normal_distribution_list, mean, std_devitation, possibility_of_value
 
@@ -169,7 +204,6 @@ def report_progress(string):
     Output: [date]  string
     """
     sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
-
 
 class SignificantBin(object):
     """
