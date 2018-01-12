@@ -5,7 +5,7 @@ def main():
     #
     # Imports & globals
     #
-    global args, summaryInstance, sys, time, pysam, stats, PS_set_H1, PS_set_H2, last_H, outfile
+    global args, summaryInstance, sys, time, pysam, stats, PS_set_H1, PS_set_H2, last_H, outfile, scipy, stats, infile
     import pysam, sys, time, scipy, numpy
     from scipy import stats
 
@@ -45,16 +45,16 @@ def main():
     open(args.outfile, 'w')
 
     # Loop over chromosomes
-    for chromosome in infile.header['SQ']:
+    for chromosome_header in infile.header['SQ']:
 
         # Error handling: Check that total length of chromosome is bigger than one window
-        chromosome_length = chromosome.split()[1].split(':')[1]
+        chromosome = chromosome_header['SN']
+        chromosome_length = chromosome_header['LN']
         if chromosome_length <= window_size:
             report_progress(str(chromosome) + ' is only ' + chromosome_length + ' bp. Cannot call deletions with current \
             bin size. Consider making bin size smaller if this is an important area.')
             report_progress('Skipping ' + str(chromosome))
             continue
-        else:
 
         #
         # 1. Initial window
@@ -72,7 +72,7 @@ def main():
         for i in range(len(bin_pos_list) - 1):
             bin_start = bin_pos_list[i]
             bin_stop = bin_pos_list[i + 1]
-            num_bc = count_haplotyped_barcodes(chromosome=chr1, bin_start=bin_start, bin_stop=bin_stop)
+            num_bc = count_haplotyped_barcodes(chromosome=chromosome, bin_start=bin_start, bin_stop=bin_stop)
             bin_list.append(num_bc)
 
         # Progress
@@ -82,7 +82,7 @@ def main():
         # Calculate p value and report to output if significance below threshold (alpha)
         p_value, mean, possibility_of_value, raw_value = heterozygous_deletion_test(bin_list)
         if p_value < alpha:
-            significantBin = SignificantBin(p_value, mean, possibility_of_value, bin_start, bin_stop, chromosome)
+            significantBin = SignificantBin(p_value, mean, possibility_of_value, bin_start, bin_stop, chromosome, raw_value)
             significantBin.write_outfile()
             summaryInstance.deletions += 1
 
@@ -134,9 +134,9 @@ def count_haplotyped_barcodes(chromosome, bin_start, bin_stop):
     barcode_set_H2 = set()
 
     # Fetch all reads within bin
-    for read in infile.fetch(chromosome, bin_start, bin_stop):
-        barcode_ID = read.tags['RG']
-        PS_ID = read.tags['PS']
+    for read in infile.fetch(str(chromosome), bin_start, bin_stop):
+        barcode_ID = read.get_tag('BX')
+        PS_ID = read.get_tag('PS')
 
         # Check if the @PS tag already has been assigned to a Haplotype
         if PS_ID in PS_set_H1:
@@ -158,7 +158,10 @@ def count_haplotyped_barcodes(chromosome, bin_start, bin_stop):
     # How many barcodes where assigned to the different Haplotypes
     num_bc_H1 = len(barcode_set_H1)
     num_bc_H2 = len(barcode_set_H2)
-    H1_H2_distribution = num_bc_H2 / (num_bc_H1 + num_bc_H2)
+
+    try: H1_H2_distribution = num_bc_H2 / (num_bc_H1 + num_bc_H2)
+    except ZeroDivisionError:
+        H1_H2_distribution = 0.5
     num_bc = (H1_H2_distribution, num_bc_H1, num_bc_H2)
 
     return num_bc
@@ -204,7 +207,7 @@ class SignificantBin(object):
     Object for saving data for significant deletions.
     """
 
-    def __init__(self, p_value, mean, possibility_of_value, bin_start, bin_stop, chromosome, raw_value)
+    def __init__(self, p_value, mean, possibility_of_value, bin_start, bin_stop, chromosome, raw_value):
 
         self.start = bin_start
         self.stop = bin_stop
@@ -212,7 +215,7 @@ class SignificantBin(object):
         self.chromosome = chromosome
         self.mean = mean
         self.possibility_of_value = possibility_of_value
-        self.raw_value
+        self.raw_value = raw_value
 
     def write_outfile(self):
         """
@@ -255,7 +258,7 @@ class readArgs(object):
                             help="Thread analysis in p number of processors. \nDEFAULT: all available")
         parser.add_argument("-b", "--bin", type=int, default=1000, help="Bin width in bp \nDEFAULT: 1000")
         parser.add_argument("-a", "--alpha", type=float, default=0.05, help="Cutoff for what is considered a significant"
-                                                                            "p value. \nDEFAULT: 0.05"
+                                                                            "p value. \nDEFAULT: 0.05")
 
         args = parser.parse_args()
 
