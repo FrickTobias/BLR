@@ -5,7 +5,7 @@ def main():
     #
     # Imports & globals
     #
-    global args, summaryInstance, output_tagged_bamfile, sys, time, pysam, stats, PS_set_H1, PS_set_H2
+    global args, summaryInstance, sys, time, pysam, stats, PS_set_H1, PS_set_H2, last_H, outfile
     import pysam, sys, time, scipy, numpy
     from scipy import stats
 
@@ -33,6 +33,7 @@ def main():
     num_bins = 1001
     bin_width = args.bin
     bin_list = list()
+    alpha = args.alpha
 
     # Initials: metadata
     window_size = num_bins*bin_width
@@ -40,14 +41,16 @@ def main():
 
     # Open bam file
     infile = pysam.AlignmentFile(args.sort_tag_bam, 'rb')
+    # Open output
+    open(args.outfile, 'w')
 
     # Loop over chromosomes
-    for chromosome in infile.header['@SQ']:
+    for chromosome in infile.header['SQ']:
 
         # Error handling: Check that total length of chromosome is bigger than one window
         chromosome_length = chromosome.split()[1].split(':')[1]
         if chromosome_length <= window_size:
-            report_progress(str(chromosome) + ' is only ' + chromosome_length + ' bp. Cannot call indels with current \
+            report_progress(str(chromosome) + ' is only ' + chromosome_length + ' bp. Cannot call deletions with current \
             bin size. Consider making bin size smaller if this is an important area.')
             report_progress('Skipping ' + str(chromosome))
             continue
@@ -63,6 +66,7 @@ def main():
         # Keeps track of which PS ID:s which already have been assigned to a haplotype
         PS_set_H1 = set()
         PS_set_H2 = set()
+        last_H = 'H2'
 
         # Loop over all bins and count number of unique barcode ID:s found.
         for i in range(len(bin_pos_list) - 1):
@@ -75,27 +79,24 @@ def main():
         report_progress('Initial bins counted')
         report_progress('Starting indel calling')
 
-        #
-        # Test initial window
-        #
-        # if significant: report
-        #
+        # Calculate p value and report to output if significance below threshold (alpha)
+        p_value, mean, possibility_of_value, raw_value = heterozygous_deletion_test(bin_list)
+        if p_value < alpha:
+            significantBin = SignificantBin(p_value, mean, possibility_of_value, bin_start, bin_stop, chromosome)
+            significantBin.write_outfile()
+            summaryInstance.deletions += 1
 
         #
-        # 2. Main analysis: Counting barcodes and calling indels for the whole chromosome
+        # 2. Main analysis: Counting barcodes and calling heterozygous deletion for the whole chromosome
         #
-
-        # Continues until end of chromosome
-        # Length of every chromosome given in the third element, but the first is probably only dict part.
-        # @SQ   SN:chr1   LN:240000000    ...
 
         # Divide chromosome into bins
         total_bin_pos_list = range(num_bins * bin_width, chromosome_length, bin_width)
 
-        # Iterate all bins
+        # Iterate through all bins
         for new_pos in total_bin_pos_list:
 
-            # Shift window
+            # Shift window in position list
             bin_pos_list = bin_pos_list[1:].append(new_pos)
 
             # Fetch new bin's num_bc
@@ -104,45 +105,38 @@ def main():
             # Shift window for bin value list
             bin_list = bin_list[1:].append(num_bc)
 
-            # Test
-            significant = test_bin(bin_list)
-
-            # If significant
-            if significant:
-                # report significant hit, aka write to out!
-                SignificantBin(bin_pos=, p_value=, num_bc=, chromosome=, distribution_mean=)
+            # Test for heterozygous deletions
+            p_value, mean, possibility_of_value, raw_value = heterozygous_deletion_test(bin_list)
+            if p_value < alpha:
+                significantBin = SignificantBin(p_value, mean, possibility_of_value, bin_start, bin_stop, raw_value)
+                significantBin.write_outfile()
+                summaryInstance.deletions += 1
 
     # Close input
     infile.close()
     # Close output
+    outfile.close()
 
     #
     # Write logfile containing everything in summaryinstance
     #
-    summaryInstance.writeLog()
+    summaryInstance.writeToStdOut()
 
 def count_haplotyped_barcodes(chromosome, bin_start, bin_stop):
     """
-    Counts how many unique barcodes was found within two positions (bin_pos=tuple(star,stop)).
+    Counts how many unique barcodes was found within two positions for each haplotype(bin_pos=tuple(star,stop)).
     Input: Bin coordinates
-    Output: Count of how many unique barcodes was found within the bin
-
+    Output: tuple(frac_in_H1, num_bc_h1, num_bc_h2)
     """
-
-    # Fetches all reads within window and count unique barcode ID:s found.
-    barcode_set = set()
 
     # Keeps track of which which barcode ID:s which has already been accounted for
     barcode_set_H1 = set()
     barcode_set_H2 = set()
 
-    # Tracks which
-    last_H = 'H2'
-
     # Fetch all reads within bin
     for read in infile.fetch(chromosome, bin_start, bin_stop):
-        barcode_ID = read.tag['@RG']
-        PS_ID = read.tag['@PS']
+        barcode_ID = read.tags['RG']
+        PS_ID = read.tags['PS']
 
         # Check if the @PS tag already has been assigned to a Haplotype
         if PS_ID in PS_set_H1:
@@ -151,9 +145,9 @@ def count_haplotyped_barcodes(chromosome, bin_start, bin_stop):
         elif PS_ID in PS_set_H2:
             barcode_set_H2.add(barcode_ID)
             last_H = 'H2'
-        else:
 
-            # Will assign wrongly if last read was assigned to the PS which just ended.
+        # Will assign wrongly if last read was assigned to the PS which just ended.
+        else:
             if last_H == 'H1':
                 PS_set_H2.add(PS_ID)
                 barcode_set_H2.add(barcode_ID)
@@ -169,11 +163,11 @@ def count_haplotyped_barcodes(chromosome, bin_start, bin_stop):
 
     return num_bc
 
-def test_bin(bin_list):
+def heterozygous_deletion_test(bin_list):
     """
-    Calculates p-value for h0 = bin500 belongs to the normal distribution fitted from bins[0:475 , 526:1001]
+    Calculates p value for h0 = bin500 belongs to the normal distribution fitted from bins[0:475 , 526:1001]
     Input: bin list containing num_bc tuples found in 1001 bins
-    Output: p-value and corresponding statistical measures
+    Output: p value and corresponding statistical measures
     """
 
     # Create array for normal distribution numbers
@@ -183,19 +177,19 @@ def test_bin(bin_list):
     # Build array for mean and std deviation calculation
     distribution_array = numpy.array(distribution_bin_list)
 
-    # Calculate mean(mu) and standard deviation (sigma)
-    #std_devitation = numpy.std(distribution_array)
+    # Calculate mean
     mean = numpy.mean(distribution_array)
 
-    # Calculates the possibility of to get the number of barcodes that is present in the middle bin, bin500
-    #z1 = ((bin_list[500]-1)-mean)/std_devitation
-    #z2 = (bin_list[500]-mean)/std_devitation
-    #possibility_of_value = z2 - z1
+    # Saving raw data for classification
+    raw_value = bin_list[500][0]
 
     # Two-tailed binomial test to discern whether the middle bin belongs to the normal distribution
-    p-value = scipy.stats.binom_test(x=bin_list[500][1:3], p=mean, alternative='two-sided')
+    p_value = scipy.stats.binom_test(x=bin_list[500][1:3], p=mean, alternative='two-sided')
 
-    return p-value, normal_distribution_list, mean, std_devitation, possibility_of_value
+    # Summary reporting
+    summaryInstance.total_number_of_tests += 1
+
+    return p_value, mean, possibility_of_value, raw_value
 
 def report_progress(string):
     """
@@ -210,24 +204,23 @@ class SignificantBin(object):
     Object for saving data for significant deletions.
     """
 
-    def __init__(self, bin_pos, p_value, num_bc, chromosome, distribution_mean):
+    def __init__(self, p_value, mean, possibility_of_value, bin_start, bin_stop, chromosome, raw_value)
 
-        self.bin_pos = bin_pos
+        self.start = bin_start
+        self.stop = bin_stop
         self.p_value = p_value
-        self.num_bc = num_bc
         self.chromosome = chromosome
+        self.mean = mean
+        self.possibility_of_value = possibility_of_value
+        self.raw_value
 
-        if self.num_bc > distribution_mean:
-            self.duplication = True
-            self.deletion = False
-        elif self.num_bc < distribution_mean:
-            self.duplication = False
-            self.deletion = True
+    def write_outfile(self):
+        """
+        Writes all significant heterozygous deletions to output file in vcf format
+        """
 
-    def write_to_out(self):
-        """
-        Writes all significant indels to output file in vcf format
-        """
+        self.vcf_file_string = str(self.chromosome) + '\t' + str(self.start) + ':' + str(self.stop) + '\t' + str(self.type) + '\t' + str(self.p_value)
+        outfile.write(self.vcf_file_string)
 
 class readArgs(object):
     """
@@ -252,16 +245,17 @@ class readArgs(object):
         # Arguments
         parser.add_argument("sort_tag_bam", help=".bam file tagged with @RG tags and duplicates marked (not taking "
                                                      "cluster id into account).")
-        parser.add_argument("output_vcf", help=".vcf file with statistically significantly different barcode abundances.")
+        parser.add_argument("outfile", help=".vcf file with statistically significantly different barcode abundances.")
 
         # Options
         parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
                                                                            "Not recommended due to different function "
                                                                            "names in python 2 and 3.")
         parser.add_argument("-p", "--processors", type=int, default=multiprocessing.cpu_count(),
-                            help="Thread analysis in p number of processors. Example: python "
-                                 "TagGD_prep.py -p 2 insert_r1.fq unique.fa")
-        parser.add_argument("-b", "--bin", type=int, default=1000, help="Bin width (bp)")
+                            help="Thread analysis in p number of processors. \nDEFAULT: all available")
+        parser.add_argument("-b", "--bin", type=int, default=1000, help="Bin width in bp \nDEFAULT: 1000")
+        parser.add_argument("-a", "--alpha", type=float, default=0.05, help="Cutoff for what is considered a significant"
+                                                                            "p value. \nDEFAULT: 0.05"
 
         args = parser.parse_args()
 
@@ -307,15 +301,25 @@ class Summary(object):
 
     def __init__(self):
 
-        self.log = args.output_bam + '.log'
+        self.deletions = int()
+        self.total_number_of_tests = int()
 
-        with open(self.log, 'w') as openout:
-            pass
+    def writeToStdOut(self):
+        """
+        Writes all object variables to stdout.
+        """
+
+        for objectVariable, value in vars(self).items():
+            sys.stdout.write('\n\n' + str(objectVariable) + '\n' + str(value))
 
     def writeLog(self):
+        """
+        Writes all object variables to a log file (outfile.log)
+        """
 
+        self.log = args.outfile + '.log'
         import time
-        with open(self.log, 'a') as openout:
+        with open(self.log, 'w') as openout:
             openout.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()))
             for objectVariable, value in vars(self).items():
                 openout.write('\n\n'+str(objectVariable) + '\n' + str(value))
