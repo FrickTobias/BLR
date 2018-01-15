@@ -23,8 +23,6 @@ def main():
     #
     # Progress
     #
-    report_progress('Building inital binning window')
-
     #
     # Data processing & writing output
     #
@@ -32,18 +30,18 @@ def main():
     # Settings & initals
     num_bins = 1001
     bin_width = args.bin
-    bin_list = list()
     alpha = args.alpha
 
     # Initials: metadata
     window_size = num_bins*bin_width
-    bin_pos_list = list(range(0, window_size, bin_width))
 
     # Open bam file
     infile = pysam.AlignmentFile(args.sort_tag_bam, 'rb')
     # Open output
-    open(args.outfile, 'w')
+    outfile = open(args.outfile, 'w')
 
+    report_progress('Variables set')
+    report_progress('Starting indel calling')
     # Loop over chromosomes
     for chromosome_header in infile.header['SQ']:
 
@@ -51,17 +49,18 @@ def main():
         chromosome = chromosome_header['SN']
         chromosome_length = chromosome_header['LN']
         if chromosome_length <= window_size:
-            report_progress(str(chromosome) + ' is only ' + chromosome_length + ' bp. Cannot call deletions with current \
+            report_progress(str(chromosome) + ' is only ' + str(chromosome_length) + ' bp. Cannot call deletions with current \
             bin size. Consider making bin size smaller if this is an important area.')
             report_progress('Skipping ' + str(chromosome))
             continue
 
+
+
         #
         # 1. Initial window
         #
-
-        # Progress
-        report_progress('Counting barcodes in initial bins for ' + str(chromosome))
+        bin_list = list()
+        bin_pos_list = list(range(0,window_size+bin_width, bin_width))
 
         # Loop over all bins and count number of unique barcode ID:s found.
         for i in range(len(bin_pos_list) - 1):
@@ -70,14 +69,13 @@ def main():
             num_bc = count_haplotyped_barcodes(chromosome=chromosome, bin_start=bin_start, bin_stop=bin_stop)
             bin_list.append(num_bc)
 
-        # Progress
-        report_progress('Initial bins counted')
-        report_progress('Starting indel calling')
-
         # Calculate p value and report to output if significance below threshold (alpha)
         p_value, mean, raw_value = heterozygous_deletion_test(bin_list)
+
+        # Summary reporting
+        summaryInstance.total_number_of_tests[chromosome] = 1
         if p_value < alpha:
-            significantBin = SignificantBin(p_value, mean, possibility_of_value, bin_start, bin_stop, chromosome, raw_value)
+            significantBin = SignificantBin(p_value, mean, bin_start, bin_stop, chromosome, raw_value)
             significantBin.write_outfile()
             summaryInstance.deletions += 1
 
@@ -87,6 +85,9 @@ def main():
 
         # Divide chromosome into bins
         total_bin_pos_list = list(range(num_bins * bin_width, chromosome_length, bin_width))
+
+        # Intiates progress bar
+        pg_bar = ProgressBar(name=chromosome, min=total_bin_pos_list[0], max=total_bin_pos_list[-1], step=bin_width)
 
         # Iterate through all bins
         for new_pos in total_bin_pos_list:
@@ -99,14 +100,23 @@ def main():
             num_bc = count_haplotyped_barcodes(chromosome=chromosome, bin_start=bin_pos_list[-2], bin_stop=bin_pos_list[-1])
 
             # Shift window for bin value list
-            bin_list = bin_list[1:].append(num_bc)
+            bin_list = bin_list[1:]
+            bin_list.append(num_bc)
 
             # Test for heterozygous deletions
             p_value, mean, raw_value = heterozygous_deletion_test(bin_list)
+
+            # Summary reporting
+            summaryInstance.total_number_of_tests[chromosome] += 1
+
             if p_value < alpha:
-                significantBin = SignificantBin(p_value, mean, possibility_of_value, bin_start, bin_stop, raw_value)
+                significantBin = SignificantBin(p_value, mean, bin_start, bin_stop, chromosome, raw_value)
                 significantBin.write_outfile()
                 summaryInstance.deletions += 1
+
+            # Progress
+            pg_bar.update()
+        pg_bar.terminate()
 
     # Close input
     infile.close()
@@ -167,13 +177,7 @@ def heterozygous_deletion_test(bin_list):
     import numpy
 
     # Create array for normal distribution numbers
-    tmp_bin_list = list()
-    print('BIN LIST :::')
-    print(len(bin_list))
-    print(bin_list[1000])
-    print(bin_list[1001])
-    print(bin_list[999])
-    tmp_bin_list = bin_list[0:475] + bin_list[526:1001]
+    tmp_bin_list = bin_list[0:475] + bin_list[526:1000]
     distribution_bin_list = [fraction[0] for fraction in tmp_bin_list]
 
     # Build array for mean and std deviation calculation
@@ -188,9 +192,6 @@ def heterozygous_deletion_test(bin_list):
     # Two-tailed binomial test to discern whether the middle bin belongs to the normal distribution
     p_value = scipy.stats.binom_test(x=bin_list[500][1:3], p=mean, alternative='two-sided')
 
-    # Summary reporting
-    summaryInstance.total_number_of_tests += 1
-
     return p_value, mean, raw_value
 
 def report_progress(string):
@@ -200,6 +201,41 @@ def report_progress(string):
     Output: [date]  string
     """
     sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
+
+class ProgressBar(object):
+    """
+    Writes a progress bar to stderr
+    """
+
+    def __init__(self, name, min, max, step):
+
+        # Variables
+        self.min = min
+        self.max = max
+        self.current_position = min
+        self.step = step
+
+        # Metadata
+        self.two_percent = (self.max-self.min)/50
+        self.current_percentage = self.two_percent
+
+        # Printing
+        sys.stderr.write('\n' + str(name))
+        sys.stderr.write('\n|------------------------------------------------|\n')
+
+    def update(self):
+
+        # If progress is over 2%, write '#' to stdout
+        self.current_position += self.step
+        if self.current_percentage < self.current_position:
+            sys.stderr.write('#')
+            sys.stderr.flush()
+            time.sleep(0.001)
+            self.current_percentage += self.two_percent
+
+    def terminate(self):
+
+         sys.stderr.write('\n')
 
 class SignificantBin(object):
     """
@@ -220,7 +256,7 @@ class SignificantBin(object):
         Writes all significant heterozygous deletions to output file in vcf format
         """
 
-        self.vcf_file_string = str(self.chromosome) + '\t' + str(self.start) + ':' + str(self.stop) + '\t' + str(self.type) + '\t' + str(self.p_value)
+        self.vcf_file_string = str(self.chromosome) + '\t' + str(self.start) + ':' + str(self.stop) + '\tDEL\t' + str(self.p_value) + '\n'
         outfile.write(self.vcf_file_string)
 
 class readArgs(object):
@@ -303,7 +339,7 @@ class Summary(object):
     def __init__(self):
 
         self.deletions = int()
-        self.total_number_of_tests = int()
+        self.total_number_of_tests = dict()
         self.unassigned_reads = int()
         self.missing_bc_seq = int()
 
@@ -314,6 +350,7 @@ class Summary(object):
 
         for objectVariable, value in vars(self).items():
             sys.stdout.write('\n\n' + str(objectVariable) + '\n' + str(value))
+        sys.stdout.write('\n')
 
     def writeLog(self):
         """
