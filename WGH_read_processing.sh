@@ -40,7 +40,7 @@ do
 	    echo "Optional arguments"
 	    echo "  -h  help (this output)"
 	    echo "  -m  mails the supplied email when analysis is finished"
-	    echo "  -p  processors for threading, not implemented yet"
+	    echo "  -p  processors for threading"
 	    echo "  -r  removes files generated during analysis instead of just compressing them"
 	    echo ''
 	    exit 0
