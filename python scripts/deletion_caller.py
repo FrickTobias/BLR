@@ -37,7 +37,7 @@ def main():
 
     # Initials: metadata
     window_size = num_bins*bin_width
-    bin_pos_list = range(0, window_size, bin_width)
+    bin_pos_list = list(range(0, window_size, bin_width))
 
     # Open bam file
     infile = pysam.AlignmentFile(args.sort_tag_bam, 'rb')
@@ -63,11 +63,6 @@ def main():
         # Progress
         report_progress('Counting barcodes in initial bins for ' + str(chromosome))
 
-        # Keeps track of which PS ID:s which already have been assigned to a haplotype
-        PS_set_H1 = set()
-        PS_set_H2 = set()
-        last_H = 'H2'
-
         # Loop over all bins and count number of unique barcode ID:s found.
         for i in range(len(bin_pos_list) - 1):
             bin_start = bin_pos_list[i]
@@ -80,7 +75,7 @@ def main():
         report_progress('Starting indel calling')
 
         # Calculate p value and report to output if significance below threshold (alpha)
-        p_value, mean, possibility_of_value, raw_value = heterozygous_deletion_test(bin_list)
+        p_value, mean, raw_value = heterozygous_deletion_test(bin_list)
         if p_value < alpha:
             significantBin = SignificantBin(p_value, mean, possibility_of_value, bin_start, bin_stop, chromosome, raw_value)
             significantBin.write_outfile()
@@ -91,22 +86,23 @@ def main():
         #
 
         # Divide chromosome into bins
-        total_bin_pos_list = range(num_bins * bin_width, chromosome_length, bin_width)
+        total_bin_pos_list = list(range(num_bins * bin_width, chromosome_length, bin_width))
 
         # Iterate through all bins
         for new_pos in total_bin_pos_list:
 
             # Shift window in position list
-            bin_pos_list = bin_pos_list[1:].append(new_pos)
+            bin_pos_list = bin_pos_list[1:]
+            bin_pos_list.append(new_pos)
 
             # Fetch new bin's num_bc
-            num_bc = count_haplotyped_barcodes(chromosome=chromsome, bin_start=bin_pos_list[-2], bin_stop=bin_pos_list[-1])
+            num_bc = count_haplotyped_barcodes(chromosome=chromosome, bin_start=bin_pos_list[-2], bin_stop=bin_pos_list[-1])
 
             # Shift window for bin value list
             bin_list = bin_list[1:].append(num_bc)
 
             # Test for heterozygous deletions
-            p_value, mean, possibility_of_value, raw_value = heterozygous_deletion_test(bin_list)
+            p_value, mean, raw_value = heterozygous_deletion_test(bin_list)
             if p_value < alpha:
                 significantBin = SignificantBin(p_value, mean, possibility_of_value, bin_start, bin_stop, raw_value)
                 significantBin.write_outfile()
@@ -129,35 +125,31 @@ def count_haplotyped_barcodes(chromosome, bin_start, bin_stop):
     Output: tuple(frac_in_H1, num_bc_h1, num_bc_h2)
     """
 
-    # Keeps track of which which barcode ID:s which has already been accounted for
-    barcode_set_H1 = set()
-    barcode_set_H2 = set()
+    # Initials
+    barcode_sets = dict()
+    barcode_sets[1] = set()
+    barcode_sets[2] = set()
+
 
     # Fetch all reads within bin
     for read in infile.fetch(str(chromosome), bin_start, bin_stop):
-        barcode_ID = read.get_tag('BX')
-        PS_ID = read.get_tag('PS')
 
-        # Check if the @PS tag already has been assigned to a Haplotype
-        if PS_ID in PS_set_H1:
-            barcode_set_H1.add(barcode_ID)
-            last_H = 'H1'
-        elif PS_ID in PS_set_H2:
-            barcode_set_H2.add(barcode_ID)
-            last_H = 'H2'
+        try: barcode_ID = read.get_tag('BX')
+        except KeyError:
+            summaryInstance.missing_bc_seq += 1
 
-        # Will assign wrongly if last read was assigned to the PS which just ended.
-        else:
-            if last_H == 'H1':
-                PS_set_H2.add(PS_ID)
-                barcode_set_H2.add(barcode_ID)
-            else:
-                PS_set_H1.add(PS_ID)
-                barcode_set_H1.add(barcode_ID)
+        # Skips read if haplotype is not assigned.
+        try: haplotype = read.get_tag('HP')
+        except KeyError:
+            summaryInstance.unassigned_reads += 1
+            continue
+
+        # Add barcode sequence to set for given barcode
+        barcode_sets[haplotype].add(barcode_ID)
 
     # How many barcodes where assigned to the different Haplotypes
-    num_bc_H1 = len(barcode_set_H1)
-    num_bc_H2 = len(barcode_set_H2)
+    num_bc_H1 = len(barcode_sets[1])
+    num_bc_H2 = len(barcode_sets[2])
 
     try: H1_H2_distribution = num_bc_H2 / (num_bc_H1 + num_bc_H2)
     except ZeroDivisionError:
@@ -172,8 +164,15 @@ def heterozygous_deletion_test(bin_list):
     Input: bin list containing num_bc tuples found in 1001 bins
     Output: p value and corresponding statistical measures
     """
+    import numpy
 
     # Create array for normal distribution numbers
+    tmp_bin_list = list()
+    print('BIN LIST :::')
+    print(len(bin_list))
+    print(bin_list[1000])
+    print(bin_list[1001])
+    print(bin_list[999])
     tmp_bin_list = bin_list[0:475] + bin_list[526:1001]
     distribution_bin_list = [fraction[0] for fraction in tmp_bin_list]
 
@@ -192,7 +191,7 @@ def heterozygous_deletion_test(bin_list):
     # Summary reporting
     summaryInstance.total_number_of_tests += 1
 
-    return p_value, mean, possibility_of_value, raw_value
+    return p_value, mean, raw_value
 
 def report_progress(string):
     """
@@ -207,14 +206,13 @@ class SignificantBin(object):
     Object for saving data for significant deletions.
     """
 
-    def __init__(self, p_value, mean, possibility_of_value, bin_start, bin_stop, chromosome, raw_value):
+    def __init__(self, p_value, mean, bin_start, bin_stop, chromosome, raw_value):
 
         self.start = bin_start
         self.stop = bin_stop
         self.p_value = p_value
         self.chromosome = chromosome
         self.mean = mean
-        self.possibility_of_value = possibility_of_value
         self.raw_value = raw_value
 
     def write_outfile(self):
@@ -306,6 +304,8 @@ class Summary(object):
 
         self.deletions = int()
         self.total_number_of_tests = int()
+        self.unassigned_reads = int()
+        self.missing_bc_seq = int()
 
     def writeToStdOut(self):
         """

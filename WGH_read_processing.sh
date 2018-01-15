@@ -123,12 +123,18 @@ fi
 printf 'Running with '$processors' threads\n'
 printf '#1 START PROCESSING \n'
 
+
+#
+# Start of script
+#
+
+
 # Trim away E handle on R1 5'. Also removes reads shorter than 85 bp.
-cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
-    -j $processors \
-    -o $file_name".h1.fastq" \
-    -p $file_name2".h1.fastq" $ARG1 $ARG2 \
-    --discard-untrimmed -e 0.2 -m 65 # Tosses reads shorter than len(e+bc+handle+TES)
+#cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
+#    -j $processors \
+#    -o $file_name".h1.fastq" \
+#    -p $file_name2".h1.fastq" $ARG1 $ARG2 \
+#    --discard-untrimmed -e 0.2 -m 65 # Tosses reads shorter than len(e+bc+handle+TES)
 
 # Mailing
 if $mailing
