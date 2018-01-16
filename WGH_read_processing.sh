@@ -51,8 +51,8 @@ Positional arguments (required)
 Optional arguments
   -h  help (this output)
   -m  mails the supplied email when analysis is finished
-  -p  processors for threading
-  -r  removes files generated during analysis instead of just compressing them
+  -p  processors for threading. DEFAULT: 1
+  -r  removes files generated during analysis instead of just compressing them. DEFAULT: False
 
 NB: options must be given before arguments.'
 	        exit 0
