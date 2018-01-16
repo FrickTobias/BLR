@@ -5,8 +5,8 @@ def main():
     #
     # Imports & globals
     #
-    global args, summaryInstance, sys, time, pysam, stats, PS_set_H1, PS_set_H2, last_H, outfile, scipy, stats, infile, numpy
-    import pysam, sys, time, scipy, numpy
+    global args, summaryInstance, sys, time, pysam, stats, PS_set_H1, PS_set_H2, last_H, outfile, scipy, stats, infile, numpy, qvalue
+    import pysam, sys, time, scipy, numpy, qvalue
     from scipy import stats
 
     #
@@ -134,9 +134,6 @@ def main():
 
     bin_results.adjust_p_values()
     bin_results.write_to_stdout()
-
-    sys.stdout.write(q_values)
-
 
     # Close input
     infile.close()
@@ -288,19 +285,19 @@ class bins(object):
                 p_values.append(self.bin_dict[chrom][bin][2])
 
         # convert to numpy array and calculate q-values
-        p_array = numpy.array(self.p_values)
-        q_array = qvalues.estimate(p_array)
+        p_array = numpy.array(p_values)
+        q_array = qvalue.estimate(p_array)
 
         # build p to q-value dict
         p_to_q_value_dict = dict()
-        for i in range(len(q_values)):
-            p_to_q_value_dict[p_array] = q_array[i]
+        for i in range(len(q_array)):
+            p_to_q_value_dict[p_array[i]] = q_array[i]
 
         # Adds a q-value at the end of the list for each bin
         for chrom in self.bin_dict.keys():
             for bin in self.bin_dict[chrom].keys():
-                pval = self.bin[chrom][bin][2]
-                self.bin[chrom][bin][bin].append(p_to_q_value_dict[pval])
+                pval = self.bin_dict[chrom][bin][2]
+                self.bin_dict[chrom][bin].append(p_to_q_value_dict[pval])
 
     def write_to_stdout(self):
         """
@@ -310,6 +307,7 @@ class bins(object):
             print(chrom)
             for positions, result in self.bin_dict[chrom].items():
                 print(str(positions) + '\t' + str(result))
+
 class SignificantBin(object):
     """
     Object for saving data for significant deletions.
