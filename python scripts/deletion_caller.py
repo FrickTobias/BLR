@@ -5,7 +5,7 @@ def main():
     #
     # Imports & globals
     #
-    global args, summaryInstance, sys, time, pysam, stats, PS_set_H1, PS_set_H2, last_H, outfile, scipy, stats, infile
+    global args, summaryInstance, sys, time, pysam, stats, PS_set_H1, PS_set_H2, last_H, outfile, scipy, stats, infile, numpy
     import pysam, sys, time, scipy, numpy
     from scipy import stats
 
@@ -42,6 +42,11 @@ def main():
 
     report_progress('Variables set')
     report_progress('Starting indel calling')
+
+    total_p_value_list = list()
+
+    bin_results = bins()
+
     # Loop over chromosomes
     for chromosome_header in infile.header['SQ']:
 
@@ -72,6 +77,7 @@ def main():
 
         # Calculate p value and report to output if significance below threshold (alpha)
         p_value, mean, raw_value = heterozygous_deletion_test(bin_list)
+        total_p_value_list.append(p_value)
 
         # Summary reporting
         summaryInstance.total_number_of_tests[chromosome] = 1
@@ -79,6 +85,8 @@ def main():
             significantBin = SignificantBin(p_value, mean, bin_pos_list[500], bin_pos_list[501], chromosome, raw_value)
             significantBin.write_outfile()
             summaryInstance.deletions += 1
+
+        bin_results.add_bin(chromosome, bin_pos_list[500], bin_pos_list[501],num_bc_H1=bin_list[500][1], num_bc_H2=bin_list[500][2],p_value=p_value)
 
         #
         # 2. Main analysis: Counting barcodes and calling heterozygous deletion for the whole chromosome
@@ -107,6 +115,9 @@ def main():
             # Test for heterozygous deletions
             p_value, mean, raw_value = heterozygous_deletion_test(bin_list)
 
+            # Track all p values found for q-value conversion
+            total_p_value_list.append(p_value)
+
             # Summary reporting
             summaryInstance.total_number_of_tests[chromosome] += 1
 
@@ -115,9 +126,17 @@ def main():
                 significantBin.write_outfile()
                 summaryInstance.deletions += 1
 
+            bin_results.add_bin(chromosome, bin_pos_list[500], bin_pos_list[501], \
+                                num_bc_H1=bin_list[500][1], num_bc_H2=bin_list[500][2], p_value=p_value)
             # Progress
             pg_bar.update()
         pg_bar.terminate()
+
+    bin_results.adjust_p_values()
+    bin_results.write_to_stdout()
+
+    sys.stdout.write(q_values)
+
 
     # Close input
     infile.close()
@@ -179,7 +198,6 @@ def heterozygous_deletion_test(bin_list):
     Input: bin list containing num_bc tuples found in 1001 bins
     Output: p value and corresponding statistical measures
     """
-    import numpy
 
     # Create array for normal distribution numbers
     tmp_bin_list = bin_list[0:475] + bin_list[526:1000]
@@ -242,6 +260,56 @@ class ProgressBar(object):
 
          sys.stderr.write('\n')
 
+class bins(object):
+    """
+    Tracks all bins with their positions, p-values and q-values
+    """
+    def __init__(self):
+
+        # Dictionary with key:(start, stop) => value [num_bc_H1, num_bc_H2, p-value, q-value]
+        self.bin_dict = dict()
+
+    def add_bin(self, chrom, start, stop, num_bc_H1, num_bc_H2, p_value):
+
+        try: self.bin_dict[chrom]
+        except KeyError:
+            self.bin_dict[chrom] = dict()
+        self.bin_dict[chrom][(start, stop)] = [num_bc_H1, num_bc_H2, p_value]
+
+    def adjust_p_values(self):
+        """
+        Calculates q-values for all p-values.
+        """
+
+        # Fetch all p-values
+        p_values = list()
+        for chrom in self.bin_dict.keys():
+            for bin in self.bin_dict[chrom].keys():
+                p_values.append(self.bin_dict[chrom][bin][2])
+
+        # convert to numpy array and calculate q-values
+        p_array = numpy.array(self.p_values)
+        q_array = qvalues.estimate(p_array)
+
+        # build p to q-value dict
+        p_to_q_value_dict = dict()
+        for i in range(len(q_values)):
+            p_to_q_value_dict[p_array] = q_array[i]
+
+        # Adds a q-value at the end of the list for each bin
+        for chrom in self.bin_dict.keys():
+            for bin in self.bin_dict[chrom].keys():
+                pval = self.bin[chrom][bin][2]
+                self.bin[chrom][bin][bin].append(p_to_q_value_dict[pval])
+
+    def write_to_stdout(self):
+        """
+        Writes a vcf format summary to stdout.
+        """
+        for chrom in self.bin_dict.keys():
+            print(chrom)
+            for positions, result in self.bin_dict[chrom].items():
+                print(str(positions) + '\t' + str(result))
 class SignificantBin(object):
     """
     Object for saving data for significant deletions.

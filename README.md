@@ -10,6 +10,7 @@ To run the pipeline, the following software need to be installed:
   - [cutadapt](https://github.com/marcelm/cutadapt.git)
   - [bowtie2](https://github.com/BenLangmead/bowtie2)
   - [samtools](https://github.com/samtools/samtools)
+  - [qvalues](https://github.com/jeffhsu3/qvalue.git)
   
 This can be done by writing the following command in your terminal.
 
@@ -40,7 +41,7 @@ bash setpath.sh <picard_path> <bowtie2_reference>
 The whole pipeline can be run be using the automation script WGH_Analysis.sh. For standard useage, run the following command.
 
 ```
-bash WGH_automation.sh <read_1.fq> <read_2.fq> <output> -m <john.doe@myworkplace.com -p <processors>
+bash WGH_automation.sh -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
 ```
 
 For all available options, see -h (--help) and for more details consult the [step-by-step](https://github.com/FrickTobias/WGH_Analysis/tree/master/step-by-step) 
