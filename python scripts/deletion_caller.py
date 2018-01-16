@@ -54,7 +54,8 @@ def main():
             report_progress('Skipping ' + str(chromosome))
             continue
 
-
+        # Temporary for only running on chr1
+        if not chromosome == 'chr1': break
 
         #
         # 1. Initial window
@@ -75,7 +76,7 @@ def main():
         # Summary reporting
         summaryInstance.total_number_of_tests[chromosome] = 1
         if p_value < alpha:
-            significantBin = SignificantBin(p_value, mean, bin_start, bin_stop, chromosome, raw_value)
+            significantBin = SignificantBin(p_value, mean, bin_pos_list[500], bin_pos_list[501], chromosome, raw_value)
             significantBin.write_outfile()
             summaryInstance.deletions += 1
 
@@ -110,7 +111,7 @@ def main():
             summaryInstance.total_number_of_tests[chromosome] += 1
 
             if p_value < alpha:
-                significantBin = SignificantBin(p_value, mean, bin_start, bin_stop, chromosome, raw_value)
+                significantBin = SignificantBin(p_value, mean, bin_pos_list[500], bin_pos_list[501], chromosome, raw_value)
                 significantBin.write_outfile()
                 summaryInstance.deletions += 1
 
@@ -144,6 +145,10 @@ def count_haplotyped_barcodes(chromosome, bin_start, bin_stop):
     # Fetch all reads within bin
     for read in infile.fetch(str(chromosome), bin_start, bin_stop):
 
+        # Summary
+        summaryInstance.total_reads += 1
+
+        # Skips read if no barcode tag is present
         try: barcode_ID = read.get_tag('BX')
         except KeyError:
             summaryInstance.missing_bc_seq += 1
@@ -342,6 +347,7 @@ class Summary(object):
         self.total_number_of_tests = dict()
         self.unassigned_reads = int()
         self.missing_bc_seq = int()
+        self.total_reads = int()
 
     def writeToStdOut(self):
         """

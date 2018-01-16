@@ -1,17 +1,29 @@
 #!/bin/bash
 
+ #                                   #
+############# Overview ################
+ #                                   #
+ # 1. argument parsing & initials    #
+ #                                   #
+ # 2. Start of script                #
+ #   - Cut first handle (=e)         #
+ #   - Extract barcode to header     #
+ #   - Cut second handle (=TES)      #
+ #   - Trim 3' end for TES'          #
+ #                                   #
+#######################################
+ #                                   #
+
 #
-# Initials
+# Argument parsing & preparations
 #
 
+# Initials
 processors=1
 mailing=false
 remove=false
 
-#
-# Argument parsing
-#
-
+# Parse arguments
 while getopts "m:hp:r" OPTION
 do
     case ${OPTION} in
@@ -27,39 +39,33 @@ do
             remove=true
             ;;
         h)
-            echo ''
-	    echo 'This script runs the trimming parts of the WGH pipeline. Input are two WGH read files and output is written to a directory containing four sets of compressed fastq files. The final files are the ".trimmed.fq" files.'
-	    echo ""
-	    echo 'Useage: bash WGH_read_processing.sh <r1.fq> <r2.fq> <output_dir>'
-	    echo ''
-	    echo "Positional arguments (required)"
-	    echo "  <r1.fq>         Read one in .fastq format. Also handles gzip files (.fastq.gz)"
-	    echo "  <r2.fq>         Read two in .fastq format. Also handles gzip files (.fastq.gz)"
-	    echo "  <output_dir>    Output directory for analysis results"
-	    echo ""
-	    echo "Optional arguments"
-	    echo "  -h  help (this output)"
-	    echo "  -m  mails the supplied email when analysis is finished"
-	    echo "  -p  processors for threading"
-	    echo "  -r  removes files generated during analysis instead of just compressing them"
-	    echo ''
-	    exit 0
-	    ;;
+            printf '\nThis script runs the trimming parts of the WGH pipeline. Input are two WGH read files and output is written to a directory containing four sets of compressed fastq files. The final files are the ".trimmed.fq" files.
+
+Useage: bash WGH_read_processing.sh <options> <r1.fq> <r2.fq> <output_dir>
+
+Positional arguments (required)
+  <r1.fq>         Read one in .fastq format. Also handles gzip files (.fastq.gz)
+  <r2.fq>         Read two in .fastq format. Also handles gzip files (.fastq.gz)
+  <output_dir>    Output directory for analysis results
+
+Optional arguments
+  -h  help (this output)
+  -m  mails the supplied email when analysis is finished
+  -p  processors for threading
+  -r  removes files generated during analysis instead of just compressing them
+
+NB: options must be given before arguments.'
+	        exit 0
+	        ;;
     esac
 done
 
-#
 # Positonal redundancy for option useage
-#
-
 ARG1=${@:$OPTIND:1}
 ARG2=${@:$OPTIND+1:1}
 ARG3=${@:$OPTIND+2:1}
 
-#
 # Mailing option
-#
-
 if $mailing
 then
     if [[ $email == *"@"* ]]
@@ -74,10 +80,7 @@ then
     fi
 fi
 
-#
 # Error handling
-#
-
 if [ -z "$ARG1" ] || [ -z "$ARG2" ] || [ -z "$ARG3" ]
 then
     echo ""
@@ -88,9 +91,7 @@ then
     exit 0
 fi
 
-#
 # Fetching paths to external programs (from paths.txt)
-#
 
 # PATH to WGH_Analysis folder
 wgh_path=$(dirname "$0")
@@ -98,22 +99,22 @@ wgh_path=$(dirname "$0")
 # Loading PATH:s to software
 #   - reference:            $bowtie2_reference
 #   - Picard tools:         $picard_path
-#   - fragScaff:            $fragScafff_path
 . $wgh_path'/paths.txt'
 
+# output folder
 path=$ARG3
 
+# File one prep
 file=$ARG1
 name_ext=$(basename "$file")
 name="${name_ext%.*}"
 file_name="$path/${name_ext%.*}"
 
+# File two prep
 file2=$ARG2
 name_ext2=$(basename "$file2")
 name2="${name_ext2%.*}"
 file_name2="$path/${name_ext2%.*}"
-
-mkdir -p $path
 
 # Mailing
 if $mailing
@@ -123,23 +124,23 @@ fi
 printf 'Running with '$processors' threads\n'
 printf '#1 START PROCESSING \n'
 
-
 #
 # Start of script
 #
 
+mkdir -p $path
 
 # Trim away E handle on R1 5'. Also removes reads shorter than 85 bp.
-#cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
-#    -j $processors \
-#    -o $file_name".h1.fastq" \
-#    -p $file_name2".h1.fastq" $ARG1 $ARG2 \
-#    --discard-untrimmed -e 0.2 -m 65 # Tosses reads shorter than len(e+bc+handle+TES)
+cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
+    -j $processors \
+    -o $file_name".h1.fastq" \
+    -p $file_name2".h1.fastq" $ARG1 $ARG2 \
+    --discard-untrimmed -e 0.2 -m 65 # Tosses reads shorter than len(e+bc+handle+TES)
 
 # Mailing
 if $mailing
     then
-    echo 'Starting umi extraction '$(date) | mail -s 'wgh' $email
+    echo 'Starting trimming: '$(date) | mail -s $path $email
 fi
 printf '\n\n#2 TRIMMED E \n'
 
@@ -165,12 +166,6 @@ fi
 pigz $file_name".h1.bc.fastq"
 pigz $file_name2".h1.bc.fastq"
 
-# Mailing
-if $mailing
-    then
-    echo 'Starting 2nd trim '$(date) | mail -s 'wgh' $email
-fi
-
 printf '\n\n#3 GOT DBS USING UMI-TOOLs \n'
 
 #Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed.
@@ -191,12 +186,6 @@ fi
 pigz $file_name".h1.bc.h2.fastq"
 pigz $file_name2".h1.bc.h2.fastq"
 
-
-# Mailing
-if $mailing
-    then
-    echo 'Starting 3rd trim (final) '$(date) | mail -s 'wgh' $email
-fi
 
 printf '\n\n#4 TRIMMED TES1 \n'
 
@@ -222,7 +211,7 @@ pigz $file_name2".trimmed.fastq"
 
 if $mailing
     then
-    echo 'Finished '$(date) | mail -s 'wgh' $email
+    echo 'Trimming finished '$(date) | mail -s $path $email
 fi
 
 #printf '\n\n#8 SORTED AND INDEXED BAM-FILE \n'
