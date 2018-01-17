@@ -12,10 +12,21 @@ To run the pipeline, the following software need to be installed:
   - [samtools](https://github.com/samtools/samtools)
   - [qvalues](https://github.com/jeffhsu3/qvalue.git)
   
-This can be done by writing the following command in your terminal.
+This can be done by writing the following command in your terminal which will install everything but qvalues (since pip 
+will default to the python 2 version). 
 
 ```
 sudo bash prerequisites.sh
+```
+
+To get qvalues for python 3, clone the github fork above and install it.
+
+```
+git clone https://github.com/jeffhsu3/qvalue.git
+```
+```
+python3 setup.py build
+python3 setup.py install
 ```
 
 It will also be required to have downloaded [Picard Tools](https://github.com/broadinstitute/picard) and a Bowtie2 reference genome (e.g. GRCh38), available at e.g. [Illumina iGenomes](https://support.illumina.com/sequencing/sequencing_software/igenome.html).
