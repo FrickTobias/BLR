@@ -54,7 +54,7 @@ Optional arguments
   -p  processors for threading. DEFAULT: 1
   -r  removes files generated during analysis instead of just compressing them. DEFAULT: False
 
-NB: options must be given before arguments.'
+NB: options must be given before arguments.\n'
 	        exit 0
 	        ;;
     esac
@@ -121,8 +121,8 @@ if $mailing
     then
     echo 'Starting 1st trim '$(date) | mail -s 'wgh' $email
 fi
-printf 'Running with '$processors' threads\n'
-printf '#1 START PROCESSING \n'
+printf '\nRunning with '$processors' threads\n'
+printf '\n#1 START PROCESSING \n'
 
 #
 # Start of script
@@ -134,15 +134,17 @@ mkdir -p $path
 cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
     -j $processors \
     -o $file_name".h1.fastq" \
-    -p $file_name2".h1.fastq" $ARG1 $ARG2 \
-    --discard-untrimmed -e 0.2 -m 65 # Tosses reads shorter than len(e+bc+handle+TES)
+    -p $file_name2".h1.fastq" \
+    $ARG1 \
+    $ARG2 \
+    --discard-untrimmed -e 0.2 -m 65 > $path/trimming.txt # Tosses reads shorter than len(e+bc+handle+TES)
 
 # Mailing
 if $mailing
     then
     echo 'Starting trimming: '$(date) | mail -s $path $email
 fi
-printf '\n\n#2 TRIMMED E \n'
+printf '#2 TRIMMED E \n'
 
 pigz $file_name".h1.fastq"
 pigz $file_name2".h1.fastq"
@@ -166,14 +168,15 @@ fi
 pigz $file_name".h1.bc.fastq"
 pigz $file_name2".h1.bc.fastq"
 
-printf '\n\n#3 GOT DBS USING UMI-TOOLs \n'
+printf '#3 GOT DBS USING UMI-TOOLs \n'
 
 #Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed.
 cutadapt -g AGATGTGTATAAGAGACAG -o $file_name".h1.bc.h2.fastq" \
     -j $processors \
     -p $file_name2".h1.bc.h2.fastq" \
     $file_name".h1.bc.fastq.gz" \
-    $file_name2".h1.bc.fastq.gz" --discard-untrimmed -e 0.2
+    $file_name2".h1.bc.fastq.gz" \
+    --discard-untrimmed -e 0.2  >> $path/trimming.txt
 
 # Remove
 if $remove
@@ -187,7 +190,7 @@ pigz $file_name".h1.bc.h2.fastq"
 pigz $file_name2".h1.bc.h2.fastq"
 
 
-printf '\n\n#4 TRIMMED TES1 \n'
+printf '#4 TRIMMED TES1 \n'
 
 #Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT
 cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
@@ -196,7 +199,8 @@ cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
 	-p $file_name2".trimmed.fastq" \
 	-m 25 \
 	$file_name".h1.bc.h2.fastq.gz" \
-	$file_name2".h1.bc.h2.fastq.gz" -e 0.2
+	$file_name2".h1.bc.h2.fastq.gz" \
+	-e 0.2  >> $path/trimming.log
 
 # Remove
 if $remove
@@ -214,6 +218,9 @@ if $mailing
     echo 'Trimming finished '$(date) | mail -s $path $email
 fi
 
-#printf '\n\n#8 SORTED AND INDEXED BAM-FILE \n'
-#
-printf 'RUN COMPLETE (>'-')  (>'-')>  ^('-')^'
+# Ugly solution to calculate % construOK
+var1=$( cat $path/trimming.txt | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 1 )
+var2=$( cat $path/trimming.txt | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 2 )
+
+printf 'RUN COMPLETE\n'
+awk '{print "\nIntact reads: "$1*$2*0.0001" %\n"}' <<< "$var1 $var2"
