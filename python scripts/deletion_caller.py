@@ -19,52 +19,49 @@ def main():
     # Initials
     #
     summaryInstance = Summary()
+    bin_results = bins()
 
     #
-    # Progress
-    #
-    #
-    # Data processing & writing output
+    # Analysis start
     #
 
     # Settings & initals
     num_bins = 1001
     bin_width = args.bin
-    alpha = args.alpha
 
     # Initials: metadata
     window_size = num_bins*bin_width
 
     # Open bam file
     infile = pysam.AlignmentFile(args.sort_tag_bam, 'rb')
-    # Open output
-    outfile = open(args.outfile, 'w')
 
+    # Reporting to stderr
     report_progress('Variables set')
     report_progress('Starting indel calling')
-
-    total_p_value_list = list()
-
-    bin_results = bins()
 
     # Loop over chromosomes
     for chromosome_header in infile.header['SQ']:
 
-        # Error handling: Check that total length of chromosome is bigger than one window
         chromosome = chromosome_header['SN']
         chromosome_length = chromosome_header['LN']
+
+        # Option for only running on specific chromosomes.
+        if args.chromosome:
+            if not chromosome == args.chromosome:
+                continue
+
+        # Error handling: Check that total length of chromosome is bigger than one window
         if chromosome_length <= window_size:
             report_progress(str(chromosome) + ' is only ' + str(chromosome_length) + ' bp. Cannot call deletions with current \
             bin size. Consider making bin size smaller if this is an important area.')
             report_progress('Skipping ' + str(chromosome))
             continue
 
-        # Temporary for only running on chr1
-        if not chromosome == 'chr1': break
-
         #
         # 1. Initial window
         #
+
+        # Two main variables for tracking values in current window
         bin_list = list()
         bin_pos_list = list(range(0,window_size+bin_width, bin_width))
 
@@ -76,16 +73,10 @@ def main():
             bin_list.append(num_bc)
 
         # Calculate p value and report to output if significance below threshold (alpha)
-        p_value, mean, raw_value = heterozygous_deletion_test(bin_list)
-        total_p_value_list.append(p_value)
-
-        # Summary reporting
+        p_value = heterozygous_deletion_test(bin_list)
         summaryInstance.total_number_of_tests[chromosome] = 1
-        if p_value < alpha:
-            significantBin = SignificantBin(p_value, mean, bin_pos_list[500], bin_pos_list[501], chromosome, raw_value)
-            significantBin.write_outfile()
-            summaryInstance.deletions += 1
 
+        # Add bin to results
         bin_results.add_bin(chromosome, bin_pos_list[500], bin_pos_list[501],num_bc_H1=bin_list[500][1], num_bc_H2=bin_list[500][2],p_value=p_value)
 
         #
@@ -105,7 +96,7 @@ def main():
             bin_pos_list = bin_pos_list[1:]
             bin_pos_list.append(new_pos)
 
-            # Fetch new bin's num_bc
+            # Fetch the new bins num_bc
             num_bc = count_haplotyped_barcodes(chromosome=chromosome, bin_start=bin_pos_list[-2], bin_stop=bin_pos_list[-1])
 
             # Shift window for bin value list
@@ -113,32 +104,32 @@ def main():
             bin_list.append(num_bc)
 
             # Test for heterozygous deletions
-            p_value, mean, raw_value = heterozygous_deletion_test(bin_list)
-
-            # Track all p values found for q-value conversion
-            total_p_value_list.append(p_value)
-
-            # Summary reporting
+            p_value = heterozygous_deletion_test(bin_list)
             summaryInstance.total_number_of_tests[chromosome] += 1
 
-            if p_value < alpha:
-                significantBin = SignificantBin(p_value, mean, bin_pos_list[500], bin_pos_list[501], chromosome, raw_value)
-                significantBin.write_outfile()
-                summaryInstance.deletions += 1
-
+            # Add bin to results
             bin_results.add_bin(chromosome, bin_pos_list[500], bin_pos_list[501], \
                                 num_bc_H1=bin_list[500][1], num_bc_H2=bin_list[500][2], p_value=p_value)
-            # Progress
+            # Progress bar
             pg_bar.update()
-        pg_bar.terminate()
 
-    bin_results.adjust_p_values()
-    bin_results.write_to_stdout()
+        # Progress bar
+        pg_bar.terminate()
 
     # Close input
     infile.close()
-    # Close output
-    outfile.close()
+
+    # Calculate q-values from p-values
+    report_progress('Calculating q-values')
+    bin_results.adjust_p_values()
+
+    # Write to file (or std out if specified in options)
+    report_progress('Writing output')
+    if args.stdout:
+        bin_results.write_to_stdout()
+    else:
+        with open(args.outfile, 'w') as outfile:
+            bin_results.write_as_vcf()
 
     #
     # Write logfile containing everything in summaryinstance
@@ -206,13 +197,10 @@ def heterozygous_deletion_test(bin_list):
     # Calculate mean
     mean = numpy.mean(distribution_array)
 
-    # Saving raw data for classification
-    raw_value = bin_list[500][0]
-
     # Two-tailed binomial test to discern whether the middle bin belongs to the normal distribution
     p_value = scipy.stats.binom_test(x=bin_list[500][1:3], p=mean, alternative='two-sided')
 
-    return p_value, mean, raw_value
+    return p_value
 
 def report_progress(string):
     """
@@ -228,7 +216,6 @@ class ProgressBar(object):
     """
 
     def __init__(self, name, min, max, step):
-
         # Variables
         self.min = min
         self.max = max
@@ -244,7 +231,6 @@ class ProgressBar(object):
         sys.stderr.write('\n|------------------------------------------------|\n')
 
     def update(self):
-
         # If progress is over 2%, write '#' to stdout
         self.current_position += self.step
         if self.current_percentage < self.current_position:
@@ -254,7 +240,6 @@ class ProgressBar(object):
             self.current_percentage += self.two_percent
 
     def terminate(self):
-
          sys.stderr.write('\n')
 
 class bins(object):
@@ -299,6 +284,16 @@ class bins(object):
                 pval = self.bin_dict[chrom][bin][2]
                 self.bin_dict[chrom][bin].append(p_to_q_value_dict[pval])
 
+    def write_as_vcf(self):
+        """
+        Writes a vcf format summary to specified output file
+        """
+        for chrom in self.bin_dict.keys():
+            outfile.write(str(chrom) + '\n')
+            for positions, result in self.bin_dict[chrom].items():
+                outfile.write(str(positions) + '\t' + str(result) + '\n')
+                outfile.write(str(chrom) + '\t' + str(positions[0]) +  ':' + str(positions[1]) + '\tDEL\t' + str(result))
+
     def write_to_stdout(self):
         """
         Writes a vcf format summary to stdout.
@@ -307,28 +302,6 @@ class bins(object):
             print(chrom)
             for positions, result in self.bin_dict[chrom].items():
                 print(str(positions) + '\t' + str(result))
-
-class SignificantBin(object):
-    """
-    Object for saving data for significant deletions.
-    """
-
-    def __init__(self, p_value, mean, bin_start, bin_stop, chromosome, raw_value):
-
-        self.start = bin_start
-        self.stop = bin_stop
-        self.p_value = p_value
-        self.chromosome = chromosome
-        self.mean = mean
-        self.raw_value = raw_value
-
-    def write_outfile(self):
-        """
-        Writes all significant heterozygous deletions to output file in vcf format
-        """
-
-        self.vcf_file_string = str(self.chromosome) + '\t' + str(self.start) + ':' + str(self.stop) + '\tDEL\t' + str(self.p_value) + '\n'
-        outfile.write(self.vcf_file_string)
 
 class readArgs(object):
     """
@@ -364,6 +337,9 @@ class readArgs(object):
         parser.add_argument("-b", "--bin", type=int, default=1000, help="Bin width in bp \nDEFAULT: 1000")
         parser.add_argument("-a", "--alpha", type=float, default=0.05, help="Cutoff for what is considered a significant"
                                                                             "p value. \nDEFAULT: 0.05")
+        parser.add_argument("-c", "--chromosome", type=str, help="Only run analysis on the specified chromosome.")
+        parser.add_argument("-s", "--stdout", action="store_true", help="Writes output to stdout instead of outfile. It "
+                                                                        "is still needed to specify output file name.")
 
         args = parser.parse_args()
 
