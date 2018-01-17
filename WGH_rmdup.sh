@@ -12,7 +12,7 @@ remove=false
 # Argument parsing
 #
 
-while getopts "m:hp:r" OPTION
+while getopts "m:hp" OPTION
 do
     case ${OPTION} in
 
@@ -23,9 +23,6 @@ do
             email=${OPTARG}
             mailing=true
             ;;
-        r)
-            remove=true
-            ;;
         h)
             echo ''
 	    echo 'This script runs the trimming parts of the WGH pipeline. Input are two WGH read files and output is written to a directory containing four sets of compressed fastq files. The final files are the ".trimmed.fq" files.'
@@ -33,15 +30,13 @@ do
 	    echo 'Useage: bash WGH_read_processing.sh <r1.fq> <r2.fq> <output_dir>'
 	    echo ''
 	    echo "Positional arguments (required)"
-	    echo "  <r1.fq>         Read one in .fastq format. Also handles gzip files (.fastq.gz)"
-	    echo "  <r2.fq>         Read two in .fastq format. Also handles gzip files (.fastq.gz)"
-	    echo "  <output_dir>    Output directory for analysis results"
+	    echo "  <tagged.bam>    Mapped reads tagged with barcodes in the RG tag"
+	    echo "  <rmdup.bam>     Mapped reads with duplicates removed"
 	    echo ""
 	    echo "Optional arguments"
 	    echo "  -h  help (this output)"
 	    echo "  -m  mails the supplied email when analysis is finished"
 	    echo "  -p  processors for threading, not implemented yet"
-	    echo "  -r  removes files generated during analysis instead of just compressing them"
 	    echo ''
 	    exit 0
 	    ;;
@@ -99,8 +94,6 @@ wgh_path=$(dirname "$0")
 #   - Picard tools:         $picard_path
 #   - fragScaff:            $fragScafff_path
 . $wgh_path'/paths.txt'
-
-path=$ARG3
 
 tagged_bam=ARG1
 output=ARG2

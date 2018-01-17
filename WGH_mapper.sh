@@ -35,7 +35,7 @@ do
 	    echo "Positional arguments (required)"
 	    echo "  <r1.fq>         Read one in .fastq format. Also handles gzip files (.fastq.gz)"
 	    echo "  <r2.fq>         Read two in .fastq format. Also handles gzip files (.fastq.gz)"
-	    echo "  <output_dir>    Output directory for analysis results"
+	    echo "  <output_bam>    Bamfile with mapped reads."
 	    echo ""
 	    echo "Optional arguments"
 	    echo "  -h  help (this output)"
@@ -103,18 +103,10 @@ wgh_path=$(dirname "$0")
 
 r1=$ARG1
 r2=$ARG2
-output_dir=$ARG3
-
-
-echo $r1
-echo $r2
-echo $output_dir
+output_bam=$ARG3
 
 bowtie2 --maxins 2000 -p $processors -x $bowtie2_reference \
     -1 $r1 \
     -2 $r2 | \
-    samtools view -@ $processors -bS - > $output_dir/mapped.bam
-
-samtools view -b -@ 24 -q 20 -f 0x02 -F 0x04 -F 0x100 $1 > $1.filt.bam
-
-samtools sort -@ 24 $1.filt.bam > $1.filt.sort.bam
+    samtools view -@ $processors -bS -@ $processors -F 0x04 -F 0x100 - |
+    samtools sort -@ processors - > $output_bam

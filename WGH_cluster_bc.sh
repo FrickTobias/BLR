@@ -12,7 +12,7 @@ remove=false
 # Argument parsing
 #
 
-while getopts "m:hp:r" OPTION
+while getopts "m:hp" OPTION
 do
     case ${OPTION} in
 
@@ -23,9 +23,6 @@ do
             email=${OPTARG}
             mailing=true
             ;;
-        r)
-            remove=true
-            ;;
         h)
             echo ''
 	    echo 'This script runs the trimming parts of the WGH pipeline. Input are two WGH read files and output is written to a directory containing four sets of compressed fastq files. The final files are the ".trimmed.fq" files.'
@@ -34,8 +31,8 @@ do
 	    echo ''
 	    echo "Positional arguments (required)"
 	    echo "  <r1.fq>         Read one in .fastq format. Also handles gzip files (.fastq.gz)"
-	    echo "  <r2.fq>         Read two in .fastq format. Also handles gzip files (.fastq.gz)"
-	    echo "  <output_dir>    Output directory for analysis results"
+	    echo "  <mapped.bam>    Mapped bamfile which is to be tagged with clustering information"
+	    echo "  <output_dir>    Output directory for clusterng files."
 	    echo ""
 	    echo "Optional arguments"
 	    echo "  -h  help (this output)"
@@ -83,7 +80,7 @@ then
     echo ""
     echo "ARGUMENT ERROR"
     echo "Did not find all three positional arguments, see -h for more information."
-    echo "(got r1:"$ARG1", r2:"$ARG2" and output:"$ARG3" instead)"
+    echo "(got r1:"$ARG1", mapped:"$ARG2" and output_dir:"$ARG3" instead)"
     echo ""
     exit 0
 fi
@@ -102,14 +99,8 @@ wgh_path=$(dirname "$0")
 . $wgh_path'/paths.txt'
 
 r1_with_header=$ARG1
-filt_sort_bam=$ARG2
+bam=$ARG2
 output=$ARG3
-
-
-echo $r1
-echo $filt_sort_bam
-echo $output
-
 
 pigz -d $r1
 
@@ -126,6 +117,8 @@ pigz $r1
 
 cat $output/unique_bc/*.clstr > $output/NNN.clstr
 
-python3 $wgh_path'/python scripts/tag_bam.py' $output/NNN.clstr $filt_sort_bam $filt_sort_bam'.tagged.bam'
+python3 $wgh_path'/python scripts/tag_bam.py' $output/NNN.clstr $bam $bam'.tagged.bam'
 
-echo 'Finished '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
+if $mailing
+    echo 'Barcodes clustered and bamfile tagged '$(date) | mail -s $bam $email
+fi
