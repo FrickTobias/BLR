@@ -288,11 +288,13 @@ class bins(object):
         """
         Writes a vcf format summary to specified output file
         """
+        outfile.write('CHR\tSTART:STOP\tTYPE\tqval\tpval\t#bcH1:#bcH2\n')
         for chrom in self.bin_dict.keys():
-            outfile.write(str(chrom) + '\n')
             for positions, result in self.bin_dict[chrom].items():
-                outfile.write(str(positions) + '\t' + str(result) + '\n')
-                outfile.write(str(chrom) + '\t' + str(positions[0]) +  ':' + str(positions[1]) + '\tDEL\t' + str(result))
+                outfile.write(str(chrom) + '\t' + str(positions[0]) +  ':' + str(positions[1]) + '\tDEL\t')
+                outfile.write(str(result[3]) + '\t' + str(result[2]) + '\t' + str(result[0]) + ':' + str(result[1]))
+                outfile.write('\n')
+
 
     def write_to_stdout(self):
         """
