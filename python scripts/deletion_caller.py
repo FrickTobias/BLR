@@ -5,7 +5,7 @@ def main():
     #
     # Imports & globals
     #
-    global args, summaryInstance, sys, time, pysam, stats, PS_set_H1, PS_set_H2, last_H, outfile, scipy, stats, infile, numpy, qvalue
+    global args, summaryInstance, sys, time, pysam, stats, PS_set_H1, PS_set_H2, last_H, outfile, scipy, stats, infile, numpy, qvalue, alpha
     import pysam, sys, time, scipy, numpy, qvalue
     from scipy import stats
 
@@ -28,6 +28,7 @@ def main():
     # Settings & initals
     num_bins = 1001
     bin_width = args.bin
+    alpha = args.alpha
 
     # Initials: metadata
     window_size = num_bins*bin_width
@@ -125,7 +126,7 @@ def main():
 
     # Write to file (or std out if specified in options)
     report_progress('Writing output')
-    if args.stdout:
+    if args.STDOUT:
         bin_results.write_to_stdout()
     else:
         with open(args.outfile, 'w') as outfile:
@@ -134,7 +135,7 @@ def main():
     #
     # Write logfile containing everything in summaryinstance
     #
-    summaryInstance.writeToStdOut()
+    summaryInstance.writeToStdErr()
 
 def count_haplotyped_barcodes(chromosome, bin_start, bin_stop):
     """
@@ -288,22 +289,49 @@ class bins(object):
         """
         Writes a vcf format summary to specified output file
         """
+
+        # Header
         outfile.write('CHR\tSTART:STOP\tTYPE\tqval\tpval\t#bcH1:#bcH2\n')
         for chrom in self.bin_dict.keys():
             for positions, result in self.bin_dict[chrom].items():
-                outfile.write(str(chrom) + '\t' + str(positions[0]) +  ':' + str(positions[1]) + '\tDEL\t')
-                outfile.write(str(result[3]) + '\t' + str(result[2]) + '\t' + str(result[0]) + ':' + str(result[1]))
-                outfile.write('\n')
 
+                # If args.significant - only write significant qvalues to output file
+                if args.significant:
+                    qval = result[3]
+                    if qval <= alpha:
+                        outfile.write(str(chrom) + '\t' + str(positions[0]) + ':' + str(positions[1]) + '\tDEL\t')
+                        outfile.write(str(result[3]) + '\t' + str(result[2]) + '\t' + str(result[0]) + ':' + str(result[1]) + '\n')
+                    else:
+                        pass
+
+                # Write everything to output file
+                else:
+                    outfile.write(str(chrom) + '\t' + str(positions[0]) +  ':' + str(positions[1]) + '\tDEL\t')
+                    outfile.write(str(result[3]) + '\t' + str(result[2]) + '\t' + str(result[0]) + ':' + str(result[1]) + '\n')
 
     def write_to_stdout(self):
         """
         Writes a vcf format summary to stdout.
         """
+
+        # Header
+        print('CHR\tSTART:STOP\tTYPE\tqval\tpval\t#bcH1:#bcH2\n'
         for chrom in self.bin_dict.keys():
-            print(chrom)
             for positions, result in self.bin_dict[chrom].items():
-                print(str(positions) + '\t' + str(result))
+
+                # If args.significant - only write significant qvalues to std out
+                if args.significant:
+                    qval = result[3]
+                    if qval <= alpha:
+                        print(str(chrom) + '\t' + str(positions[0]) + ':' + str(positions[1]) + '\tDEL\t' + str(
+                            result[3]) + '\t' + str(result[2]) + '\t' + str(result[0]) + ':' + str(result[1]))
+                    else:
+                        pass
+
+                # Write everything to std out
+                else:
+                    print(str(chrom) + '\t' + str(positions[0]) + ':' + str(positions[1]) + '\tDEL\t' + str(
+                        result[3]) + '\t' + str(result[2]) + '\t' + str(result[0]) + ':' + str(result[1]))
 
 class readArgs(object):
     """
@@ -340,8 +368,9 @@ class readArgs(object):
         parser.add_argument("-a", "--alpha", type=float, default=0.05, help="Cutoff for what is considered a significant"
                                                                             "p value. \nDEFAULT: 0.05")
         parser.add_argument("-c", "--chromosome", type=str, help="Only run analysis on the specified chromosome.")
-        parser.add_argument("-s", "--stdout", action="store_true", help="Writes output to stdout instead of outfile. It "
+        parser.add_argument("-S", "--STDOUT", action="store_true", help="Writes output to stdout instead of outfile. It "
                                                                         "is still needed to specify output file name.")
+        parser.add_argument("-s", "--significant", action="store_true", help="Only write significant hits to out. ")
 
         args = parser.parse_args()
 
@@ -393,14 +422,14 @@ class Summary(object):
         self.missing_bc_seq = int()
         self.total_reads = int()
 
-    def writeToStdOut(self):
+    def writeToStdErr(self):
         """
         Writes all object variables to stdout.
         """
 
         for objectVariable, value in vars(self).items():
-            sys.stdout.write('\n\n' + str(objectVariable) + '\n' + str(value))
-        sys.stdout.write('\n')
+            sys.stderr.write('\n\n' + str(objectVariable) + '\n' + str(value))
+        sys.stderr.write('\n')
 
     def writeLog(self):
         """

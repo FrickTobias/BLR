@@ -98,6 +98,7 @@ def readAndProcessClusters(openInfile):
     """ Reads clstr file and builds read:clusterId dict in Summary instance."""
 
     # Set clusterInstance for first loop
+    report_progress('Reading cluster file.')
     for first_line in openInfile:
         clusterInstance = ClusterObject(clusterId=first_line)
         break
@@ -115,6 +116,14 @@ def readAndProcessClusters(openInfile):
 
     # Add last cluster to master dict
     summaryInstance.updateReadToClusterDict(clusterInstance.barcode_to_bc_dict)
+
+def report_progress(string):
+    """
+    Writes a time stamp followed by a message (=string) to standard out.
+    Input: String
+    Output: [date]  string
+    """
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
 
 class ClusterObject(object):
     """ Cluster object"""
