@@ -139,13 +139,7 @@ cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
     $ARG2 \
     --discard-untrimmed -e 0.2 -m 65 > $path/trimming.txt # Tosses reads shorter than len(e+bc+handle+TES)
 
-# Mailing
-if $mailing
-    then
-    echo 'Starting trimming: '$(date) | mail -s $path $email
-fi
 printf '#2 TRIMMED E \n'
-
 pigz $file_name".h1.fastq"
 pigz $file_name2".h1.fastq"
 
@@ -167,7 +161,6 @@ fi
 # Compress
 pigz $file_name".h1.bc.fastq"
 pigz $file_name2".h1.bc.fastq"
-
 printf '#3 GOT DBS USING UMI-TOOLs \n'
 
 #Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed.
@@ -188,8 +181,6 @@ fi
 # Compress
 pigz $file_name".h1.bc.h2.fastq"
 pigz $file_name2".h1.bc.h2.fastq"
-
-
 printf '#4 TRIMMED TES1 \n'
 
 #Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT

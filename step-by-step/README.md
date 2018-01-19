@@ -1,11 +1,10 @@
 ### Main steps
 Here, every step will be explained in detail. For more details about in-house option useage, see example folder. There
-are also semi-automated scripts for performing the main parts of the analysis, see semi_auto.md.
+are also semi-automated scripts for performing the main parts of the analysis, see [semi_auto.md](https://github.com/FrickTobias/WGH_Analysis/blob/master/step-by-step/semi_automated.md).
 
 #### Read trimming and barcode identification
-This is comprised of three steps, all working on read 1. First handle 1 is trimmed from the 5' end and reads with 
-those handles are kept. Then the next 20 bases are moved from the sequence up to the header using UMItools extract 
-followed by another trimming of handle 2 as in the first step (this only need to be run once to generate paths.sh).
+This is comprised of four steps. First handle 1 is trimmed from the 5' end of read1. Then the next 20 bases are moved 
+from the sequence up to the header using UMItools extract followed by another trimming of another hadle.
 
 ```
 cutadapt [-OPTIONS] <read_1.fq> <> <>
