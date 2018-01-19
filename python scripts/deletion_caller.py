@@ -38,6 +38,8 @@ def main():
 
     # Reporting to stderr
     report_progress('Variables set')
+    if args.significant:
+        report_progress('Omitting qval below alpha = ' + str(alpha))
     report_progress('Starting indel calling')
 
     # Loop over chromosomes
@@ -315,7 +317,7 @@ class bins(object):
         """
 
         # Header
-        print('CHR\tSTART:STOP\tTYPE\tqval\tpval\t#bcH1:#bcH2\n'
+        print('CHR\tSTART:STOP\tTYPE\tqval\tpval\t#bcH1:#bcH2\n')
         for chrom in self.bin_dict.keys():
             for positions, result in self.bin_dict[chrom].items():
 
@@ -365,12 +367,13 @@ class readArgs(object):
         parser.add_argument("-p", "--processors", type=int, default=multiprocessing.cpu_count(),
                             help="Thread analysis in p number of processors. \nDEFAULT: all available")
         parser.add_argument("-b", "--bin", type=int, default=1000, help="Bin width in bp \nDEFAULT: 1000")
-        parser.add_argument("-a", "--alpha", type=float, default=0.05, help="Cutoff for what is considered a significant"
+        parser.add_argument("-a", "--al"
+                                  "pha", type=float, default=0.05, help="Cutoff for what is considered a significant"
                                                                             "p value. \nDEFAULT: 0.05")
         parser.add_argument("-c", "--chromosome", type=str, help="Only run analysis on the specified chromosome.")
         parser.add_argument("-S", "--STDOUT", action="store_true", help="Writes output to stdout instead of outfile. It "
                                                                         "is still needed to specify output file name.")
-        parser.add_argument("-s", "--significant", action="store_true", help="Only write significant hits to out. ")
+        parser.add_argument("-s", "--significant", action="store_true", default=False, help="Only write significant hits to out. ")
 
         args = parser.parse_args()
 
