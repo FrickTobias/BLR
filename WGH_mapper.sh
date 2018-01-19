@@ -108,6 +108,6 @@ output_bam=$ARG3
 bowtie2 --maxins 2000 -p $processors -x $bowtie2_reference \
     -1 $r1 \
     -2 $r2 | \
-    samtools view -@ $processors -bS -@ $processors -F 0x04 -F 0x100 - > $output_bam.filt.bam
+    samtools view -@ $processors -bS -F 0x04 -F 0x100 - > $output_bam.filt.bam
 
 samtools sort -@ processors $output_bam.filt.bam > $output_bam
