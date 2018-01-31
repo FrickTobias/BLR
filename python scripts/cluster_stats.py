@@ -253,20 +253,29 @@ class Summary(object):
         ave_phase_block_cov = phase_block['coverage'] / num_reads
         ave_read_bases_in_read_pair = phase_block['insert_bases']/phase_block['bases_btw_inserts']
 
-
-
         # Tries to append to list of tuples, otherwise creates a tuple list as value for given barcode id
-        try: self.phase_block_result_dict[barcode_id].append((start, stop, length, length, ave_phase_block_cov, ave))
+        try: self.phase_block_result_dict[barcode_id]
         except KeyError:
-            self.phase_block_dict[barcode_id] = [()]
+            self.phase_block_result_dict[barcode_id] = []
+
+        self.phase_block_result_dict[barcode_id].append((start, stop, length, length, ave_phase_block_cov, ave_read_bases_in_read_pair))
 
     def writeResultFiles:
 
-        coupling_out = open((args.output_prefix + '') 'w')
-        tagm_freq_out = open((args.output_prefix + ''), 'w')
-        reads_per_phase_block_out = open((args.output_prefix + ''), 'w')
-        molecules_per_bc_out = open((args.output_prefix + ''), 'w')
-        phase_block_len_out = open((args.output_prefix + ''), 'w')
+        coupling_out = open((args.output_prefix + '.coupling_efficiency') 'w')
+        insert_length_out = open((args.output_prefix + '.insert_lengths'), 'w')
+        reads_per_phase_block_out = open((args.output_prefix + '.reads_per_molecule'), 'w')
+        molecules_per_bc_out = open((args.output_prefix + '.molecules_ber_bc'), 'w')
+        phase_block_len_out = open((args.output_prefix + '.phase_block_length'), 'w')
+
+        for barcode_id in self.phase_block_result_dict.keys()
+
+            # write len(tuple_list)
+
+            for phase_blocks in tuple_list
+
+                # extract specific numbers
+
 
     #def writeToStdErr(self):
     #    """
