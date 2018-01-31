@@ -109,7 +109,6 @@ def readAndProcessClusters(openInfile):
         if line.startswith('>'):
             summaryInstance.updateReadToClusterDict(clusterInstance.barcode_to_bc_dict)
             clusterInstance = ClusterObject(clusterId=line)
-
         # Add accession entry for current cluster id
         else:
             clusterInstance.addRead(line)
