@@ -174,7 +174,7 @@ class readArgs(object):
         # Arguments
         parser.add_argument("sort_tag_bam", help=".bam file tagged with @RG tags and duplicates marked (not taking "
                                                      "cluster id into account).")
-        parser.add_argument("output_prefix", help="prefix for results files (.insert_lengths, .coupling_efficiency, "
+        parser.add_argument("output_prefix", help="prefix for results files (.read_pair_coverage, .coupling_efficiency, "
                                                   ".reads_per_molecule, .molecule_per_barcode and .phase_block_length")
 
         # Options
@@ -258,23 +258,26 @@ class Summary(object):
         except KeyError:
             self.phase_block_result_dict[barcode_id] = []
 
-        self.phase_block_result_dict[barcode_id].append((start, stop, length, length, ave_phase_block_cov, ave_read_bases_in_read_pair))
+        self.phase_block_result_dict[barcode_id].append((start, stop, length, num_reads, ave_phase_block_cov, ave_read_bases_in_read_pair))
 
     def writeResultFiles:
 
-        coupling_out = open((args.output_prefix + '.coupling_efficiency') 'w')
-        insert_length_out = open((args.output_prefix + '.insert_lengths'), 'w')
-        reads_per_phase_block_out = open((args.output_prefix + '.reads_per_molecule'), 'w')
         molecules_per_bc_out = open((args.output_prefix + '.molecules_ber_bc'), 'w')
+        coupling_out = open((args.output_prefix + '.coupling_efficiency') 'w')
+        read_pair_coverage_out = open((args.output_prefix + '.read_pair_coverage'), 'w')
+        reads_per_phase_block_out = open((args.output_prefix + '.reads_per_molecule'), 'w')
         phase_block_len_out = open((args.output_prefix + '.phase_block_length'), 'w')
 
         for barcode_id in self.phase_block_result_dict.keys()
 
-            # write len(tuple_list)
+            molecules_per_bc_out.write(str(len(phase_block_result_dict[barcode_id])) + '\n')
 
-            for phase_blocks in tuple_list
+            for phase_block in phase_block_result_dict[barcode_id]
 
-                # extract specific numbers
+                read_pair_coverage_out.write(str(phase_block[2]) + '\n')
+                reads_per_phase_block_out.write(str(phase_block[3]) + '\n')
+                phase_block_len_out.write(str(phase_block[4]) + '\n')
+                coupling_out.write(str(phase_block[5]/0.5) + '\n')
 
 
     #def writeToStdErr(self):
