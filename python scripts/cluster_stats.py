@@ -73,15 +73,15 @@ def main():
                     current_phase_block[barcode_id]['stop'] = read_stop
                     current_phase_block[barcode_id]['coverage'] = percent_coverage
                     current_phase_block[barcode_id]['number_of_reads'] = 1
-                    current_phase_block[barcode_id]['insert_bases'] = mate_stop - mate_start
+                    current_phase_block[barcode_id]['insert_bases'] = read_stop - mate_start
                     current_phase_block[barcode_id]['bases_btw_inserts'] = 0
                     continue
 
                 # If last position of phase block is withing window (100 kb) distance of current read, then add this read to phase block.
                 if (last_pos_of_phase_block+window) >= mate_start:
                     # GREPFRICK: Make into object
-                    current_phase_block[barcode_id]['insert_bases'] = mate_stop - mate_start
-                    current_phase_block[barcode_id]['bases_btw_inserts'] = current_phase_block[barcode_id]['stop'] - mate_start
+                    current_phase_block[barcode_id]['insert_bases'] += read_stop - mate_start
+                    current_phase_block[barcode_id]['bases_btw_inserts'] += mate_start - current_phase_block[barcode_id]['stop']
 
                     current_phase_block[barcode_id]['stop'] = read_stop
                     current_phase_block[barcode_id]['coverage'] = (percent_coverage + current_phase_block[barcode_id]['coverage'])
@@ -103,7 +103,7 @@ def main():
                     current_phase_block[barcode_id]['stop'] = read_stop
                     current_phase_block[barcode_id]['coverage'] = percent_coverage
                     current_phase_block[barcode_id]['number_of_reads'] = 1
-                    current_phase_block[barcode_id]['insert_bases'] = mate_stop - mate_start
+                    current_phase_block[barcode_id]['insert_bases'] = read_stop - mate_start
                     current_phase_block[barcode_id]['bases_btw_inserts'] = 0
 
             # Will rinse/count unpaired reads in between chromosomes
