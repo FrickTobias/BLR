@@ -20,7 +20,8 @@ def main():
     summaryInstance = Summary()
     window = args.window_size
     past_unpaired_reads = dict()
-    current_phase_block = dict()
+
+    currentPhaseBlocks = CurrentPhaseBlocks()
     rp_max_dist = 50000
 
     with pysam.AlignmentFile(args.sort_tag_bam, 'rb') as infile:
@@ -66,54 +67,29 @@ def main():
                 try: last_pos_of_phase_block = current_phase_block[barcode_id]['stop']
                 except KeyError:
                     # Initiate new entry with (start, stop, # reads)
-                    # Convert to object or function for initiate
-                    # GREPFRICK: Make into object
-                    current_phase_block[barcode_id] = dict()
-                    current_phase_block[barcode_id]['start'] = mate_start
-                    current_phase_block[barcode_id]['stop'] = read_stop
-                    current_phase_block[barcode_id]['coverage'] = percent_coverage
-                    current_phase_block[barcode_id]['number_of_reads'] = 1
-                    current_phase_block[barcode_id]['insert_bases'] = read_stop - mate_start
-                    current_phase_block[barcode_id]['bases_btw_inserts'] = 0
+                    currentPhaseBlocks.initiatePhaseBlock(name=barcode_id, start=mate_start, stop=read_stop, rp_coverage=percent_coverage)
                     continue
 
                 # If last position of phase block is withing window (100 kb) distance of current read, then add this read to phase block.
                 if (last_pos_of_phase_block+window) >= mate_start:
-                    # GREPFRICK: Make into object
-                    current_phase_block[barcode_id]['insert_bases'] += read_stop - mate_start
-                    current_phase_block[barcode_id]['bases_btw_inserts'] += mate_start - current_phase_block[barcode_id]['stop']
-
-                    current_phase_block[barcode_id]['stop'] = read_stop
-                    current_phase_block[barcode_id]['coverage'] = (percent_coverage + current_phase_block[barcode_id]['coverage'])
-                    current_phase_block[barcode_id]['number_of_reads'] += 1
+                    currentPhaseBlocks.addReadToPhaseBlock(phase_block=barcode_id, rp_start=mate_start, rp_stop=read_stop, rp_coverage=percent_coverage)
 
                 # If read is outside range of window from last position, then report the old phase block and initate a new one.
                 else:
 
                     # Normalises average coverage for number of reads when grand total is known.
-                    summaryInstance.reportPhaseBlock(current_phase_block[barcode_id], barcode_id)
-                    # GREPFRICK: Make into object
-                    del current_phase_block[barcode_id]
+                    summaryInstance.reportPhaseBlock(currentPhaseBlocks.dictionary[barcode_id], barcode_id)
+                    currentPhaseBlocks.terminatePhaseBlock(phase_block=barcode_id)
 
                     # Initiate new entry with (start, stop, # reads)
-                    # Convert to object or function for initiate
-                    # GREPFRICK: Make into object
-                    current_phase_block[barcode_id] = dict()
-                    current_phase_block[barcode_id]['start'] = mate_start
-                    current_phase_block[barcode_id]['stop'] = read_stop
-                    current_phase_block[barcode_id]['coverage'] = percent_coverage
-                    current_phase_block[barcode_id]['number_of_reads'] = 1
-                    current_phase_block[barcode_id]['insert_bases'] = read_stop - mate_start
-                    current_phase_block[barcode_id]['bases_btw_inserts'] = 0
+                    currentPhaseBlocks.initiatePhaseBlock(name=barcode_id, start=mate_start, stop=read_stop, rp_coverage=percent_coverage)
 
             # Will rinse/count unpaired reads in between chromosomes
             summaryInstance.unpaired_reads += len(past_unpaired_reads.keys())
             past_unpaired_reads = dict()
 
             # Report phase blocks when switching to new chromosome, as not to confuse positions
-            for barcode_id in current_phase_block.copy():
-                summaryInstance.reportPhaseBlock(current_phase_block[barcode_id], barcode_id)
-                del current_phase_block[barcode_id]
+            currentPhaseBlocks.commitAndRemoveAll()
 
     summaryInstance.writeResultFiles()
 
@@ -134,7 +110,6 @@ def direct_read_pairs_to_ref(read_start, read_stop):
     # Otherwise, return it as is
     else:
         return read_start, read_stop
-
 
 def read_pair_coverage(mate_start, mate_stop, read_start, read_stop):
     """
@@ -160,6 +135,40 @@ def report_progress(string):
     Output: [date]  string
     """
     sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
+
+class CurrentPhaseBlocks(object):
+    """
+    Tmp storage for phase blocks which might still get more reads assigned to them. Basically a dict with customised functions.
+    """
+
+    def __init__(self):
+        self.dictionary = dict()
+
+    def initiatePhaseBlock(self, name, start, stop, rp_coverage):
+        self.dictionary[barcode_id] = dict()
+        self.dictionary[barcode_id]['start'] = mate_start
+        self.dictionary[barcode_id]['stop'] = read_stop
+        self.dictionary[barcode_id]['coverage'] = percent_coverage
+        self.dictionary[barcode_id]['number_of_reads'] = 1
+        self.dictionary[barcode_id]['insert_bases'] = read_stop - mate_start
+        self.dictionary[barcode_id]['bases_btw_inserts'] = 0
+
+    def addReadToPhaseBlock(self, phase_block, rp_start, rp_stop, rp_coverage):
+        self.dictionary[barcode_id]['insert_bases'] += read_stop - mate_start
+        self.dictionary[barcode_id]['bases_btw_inserts'] += mate_start - dictionary[barcode_id]['stop']
+        self.dictionary[barcode_id]['stop'] = read_stop
+        self.dictionary[barcode_id]['coverage'] = (percent_coverage + dictionary[barcode_id]['coverage'])
+        self.dictionary[barcode_id]['number_of_reads'] += 1
+
+    def terminatePhaseBlock(self, phase_block):
+
+        del self.dictionary[phase_block]
+
+    def commitAndRemoveAll(self):
+
+        for phase_block in self.dictionary.copy.keys():
+            summaryInstance.reportPhaseBlock(self.dictionary[phase_block], phase_block)
+            del self.dictionary[phase_block]
 
 class ProgressBar(object):
     """
