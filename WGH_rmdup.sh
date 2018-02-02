@@ -95,11 +95,11 @@ wgh_path=$(dirname "$0")
 #   - fragScaff:            $fragScafff_path
 . $wgh_path'/paths.txt'
 
-tagged_bam=ARG1
-output=ARG2
+tagged_bam=$ARG1
+output=$ARG2
 
-java -jar $picard_path MarkDuplicates I=$bamfile O=$bamfile'.rmdup.bam' M=rmdup_log.txt ASSUME_SORT_ORDER=coordinate REMOVE_DUPLICATES=true BARCODE_TAG=RG
+java -jar $picard_path MarkDuplicates I=$tagged_bam O=$tagged_bam'.rmdup.bam' M=rmdup_log.txt ASSUME_SORT_ORDER=coordinate REMOVE_DUPLICATES=true BARCODE_TAG=RG
 
-java -jar $picard_path MarkDuplicates I=$bamfile'.rmdup.bam' O=$bamfile'.rmdup.mkdup.bam' M=mkdup_cluster_log.txt ASSUME_SORT_ORDER=coordinate
+java -jar $picard_path MarkDuplicates I=$tagged_bam'.rmdup.bam' O=$tagged_bam'.rmdup.mkdup.bam' M=mkdup_cluster_log.txt ASSUME_SORT_ORDER=coordinate
 
-python3 $wgh_path/python_scripts/cluster_rmdup.py $bamfile'.rmdup.mkdup.bam' $bamfile'.rmdup.x2.bam'
+python3 $wgh_path'/python scripts/cluster_rmdup.py' $tagged_bam'.rmdup.mkdup.bam' $output

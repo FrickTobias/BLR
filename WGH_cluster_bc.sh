@@ -102,23 +102,26 @@ r1_with_header=$ARG1
 bam=$ARG2
 output=$ARG3
 
-pigz -d $r1
+#pigz -d $r1
 
-echo 'Starting bc extraction '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
+#echo 'Starting bc extraction '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
 
-python3 $wgh_path'/python scripts/cdhit_prep.py' $r1 $output/unique_bc -r 3 -f 0
+python3 $wgh_path'/python scripts/cdhit_prep.py' $r1_with_header $output -r 3 -f 0
 
-for file in $output/unique_bc/*.fa;
-    do
-    cd-hit-454 -i $file -o $file'.clustered' -T 0 -c 0.9 -gap -100 -g 1 -n 3 -M 0;
-    done;
+for file in $output/*.fa;
+do
+    cd-hit-454 -i $file -o $file'.clustered' -T 0 -c 0.9 -gap 100 -g 1 -n 3 -M 0;
+done;
 
-pigz $r1
+#pigz $r1
 
-cat $output/unique_bc/*.clstr > $output/NNN.clstr
+cat $output/*.clstr > $output/NNN.clstr
 
-python3 $wgh_path'/python scripts/tag_bam.py' $output/NNN.clstr $bam $bam'.tagged.bam'
+python3 $wgh_path'/python scripts/tag_bam.py' $bam $output/NNN.clstr $bam'.tag.bam'
+
+rm $bam'.tag.bam.tmp.bam'
 
 if $mailing
+then
     echo 'Barcodes clustered and bamfile tagged '$(date) | mail -s $bam $email
 fi

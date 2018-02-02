@@ -6,8 +6,8 @@ def main():
     #
     # Imports & globals
     #
-    import multiprocessing, pysam
-    global args, summaryInstance, output_tagged_bamfile
+    global args, summaryInstance, output_tagged_bamfile, sys, time
+    import multiprocessing, pysam, sys, time
 
     #
     # Argument parsing
@@ -31,7 +31,7 @@ def main():
     add_to_RG_headers = list()
     # Tagging bam mapping entries with RG:Z:clusterid
     infile = pysam.AlignmentFile(args.input_mapped_bam, 'rb')
-    out = pysam.AlignmentFile(args.output_tagged_bam+'.temp.bam', 'wb', template=infile)
+    out = pysam.AlignmentFile(args.output_tagged_bam+'.tmp.bam', 'wb', template=infile)
 
     for read in infile.fetch(until_eof=True):
         read_bc = read.query_name.split()[0].split('_')[-1]
@@ -68,7 +68,7 @@ def main():
     infile.close()
     out.close()
 
-    infile = pysam.AlignmentFile(args.output_tagged_bam+'.temp.bam', 'rb')
+    infile = pysam.AlignmentFile(args.output_tagged_bam+'.tmp.bam', 'rb')
     header_dict = infile.header.copy()
     header_dict['RG'] = list()
 
