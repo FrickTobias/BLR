@@ -1,4 +1,4 @@
- #! /usr/bin/env python2
+#! /usr/bin/env python2
 
 def main():
 
@@ -44,6 +44,7 @@ def main():
                 # Drop read from tmp storage when mate is found
                 del past_unpaired_reads[read.query_name]
 
+                # Fetch positions
                 mate_start, mate_stop = mate.get_reference_positions()[0], mate.get_reference_positions()[-1]
                 read_start, read_stop = read.get_reference_positions()[0], read.get_reference_positions()[-1]
 
@@ -80,7 +81,7 @@ def main():
                 if (last_pos_of_phase_block+window) >= mate_start:
                     # GREPFRICK: Make into object
                     current_phase_block[barcode_id]['insert_bases'] = mate_stop - mate_start
-                    current_phase_block[barcode_id]['bases_btw_inserts'] = current_phase_block['stop'] - mate_start
+                    current_phase_block[barcode_id]['bases_btw_inserts'] = current_phase_block[barcode_id]['stop'] - mate_start
 
                     current_phase_block[barcode_id]['stop'] = read_stop
                     current_phase_block[barcode_id]['coverage'] = (percent_coverage + current_phase_block[barcode_id]['coverage'])
