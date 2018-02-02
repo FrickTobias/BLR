@@ -6,8 +6,9 @@ def main():
     #
     # Imports & globals
     #
+
+    global args, summaryInstance, output_tagged_bamfile, sys, time
     import pysam, sys, time
-    global args, summaryInstance, output_tagged_bamfile
 
     #
     # Argument parsing
@@ -154,7 +155,6 @@ def main():
     #
     # Progress
     #
-    sys.stderr.write('\n\n')
     report_progress('Merging dictiotonary done')
     report_progress('Reducing merging dictionary (several step redundancy)')
 
@@ -177,10 +177,6 @@ def main():
     report_progress('Merging dictionary reduced')
     report_progress('Counting number of merges')
 
-    two_percent = int(summaryInstance.totalReadPairsCount/50)
-    current_percentage = two_percent
-    read_counter = 0
-
     # Saves merging history (later written to log file)
     # Currently removed since there are A LOT OF BARCODES
     summaryInstance.reportMergeDict(merge_dict)
@@ -189,22 +185,12 @@ def main():
     # Progress
     #
     report_progress(str(summaryInstance.ClustersRemovedDueToMerge) + ' Clusters removed to being duplicates')
-
-    progressbar = ProgressBar(name='Writing output', min=0, max=, step=1)
-
-    sys.stderr.write('\n|------------------------------------------------|\n')
+    progressbar = ProgressBar(name='Writing output', min=0, max=summaryInstance.totalReadPairsCount, step=1)
 
     # Translate read file according to merge_dict (at both RG tag and in header)
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
     out = pysam.AlignmentFile(args.output_bam, 'wb', template=infile)
     for read in infile.fetch(until_eof=True):
-
-        read_counter += 1
-        if current_percentage < read_counter:
-            sys.stderr.write('#')
-            sys.stderr.flush()
-            time.sleep(0.001)
-            current_percentage += two_percent
 
         # If RG tag i merge dict, change its RG to the lower number
         try: read_tag = str(merge_dict[int(dict(read.tags)['RG'])])
@@ -231,6 +217,7 @@ def main():
                     summaryInstance.overlap_dict[int(read_tag)][prev_tag] = 1
 
         out.write(read)
+        progressbar.update()
 
     infile.close()
     out.close()
@@ -243,8 +230,7 @@ def main():
     #
     # Progress
     #
-    sys.stderr.write('\n')
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tFinished\n')
+    report_progress('FINISHED')
 
     #
     # Write logfile containing everything in summaryinstance
@@ -338,7 +324,6 @@ def report_matches(current_match_dict, merge_dict, chromosome):#, duplicate_posi
 
     return merge_dict
 
-
 def report_progress(string):
     """
     Writes a time stamp followed by a message (=string) to standard out.
@@ -369,9 +354,11 @@ class ProgressBar(object):
             self.progress_string = '#' * self.progress_length
         elif self.max == 2:
             self.progress_string = '#' * 25
+        else:
+            self.progress_string = '#'
 
         # Printing
-        sys.stderr.write('\n' + str(name))
+        report_progress(str(name))
         sys.stderr.write('\n|------------------------------------------------|\n')
 
     def update(self):

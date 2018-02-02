@@ -5,9 +5,8 @@ def main():
     #
     # Imports & globals
     #
-    global args, summaryInstance, sys, time, pysam, stats, PS_set_H1, PS_set_H2, last_H, outfile, scipy, stats, infile, numpy, qvalue, alpha
-    import pysam, sys, time, scipy, numpy, qvalue
-    from scipy import stats
+    global args, summaryInstance, sys, time, pysam
+    import pysam, sys, time
 
     #
     # Argument parsing
@@ -52,20 +51,22 @@ def main():
                 mate_start, mate_stop = direct_read_pairs_to_ref(mate_start, mate_stop)
                 read_start, read_stop = direct_read_pairs_to_ref(read_stop, read_start)
 
-                # If read pairs are ridiculously far apart, just count reads as
+                # If read pairs are ridiculously far apart (50 kb), just count reads as unpaired
                 if mate_stop + rp_max_dist < read_start:
                     summaryInstance.unpaired_reads += 2
                     summaryInstance.unpaired_reads_in_same_chr += 2
                     continue
 
+                # Calculates % read bases of insert, aka (bp_r1 + bp_r2) / (bp_r1 + bp_r2 + bp_btw_rp)
                 percent_coverage = read_pair_coverage(mate_start, mate_stop, read_start, read_stop)
-
                 barcode_id = read.get_tag('RG')
 
+                # Intitates phase blocks with name = barcode_ID, if not that phase block exist, then fetches last pos(phase block)
                 try: last_pos_of_phase_block = current_phase_block[barcode_id]['stop']
                 except KeyError:
                     # Initiate new entry with (start, stop, # reads)
                     # Convert to object or function for initiate
+                    # GREPFRICK: Make into object
                     current_phase_block[barcode_id] = dict()
                     current_phase_block[barcode_id]['start'] = mate_start
                     current_phase_block[barcode_id]['stop'] = read_stop
@@ -75,8 +76,9 @@ def main():
                     current_phase_block[barcode_id]['bases_btw_inserts'] = 0
                     continue
 
-                # If
+                # If last position of phase block is withing window (100 kb) distance of current read, then add this read to phase block.
                 if (last_pos_of_phase_block+window) >= mate_start:
+                    # GREPFRICK: Make into object
                     current_phase_block[barcode_id]['insert_bases'] = mate_stop - mate_start
                     current_phase_block[barcode_id]['bases_btw_inserts'] = current_phase_block['stop'] - mate_start
 
@@ -84,14 +86,17 @@ def main():
                     current_phase_block[barcode_id]['coverage'] = (percent_coverage + current_phase_block[barcode_id]['coverage'])
                     current_phase_block[barcode_id]['number_of_reads'] += 1
 
+                # If read is outside range of window from last position, then report the old phase block and initate a new one.
                 else:
 
                     # Normalises average coverage for number of reads when grand total is known.
                     summaryInstance.reportPhaseBlock(current_phase_block[barcode_id], barcode_id)
+                    # GREPFRICK: Make into object
                     del current_phase_block[barcode_id]
 
                     # Initiate new entry with (start, stop, # reads)
                     # Convert to object or function for initiate
+                    # GREPFRICK: Make into object
                     current_phase_block[barcode_id] = dict()
                     current_phase_block[barcode_id]['start'] = mate_start
                     current_phase_block[barcode_id]['stop'] = read_stop
@@ -104,30 +109,28 @@ def main():
             summaryInstance.unpaired_reads += len(past_unpaired_reads.keys())
             past_unpaired_reads = dict()
 
-            # UNPAIRED READS! Count and report as not proper pairs!
-
+            # Report phase blocks when switching to new chromosome, as not to confuse positions
             for barcode_id in current_phase_block.copy():
                 summaryInstance.reportPhaseBlock(current_phase_block[barcode_id], barcode_id)
                 del current_phase_block[barcode_id]
 
     summaryInstance.writeResultFiles()
 
+    # GREPFRICK: move to summary somewhere
     sys.stderr.write('\nReads found (not read pairs) in bam:\t' + "{:,}".format(summaryInstance.reads) + '\n')
     sys.stderr.write('Unpaired reads (removed from analysis):\t' + "{:,}".format(summaryInstance.unpaired_reads) + '\n')
     sys.stderr.write('In the same chromosome:\t' + "{:,}".format(summaryInstance.unpaired_reads_in_same_chr) + '\n')
     sys.stderr.write('(Defined as being ' + "{:,}".format(rp_max_dist) + ' bp apart)\n')
-
-    # report stats in summary dictionary in understandable way - mean? median? list? plot?
-
-    #summaryInstance.writeToStdErr()
 
 def direct_read_pairs_to_ref(read_start, read_stop):
     """
     Reads can be aligned in forward and backwards direction, this puts all start/stops according to reference positions
     """
 
+    # if read backwards, turn it the other way
     if read_start > read_stop:
         return read_stop, read_start
+    # Otherwise, return it as is
     else:
         return read_start, read_stop
 
@@ -137,8 +140,10 @@ def read_pair_coverage(mate_start, mate_stop, read_start, read_stop):
     This function calculates the percentage of read bases in the insert.
     """
 
+    # If reads overlap, cov = 1
     if mate_stop >= read_start:
         percent_coverage = 1
+    # Otherwise, calc. % covered bases
     else:
         mate_bp = mate_stop - mate_start
         read_bp = read_stop - read_start
@@ -172,6 +177,7 @@ class ProgressBar(object):
         self.current_percentage = self.two_percent
 
         # Printing
+        report_progress(name)
         sys.stderr.write('\n' + str(name))
         sys.stderr.write('\n|------------------------------------------------|\n')
 
@@ -267,6 +273,7 @@ class Summary(object):
 
     def __init__(self):
 
+        # Just defining numbers which will be assigned later
         self.reads = int()
         self.phase_blocks = int()
         self.bc_clusters = int()
@@ -302,16 +309,19 @@ class Summary(object):
         except KeyError:
             self.phase_block_result_dict[barcode_id] = list()
 
+        # Save in summary dictionary
         self.phase_block_result_dict[barcode_id].append((start, stop, length, num_reads, ave_read_pair_coverage, ave_phase_block_cov))
 
     def writeResultFiles(self):
 
+        # Opening all files
         molecules_per_bc_out = open((args.output_prefix + '.molecules_ber_bc'), 'w')
         coupling_out = open((args.output_prefix + '.coupling_efficiency'), 'w')
         ave_read_pair_coverage_out = open((args.output_prefix + '.ave_read_pair_coverage_in_phase_block'), 'w')
         reads_per_phase_block_out = open((args.output_prefix + '.reads_per_molecule'), 'w')
         phase_block_len_out = open((args.output_prefix + '.phase_block_lengths'), 'w')
 
+        # Writing outputs
         for barcode_id in self.phase_block_result_dict.keys():
 
             molecules_per_bc_out.write(str(len(self.phase_block_result_dict[barcode_id])) + '\n')
@@ -327,29 +337,8 @@ class Summary(object):
 
                     coupling_out.write(str(phase_block[5]/0.5) + '\n')
 
+        # Close files
         for output_file in (molecules_per_bc_out, coupling_out, ave_read_pair_coverage_out, reads_per_phase_block_out, phase_block_len_out):
             output_file.close()
-
-
-    #def writeToStdErr(self):
-    #    """
-    #    Writes all object variables to stdout.
-    #    """
-    #
-    #    for objectVariable, value in vars(self).items():
-    #        sys.stderr.write('\n\n' + str(objectVariable) + '\n' + str(value))
-    #    sys.stderr.write('\n')
-    #
-    #def writeLog(self):
-    #    """
-    #    Writes all object variables to a log file (outfile.log)
-    #    """
-    #
-    #    self.log = args.sort_tag_bam + '.log'
-    #    import time
-    #    with open(self.log, 'w') as openout:
-    #        openout.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()))
-    #        for objectVariable, value in vars(self).items():
-    #            openout.write('\n\n'+str(objectVariable) + '\n' + str(value))
 
 if __name__=="__main__": main()
