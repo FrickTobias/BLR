@@ -23,7 +23,7 @@ def main():
     #
     # Progress
     #
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tReading input file and building duplicate position list\n')
+    report_progress('Reading input file and building duplicate position list')
 
     #
     # Data processing & writing output
@@ -37,7 +37,7 @@ def main():
 
         summaryInstance.totalReadPairsCount += 1
         if current_read_count < summaryInstance.totalReadPairsCount:
-            sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + "{:,}".format(current_read_count) + ' pairs read\n')
+            report_progress("{:,}".format(current_read_count) + ' pairs read')
             current_read_count += 1000000
 
         # Only fetch positions marked as duplicates
@@ -60,9 +60,9 @@ def main():
     #
     # Progress
     #
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tDuplicate position list built\n')
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tTotal mapped read pair count: ' + "{:,}".format(summaryInstance.totalReadPairsCount) + '\n')
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tReducing duplicate dictionary (proximity)\n')
+    report_progress('Duplicate position list built')
+    report_progress('Total mapped read pair count: ' + "{:,}".format(summaryInstance.totalReadPairsCount))
+    report_progress('Reducing duplicate dictionary (proximity)')
 
     window = 100000
     proximity_duplication_dict_with_chromosomes = reduce_dict(duplicate_position_dict, window)  # Window is the strict cutoff value for how far a read can be for it being in the same cluster id.
@@ -70,8 +70,8 @@ def main():
     #
     # Progress
     #
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tDuplicate dictionary reduced\n')
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tBuilding merging dictionary\n')
+    report_progress('Duplicate dictionary reduced')
+    report_progress('Building merging dictionary')
 
     merge_dict = dict()
 
@@ -86,20 +86,10 @@ def main():
         #
         if max_j < 2:
             continue
-        else:
-            sys.stderr.write('\n' + time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + str(chromosome) + '\n')
-            sys.stderr.write('|------------------------------------------------|\n')
 
         # Corrects progress bar for when very few duplicates are found.
-        progress_string = '#'
         two_percent = float((max_j-2) / 50)
-        if two_percent < 1 and not max_j==2:
-            progress_length = int(50/(max_j-2))
-            progress_string = '#' * progress_length
-
-            #sys.stderr.write(progress_string)
-
-        current_percentage = two_percent
+        progressbar = ProgressBar(name=str(chromosome),min=0, max=max_j, step=1)
 
         for i in range(len(duplicate_position_list)-1):
 
@@ -160,12 +150,13 @@ def main():
                     merge_dict = report_matches(current_match_dict, merge_dict, chromosome)#, duplicate_position_list)
                     break
 
+            progressbar.update()
     #
     # Progress
     #
     sys.stderr.write('\n\n')
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tMerging dictionary done\n')
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tReducing merging dictionary (several step redundancy)\n')
+    report_progress('Merging dictiotonary done')
+    report_progress('Reducing merging dictionary (several step redundancy)')
 
     # Reduces merge_dict cases where {5:3, 3:1} to {5:1, 3:1} since reads are not ordered according to cluster id.
     for cluster_id_to_merge in sorted(merge_dict.copy().values()):
@@ -183,8 +174,9 @@ def main():
     #
     # Progress
     #
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tMerging dictionary reduced\n')
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tCounting number of merges\n')
+    report_progress('Merging dictionary reduced')
+    report_progress('Counting number of merges')
+
     two_percent = int(summaryInstance.totalReadPairsCount/50)
     current_percentage = two_percent
     read_counter = 0
@@ -196,8 +188,10 @@ def main():
     #
     # Progress
     #
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + str(summaryInstance.ClustersRemovedDueToMerge) + ' Clusters removed due to being duplicates\n')
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\tWriting output file\n')
+    report_progress(str(summaryInstance.ClustersRemovedDueToMerge) + ' Clusters removed to being duplicates')
+
+    progressbar = ProgressBar(name='Writing output', min=0, max=, step=1)
+
     sys.stderr.write('\n|------------------------------------------------|\n')
 
     # Translate read file according to merge_dict (at both RG tag and in header)
@@ -343,6 +337,55 @@ def report_matches(current_match_dict, merge_dict, chromosome):#, duplicate_posi
                     merge_dict[prev_value] = lower_cluster_id
 
     return merge_dict
+
+
+def report_progress(string):
+    """
+    Writes a time stamp followed by a message (=string) to standard out.
+    Input: String
+    Output: [date]  string
+    """
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
+
+class ProgressBar(object):
+    """
+    Writes a progress bar to stderr
+    """
+
+    def __init__(self, name, min, max, step):
+        # Variables
+        self.min = min
+        self.max = max
+        self.current_position = min
+        self.step = step
+
+        # Metadata
+        self.two_percent = (self.max-self.min)/50
+        self.current_percentage = self.two_percent
+
+        # If two percent, equivalent of one '#', is less than one step length increase the number of # written each step
+        if self.two_percent < self.step and not self.max==2:
+            self.progress_length = int(50/(self.max-2))
+            self.progress_string = '#' * self.progress_length
+        elif self.max == 2:
+            self.progress_string = '#' * 25
+
+        # Printing
+        sys.stderr.write('\n' + str(name))
+        sys.stderr.write('\n|------------------------------------------------|\n')
+
+    def update(self):
+        # If progress is over 2%, write '#' to stdout
+        self.current_position += self.step
+        if self.current_percentage < self.current_position:
+            sys.stderr.write(self.progress_string)
+            sys.stderr.flush()
+            time.sleep(0.001)
+            self.current_percentage += self.two_percent
+
+    def terminate(self):
+         sys.stderr.write('\n')
+
 
 class ClusterObject(object):
     """ Cluster object"""

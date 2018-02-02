@@ -90,6 +90,16 @@ def main():
                     summaryInstance.reportPhaseBlock(current_phase_block[barcode_id], barcode_id)
                     del current_phase_block[barcode_id]
 
+                    # Initiate new entry with (start, stop, # reads)
+                    # Convert to object or function for initiate
+                    current_phase_block[barcode_id] = dict()
+                    current_phase_block[barcode_id]['start'] = mate_start
+                    current_phase_block[barcode_id]['stop'] = read_stop
+                    current_phase_block[barcode_id]['coverage'] = percent_coverage
+                    current_phase_block[barcode_id]['number_of_reads'] = 1
+                    current_phase_block[barcode_id]['insert_bases'] = mate_stop - mate_start
+                    current_phase_block[barcode_id]['bases_btw_inserts'] = 0
+
             # Will rinse/count unpaired reads in between chromosomes
             summaryInstance.unpaired_reads += len(past_unpaired_reads.keys())
             past_unpaired_reads = dict()
