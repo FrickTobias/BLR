@@ -372,6 +372,6 @@ class Summary(object):
         for output_file in (molecules_per_bc_out, coupling_out, ave_read_pair_coverage_out, reads_per_phase_block_out, phase_block_len_out):
             output_file.close()
 
-    progressBar.terminate()
+        progressBar.terminate()
 
 if __name__=="__main__": main()
