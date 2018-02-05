@@ -108,8 +108,8 @@ def main():
     sys.stderr.write('\nUnpaired reads (removed from analysis):\t' + "{:,}".format(summaryInstance.unpaired_reads) + '\n')
     sys.stderr.write('In the same chromosome:\t' + "{:,}".format(summaryInstance.unpaired_reads_in_same_chr) + '\n')
     sys.stderr.write('(Defined as being ' + "{:,}".format(rp_max_dist) + ' bp apart)\n')
-    sys.stderr.write('\nPhase blocks identified:\t' + "{:,}".format(summaryInstance.phase_block_counter))
-    sys.stderr.write('Phase blocks with only one read:\t' + "{:,}".format(summaryInstance.phase_block_with_only_one_read))
+    sys.stderr.write('\nPhase blocks identified:\t' + "{:,}".format(summaryInstance.phase_block_counter) + '\n')
+    sys.stderr.write('Phase blocks with only one read:\t' + "{:,}".format(summaryInstance.phase_block_with_only_one_read) + '\n')
 
 def direct_read_pairs_to_ref(read_start, read_stop):
     """
