@@ -146,6 +146,7 @@ def main():
                     break
 
             progressbar.update()
+    progressbar.terminate()
     #
     # Progress
     #
@@ -206,7 +207,7 @@ def main():
                     pass
                 else:
                     bc_seq_already_written.add(barcode_seq)
-                    explicit_merge_file.write(str(read_tag) + '\t' + str(barcode_seq))
+                    explicit_merge_file.write(str(read_tag) + '\t' + str(barcode_seq) + '\n')
 
             read.query_name = '_'.join(read.query_name.split('_')[:-1])+'_RG:Z:'+read_tag
             summaryInstance.readPairsMerged += 1
