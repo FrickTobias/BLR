@@ -190,6 +190,9 @@ def main():
     # Translate read file according to merge_dict (at both RG tag and in header)
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
     out = pysam.AlignmentFile(args.output_bam, 'wb', template=infile)
+
+    if args.explicit_merge: explicit_merge_file = open(args.explicit_merge, 'w')
+
     for read in infile.fetch(until_eof=True):
 
         # If RG tag i merge dict, change its RG to the lower number
@@ -200,6 +203,14 @@ def main():
         if read_tag:
             prev_tag = int(dict(read.tags)['RG'])
             read.set_tag('RG', read_tag, value_type='Z')
+
+            if args.explicit_merge:
+                barcode_seq = read.query_name.split()[0].split('_')[-2]
+                if barcode_seq in bc_seq_already_written:
+                    pass
+                else:
+                    bc_seq_already_written.add(barcode_seq)
+                    explicit_merge_file.write(str(read_tag) + '\t' + str(barcode_seq))
 
             read.query_name = '_'.join(read.query_name.split('_')[:-1])+'_RG:Z:'+read_tag
             summaryInstance.readPairsMerged += 1
@@ -419,6 +430,7 @@ class readArgs(object):
         parser.add_argument("-p", "--processors", type=int, default=multiprocessing.cpu_count(),
                             help="Thread analysis in p number of processors. Example: python "
                                  "TagGD_prep.py -p 2 insert_r1.fq unique.fa")
+        parser.add_argument("-e", "--explicit_merge", type=str, help="Writes a file with new_bc_id \\t original_bc_seq")
 
         args = parser.parse_args()
 
