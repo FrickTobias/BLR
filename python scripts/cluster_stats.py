@@ -95,9 +95,10 @@ def main():
 
     # GREPFRICK: move to summary somewhere
     sys.stderr.write('\nReads found (not read pairs) in bam:\t' + "{:,}".format(summaryInstance.reads) + '\n')
-    sys.stderr.write('Unpaired reads (removed from analysis):\t' + "{:,}".format(summaryInstance.unpaired_reads) + '\n')
+    sys.stderr.write('\nUnpaired reads (removed from analysis):\t' + "{:,}".format(summaryInstance.unpaired_reads) + '\n')
     sys.stderr.write('In the same chromosome:\t' + "{:,}".format(summaryInstance.unpaired_reads_in_same_chr) + '\n')
     sys.stderr.write('(Defined as being ' + "{:,}".format(rp_max_dist) + ' bp apart)\n')
+    sys.stderr.write('\nPhase blocks with only one read: ' + "{:,}".format(summaryInstance.phase_block_with_only_one_read))
 
 def direct_read_pairs_to_ref(read_start, read_stop):
     """
@@ -300,6 +301,8 @@ class Summary(object):
         self.unpaired_reads = int()
         self.unpaired_reads_in_same_chr = int()
 
+        self.phase_block_with_only_one_read = int()
+
     def reportPhaseBlock(self, phase_block, barcode_id):
 
         start = phase_block['start']
@@ -338,13 +341,13 @@ class Summary(object):
 
             for phase_block in self.phase_block_result_dict[barcode_id]:
 
-                phase_block_len_out.write(str(phase_block[2]) + '\n')
                 reads_per_phase_block_out.write(str(phase_block[3]) + '\n')
                 ave_read_pair_coverage_out.write(str(phase_block[4]) + '\n')
 
                 # Not interesting if number of reads found are 1
                 if not phase_block[3] == 1:
-
+                    summaryInstance.phase_block_with_only_one_read += 1
+                    phase_block_len_out.write(str(phase_block[2]) + '\n')
                     coupling_out.write(str(phase_block[5]/0.5) + '\n')
 
         # Close files
