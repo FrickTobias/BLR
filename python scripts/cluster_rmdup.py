@@ -185,7 +185,9 @@ def main():
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
     out = pysam.AlignmentFile(args.output_bam, 'wb', template=infile)
 
-    if args.explicit_merge: explicit_merge_file = open(args.explicit_merge, 'w')
+    if args.explicit_merge:
+        explicit_merge_file = open(args.explicit_merge, 'w')
+        bc_seq_already_written = set()
 
     for read in infile.fetch(until_eof=True):
 
