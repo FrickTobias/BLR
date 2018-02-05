@@ -156,7 +156,7 @@ class CurrentPhaseBlocks(object):
 
     def addReadToPhaseBlock(self, phase_block, rp_start, rp_stop, rp_coverage):
         self.dictionary[phase_block]['insert_bases'] += rp_stop - rp_start
-        self.dictionary[phase_block]['bases_btw_inserts'] += mate_start - self.dictionary[phase_block]['stop']
+        self.dictionary[phase_block]['bases_btw_inserts'] += rp_start - self.dictionary[phase_block]['stop']
         self.dictionary[phase_block]['stop'] = read_stop
         self.dictionary[phase_block]['coverage'] += rp_coverage
         self.dictionary[phase_block]['number_of_reads'] += 1
