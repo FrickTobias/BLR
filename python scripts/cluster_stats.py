@@ -64,7 +64,7 @@ def main():
                 barcode_id = read.get_tag('RG')
 
                 # Intitates phase blocks with name = barcode_ID, if not that phase block exist, then fetches last pos(phase block)
-                try: last_pos_of_phase_block = current_phase_block[barcode_id]['stop']
+                try: last_pos_of_phase_block = currentPhaseBlocks.dictionary[barcode_id]['stop']
                 except KeyError:
                     # Initiate new entry with (start, stop, # reads)
                     currentPhaseBlocks.initiatePhaseBlock(name=barcode_id, start=mate_start, stop=read_stop, rp_coverage=percent_coverage)
@@ -146,20 +146,20 @@ class CurrentPhaseBlocks(object):
         self.dictionary = dict()
 
     def initiatePhaseBlock(self, name, start, stop, rp_coverage):
-        self.dictionary[barcode_id] = dict()
-        self.dictionary[barcode_id]['start'] = mate_start
-        self.dictionary[barcode_id]['stop'] = read_stop
-        self.dictionary[barcode_id]['coverage'] = percent_coverage
-        self.dictionary[barcode_id]['number_of_reads'] = 1
-        self.dictionary[barcode_id]['insert_bases'] = read_stop - mate_start
-        self.dictionary[barcode_id]['bases_btw_inserts'] = 0
+        self.dictionary[name] = dict()
+        self.dictionary[name]['start'] = start
+        self.dictionary[name]['stop'] = stop
+        self.dictionary[name]['coverage'] = rp_coverage
+        self.dictionary[name]['number_of_reads'] = 1
+        self.dictionary[name]['insert_bases'] = stop - start
+        self.dictionary[name]['bases_btw_inserts'] = 0
 
     def addReadToPhaseBlock(self, phase_block, rp_start, rp_stop, rp_coverage):
-        self.dictionary[barcode_id]['insert_bases'] += read_stop - mate_start
-        self.dictionary[barcode_id]['bases_btw_inserts'] += mate_start - dictionary[barcode_id]['stop']
-        self.dictionary[barcode_id]['stop'] = read_stop
-        self.dictionary[barcode_id]['coverage'] = (percent_coverage + dictionary[barcode_id]['coverage'])
-        self.dictionary[barcode_id]['number_of_reads'] += 1
+        self.dictionary[phase_block]['insert_bases'] += rp_stop - rp_start
+        self.dictionary[phase_block]['bases_btw_inserts'] += mate_start - self.dictionary[phase_block]['stop']
+        self.dictionary[phase_block]['stop'] = read_stop
+        self.dictionary[phase_block]['coverage'] += rp_coverage
+        self.dictionary[phase_block]['number_of_reads'] += 1
 
     def terminatePhaseBlock(self, phase_block):
 
@@ -167,7 +167,7 @@ class CurrentPhaseBlocks(object):
 
     def commitAndRemoveAll(self):
 
-        for phase_block in self.dictionary.copy.keys():
+        for phase_block in self.dictionary.copy().keys():
             summaryInstance.reportPhaseBlock(self.dictionary[phase_block], phase_block)
             del self.dictionary[phase_block]
 
