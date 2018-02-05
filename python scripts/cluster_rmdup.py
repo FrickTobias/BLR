@@ -94,12 +94,6 @@ def main():
 
         for i in range(len(duplicate_position_list)-1):
 
-            if current_percentage <= i:
-                sys.stderr.write(progress_string)
-                sys.stderr.flush()
-                time.sleep(0.01)
-                current_percentage += two_percent
-
             j = i + 1
             unchecked_positions = list()
             unchecked_positions_set = set()
