@@ -40,7 +40,7 @@ def main():
                 summaryInstance.reads += 1
 
                 if summaryInstance.reads >= current_limit:
-                    report_progress("{,:}".format(summaryInstance.reads) + ' reads fetched')
+                    report_progress("{:,}".format(summaryInstance.reads) + ' reads fetched')
 
                 # Stores read until its mate occurs in file
                 # NB: mate will always be upstream of read!
