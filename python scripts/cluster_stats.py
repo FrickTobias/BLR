@@ -24,6 +24,10 @@ def main():
     currentPhaseBlocks = CurrentPhaseBlocks()
     rp_max_dist = 50000
 
+    current_limit = 1000000
+
+    report_progress('Fetching cache reads')
+
     with pysam.AlignmentFile(args.sort_tag_bam, 'rb') as infile:
 
         for chromosome_header in infile.header['SQ']:
@@ -34,6 +38,9 @@ def main():
             for read in infile.fetch(chromosome_name, 0, chromosome_length):
 
                 summaryInstance.reads += 1
+
+                if summaryInstance.reads >= current_limit:
+                    report_progress("{,:}".format(summaryInstance.reads) + ' reads fetched')
 
                 # Stores read until its mate occurs in file
                 # NB: mate will always be upstream of read!
@@ -91,6 +98,8 @@ def main():
             # Report phase blocks when switching to new chromosome, as not to confuse positions
             currentPhaseBlocks.commitAndRemoveAll()
 
+    report_progress('Phase blocks analysed')
+
     summaryInstance.writeResultFiles()
 
     # GREPFRICK: move to summary somewhere
@@ -98,7 +107,8 @@ def main():
     sys.stderr.write('\nUnpaired reads (removed from analysis):\t' + "{:,}".format(summaryInstance.unpaired_reads) + '\n')
     sys.stderr.write('In the same chromosome:\t' + "{:,}".format(summaryInstance.unpaired_reads_in_same_chr) + '\n')
     sys.stderr.write('(Defined as being ' + "{:,}".format(rp_max_dist) + ' bp apart)\n')
-    sys.stderr.write('\nPhase blocks with only one read: ' + "{:,}".format(summaryInstance.phase_block_with_only_one_read))
+    sys.stderr.write('\nPhase blocks identified:\t' + "{:,}".format(summaryInstance.phase_block_counter))
+    sys.stderr.write('\nPhase blocks with only one read:\t' + "{:,}".format(summaryInstance.phase_block_with_only_one_read))
 
 def direct_read_pairs_to_ref(read_start, read_stop):
     """
@@ -146,6 +156,9 @@ class CurrentPhaseBlocks(object):
         self.dictionary = dict()
 
     def initiatePhaseBlock(self, name, start, stop, rp_coverage):
+
+        summaryInstance.phase_block_counter += 1
+
         self.dictionary[name] = dict()
         self.dictionary[name]['start'] = start
         self.dictionary[name]['stop'] = stop
@@ -302,6 +315,7 @@ class Summary(object):
         self.unpaired_reads_in_same_chr = int()
 
         self.phase_block_with_only_one_read = int()
+        self.phase_block_counter = int()
 
     def reportPhaseBlock(self, phase_block, barcode_id):
 
@@ -334,6 +348,8 @@ class Summary(object):
         reads_per_phase_block_out = open((args.output_prefix + '.reads_per_molecule'), 'w')
         phase_block_len_out = open((args.output_prefix + '.phase_block_lengths'), 'w')
 
+        progressBar = ProgressBar(name='Writing output', min=0, max = summaryInstance.phase_block_counter, step = 1)
+
         # Writing outputs
         for barcode_id in self.phase_block_result_dict.keys():
 
@@ -349,6 +365,8 @@ class Summary(object):
                     summaryInstance.phase_block_with_only_one_read += 1
                     phase_block_len_out.write(str(phase_block[2]) + '\n')
                     coupling_out.write(str(phase_block[5]/0.5) + '\n')
+
+                progressBar.update()
 
         # Close files
         for output_file in (molecules_per_bc_out, coupling_out, ave_read_pair_coverage_out, reads_per_phase_block_out, phase_block_len_out):
