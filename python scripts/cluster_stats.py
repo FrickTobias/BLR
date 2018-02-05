@@ -80,7 +80,7 @@ def main():
 
                 # If last position of phase block is withing window (100 kb) distance of current read, then add this read to phase block.
                 if (last_pos_of_phase_block+window) >= mate_start:
-                    currentPhaseBlocks.addReadToPhaseBlock(phase_block=barcode_id, rp_start=mate_start, rp_stop=read_stop, rp_coverage=percent_coverage)
+                    currentPhaseBlocks.addReadPairToPhaseBlock(phase_block=barcode_id, rp_start=mate_start, rp_stop=read_stop, rp_coverage=percent_coverage)
 
                 # If read is outside range of window from last position, then report the old phase block and initate a new one.
                 else:
@@ -109,7 +109,7 @@ def main():
     sys.stderr.write('In the same chromosome:\t' + "{:,}".format(summaryInstance.unpaired_reads_in_same_chr) + '\n')
     sys.stderr.write('(Defined as being ' + "{:,}".format(rp_max_dist) + ' bp apart)\n')
     sys.stderr.write('\nPhase blocks identified:\t' + "{:,}".format(summaryInstance.phase_block_counter) + '\n')
-    sys.stderr.write('Phase blocks with only one read:\t' + "{:,}".format(summaryInstance.phase_block_with_only_one_read) + '\n')
+    sys.stderr.write('Phase blocks with only one read:\t' + "{:,}".format(summaryInstance.phase_block_with_only_one_read_pair) + '\n')
 
 def direct_read_pairs_to_ref(read_start, read_stop):
     """
@@ -164,16 +164,16 @@ class CurrentPhaseBlocks(object):
         self.dictionary[name]['start'] = start
         self.dictionary[name]['stop'] = stop
         self.dictionary[name]['coverage'] = rp_coverage
-        self.dictionary[name]['number_of_reads'] = 1
+        self.dictionary[name]['number_of_reads'] = 2
         self.dictionary[name]['insert_bases'] = stop - start
         self.dictionary[name]['bases_btw_inserts'] = 0
 
-    def addReadToPhaseBlock(self, phase_block, rp_start, rp_stop, rp_coverage):
+    def addReadPairToPhaseBlock(self, phase_block, rp_start, rp_stop, rp_coverage):
         self.dictionary[phase_block]['insert_bases'] += rp_stop - rp_start
         self.dictionary[phase_block]['bases_btw_inserts'] += rp_start - self.dictionary[phase_block]['stop']
         self.dictionary[phase_block]['stop'] = rp_stop
         self.dictionary[phase_block]['coverage'] += rp_coverage
-        self.dictionary[phase_block]['number_of_reads'] += 1
+        self.dictionary[phase_block]['number_of_reads'] += 2
 
     def terminatePhaseBlock(self, phase_block):
 
@@ -315,7 +315,7 @@ class Summary(object):
         self.unpaired_reads = int()
         self.unpaired_reads_in_same_chr = int()
 
-        self.phase_block_with_only_one_read = int()
+        self.phase_block_with_only_one_read_pair = int()
         self.phase_block_counter = int()
 
     def reportPhaseBlock(self, phase_block, barcode_id):
@@ -362,8 +362,8 @@ class Summary(object):
                 ave_read_pair_coverage_out.write(str(phase_block[4]) + '\n')
 
                 # Not interesting if number of reads found are 1
-                if not phase_block[3] == 1:
-                    summaryInstance.phase_block_with_only_one_read += 1
+                if phase_block[3] > 2:
+                    summaryInstance.phase_block_with_only_one_read_pair += 1
                     phase_block_len_out.write(str(phase_block[2]) + '\n')
                     coupling_out.write(str(phase_block[5]/0.5) + '\n')
 

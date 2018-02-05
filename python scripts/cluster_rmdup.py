@@ -207,7 +207,7 @@ def main():
                     pass
                 else:
                     bc_seq_already_written.add(barcode_seq)
-                    explicit_merge_file.write(str(read_tag) + '\t' + str(barcode_seq) + '\n')
+                    explicit_merge_file.write(str(read_tag) + '\t' + str(barcode_seq) + '\t' +str(prev_tag) + '\n')
 
             read.query_name = '_'.join(read.query_name.split('_')[:-1])+'_RG:Z:'+read_tag
             summaryInstance.readPairsMerged += 1

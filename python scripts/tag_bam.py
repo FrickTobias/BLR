@@ -58,8 +58,7 @@ def main():
                 add_to_RG_headers.append(bc_id)  # For RG headers later
 
             # Set tag to bc_id
-            read.set_tag('RG', str(bc_id),
-                         value_type='Z')  # Stores as string, makes duplicate removal possible. Can do it as integer as well.
+            read.set_tag('RG', str(bc_id),value_type='Z')  # Stores as string, makes duplicate removal possible. Can do it as integer as well.
             read.query_name = (read.query_name + '_@RG:Z:' + str(bc_id))
             out.write(read)
 
