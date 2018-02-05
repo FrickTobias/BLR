@@ -225,6 +225,7 @@ def main():
 
         out.write(read)
         progressbar.update()
+    progressbar.terminate()
 
     infile.close()
     out.close()
