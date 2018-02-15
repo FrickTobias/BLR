@@ -452,7 +452,7 @@ class BarcodeDuplicates(object):
 
         # Only increases value for previously seeded overlaps.
         for barcode_ID in barcodeIDs:
-            for other_barcodes in barcode_ID:
+            for other_barcodes in barcode_IDs:
                 if other_barcodes >= barcode_ID: continue
                 if barcode_ID in self.seeds and other_barcodes in self.seeds[barcode_ID]:
                     self.seeds[barcode_ID][other_barcodes] += 1
