@@ -29,8 +29,9 @@ def main():
 
 
     #######
-    ## 1 ## Find & mark duplicate positions and save paired reads of those positions
+    ## 1 ##     Find & mark duplicate positions and save paired reads of those positions
     #######
+
     duplicate_position_dict = dict()
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
     current_read_count = 1000000
@@ -84,8 +85,9 @@ def main():
 
 
     #######
-    ## 2 ## For all unpaired reads, save positions for extending duplicate seeds
+    ## 2 ##     For all unpaired reads, save positions for extending duplicate seeds
     #######
+
     cache_position_tracker = dict()
     for unpaired_read in cache_read_tracker.values():
 
@@ -130,8 +132,9 @@ def main():
 
 
     #######
-    ## 3 ## Seeding & extending using duplicate read pairs
+    ## 3 ##     Seeding & extending using duplicate read pairs
     #######
+
     duplicates = BarcodeDuplicates()
     for chromosome in duplicate_position_dict:
 
@@ -171,8 +174,9 @@ def main():
 
 
     #######
-    ## 4 ## Extending seeds using duplicates and reducing redundancy
+    ## 4 ##     Extending seeds using duplicates and reducing redundancy
     #######
+
     for chromosome in singleton_duplicate_position:
         for position in singleton_duplicate_position[chromosome]:
             if len(singleton_duplicate_position[chromosome][position]) < 2:
@@ -204,7 +208,7 @@ def main():
 
 
     #######
-    ## 5 ## Writing outputs
+    ## 5 ##     Writing outputs
     #######
 
     # Option: EXPLICIT MERGE - Writes bc_seq + prev_bc_id + new_bc_id
@@ -443,7 +447,7 @@ class BarcodeDuplicates(object):
                 # Increase value with 1 or seed at value 1
                 try: self.seeds[barcode_ID][other_barcodes] += 1
                 except KeyError:
-                    self.seeds[barcode_ID][other_barcodes] = 1
+                    self.seeds[barcode_ID][other_barcodes] = 0
 
     def extend(self, barcode_IDs):
         """
