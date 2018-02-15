@@ -106,7 +106,7 @@ def main():
         else:
 
             # Saves all reads for current position if one is marked as duplicate
-            for the_only_entry in cache_position_tracker[chromosome].values(): process_singleton_reads(chromosome, list_of_singleton_reads=the_only_entry)
+            for the_only_entry in cache_position_tracker[chromosome].values(): process_singleton_reads(chromosome, start_stop, list_of_singleton_reads=the_only_entry)
 
             # Empty current list and add the current read
             cache_position_tracker = dict()
@@ -115,7 +115,7 @@ def main():
             cache_position_tracker[chromosome][start_stop].append(unpaired_read)
 
     # Last chunk
-    for the_only_entry in cache_position_tracker[chromosome].values(): process_singleton_reads(chromosome, list_of_singleton_reads=the_only_entry)
+    for the_only_entry in cache_position_tracker[chromosome].values(): process_singleton_reads(chromosome, start_stop, list_of_singleton_reads=the_only_entry)
 
     # Close input file
     infile.close()
@@ -326,7 +326,7 @@ def process_readpairs(list_of_start_stop_tuples):
                 # Add read to dictionary
                 singleton_duplicate_position[chromosome][positions].append(int(single_read.get_tag('RG')))
 
-def process_singleton_reads(chromosome, list_of_singleton_reads):
+def process_singleton_reads(chromosome, start_stop, list_of_singleton_reads):
     """
     Saves all reads if one is marked as duplicate since 'original' read will not be marked.
     """
@@ -350,7 +350,7 @@ def process_singleton_reads(chromosome, list_of_singleton_reads):
                 singleton_duplicate_position[chromosome] = dict()
 
             # If this position has no reads yet, add position as key giving empty list as value
-            if not positions in singleton_duplicate_position[chromosome]:
+            if not start_stop in singleton_duplicate_position[chromosome]:
                 singleton_duplicate_position[chromosome][start_stop] = set()
 
             # Add read to dictionary
