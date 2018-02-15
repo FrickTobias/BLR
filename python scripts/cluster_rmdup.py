@@ -26,10 +26,8 @@ def main():
     report_progress('Reading input file and building duplicate position list')
 
     #
-    # Data processing & writing output
+    # Start of script
     #
-
-    import pdb
 
     #
     # Find & mark duplicate positions and save paired reads of those positions
@@ -45,7 +43,7 @@ def main():
         # Progress
         summaryInstance.totalReadPairsCount += 1
         if current_read_count < summaryInstance.totalReadPairsCount:
-            report_progress("{:,}".format(current_read_count) + ' pairs read')
+            report_progress("{:,}".format(current_read_count) + ' reads fetched')
             current_read_count += 1000000
 
         # Cache read system
@@ -71,68 +69,56 @@ def main():
             cache_readpair_tracker[rp_start] = list()
             cache_readpair_tracker[rp_start].append((mate, read))
 
-    sys.stderr.write('YOU MUST CODE DUPLICATE READ SAVING TO DICT AS FUNCTION\n')
-    sys.stderr.write('OTHERWISE FIRST READ IN DUPLICATE GROUPS WILL BE MISSED!\n')
+    # Takes care of the last chunk of reads
+    for the_only_entry in cache_readpair_tracker.values(): process_readpairs(the_only_entry)
 
+    report_progress('Reads in file:\t' + "{:,}".format(summaryInstance.totalReadPairsCount))
     report_progress('Duplicate positions and barcode ID:s from read pairs saved')
     report_progress('Fetching unpaired read duplicate posions & barcode ID:s')
 
     #
     # For all unpaired reads, save positions for extending duplicate seeds
     #
-
     cache_position_tracker = dict()
     for unpaired_read in cache_read_tracker.values():
 
+        # Fetch informatiopn
         chromosome = unpaired_read.reference_name
         positions = unpaired_read.get_reference_positions()
         start_stop = (positions[0], positions[-1])
 
-
+        # Add chrom to dict if not present
         if not chromosome in cache_position_tracker:
             cache_position_tracker[chromosome] = dict()
 
-        # If start
+        # Save all reads sharing the same position in a cache tracker system
         if start_stop in cache_position_tracker[chromosome]:
             cache_position_tracker[chromosome][start_stop].append(unpaired_read)
 
+        # Processing of reads
         else:
-            duplicate = bool()
-            for read in cache_position_tracker[chromosome].values():
 
-                if read.is_duplicate:
-                    duplicate = True
-                    break
+            # Saves all reads for current position if one is marked as duplicate
+            process_singleton_reads(cache_position_tracker[chromosome].values())
 
-            if duplicate == True:
-                for read in cache_position_tracker[chromosome].values():
-
-                    barcode_ID = int(read.get_tag('RG'))
-
-                    # If chr not in dict, add it
-                    if not chromosome in singleton_duplicate_position:
-                        singleton_duplicate_position[chromosome] = dict()
-
-                    # If this position has no reads yet, add position as key giving empty list as value
-                    if not positions in singleton_duplicate_position[chromosome]:
-                        singleton_duplicate_position[chromosome][start_stop] = set()
-
-                    # Add read to dictionary
-                    singleton_duplicate_position[chromosome][start_stop].add(barcode_ID)
-
+            # Empty current list and add the current read
             cache_read_tracker = dict()
             cache_read_tracker[chromosome] = dict()
             cache_read_tracker[chromosome][start_stop] = list()
+            cache_position_tracker[chromosome][start_stop].append(unpaired_read)
 
+    # Last chunk
+    process_singleton_reads()
+
+    # Close input file
     infile.close()
 
-    report_progress('Total read count: ' + "{:,}".format(summaryInstance.totalReadPairsCount))
+    report_progress('Seeding barcode ID duplicates')
 
     #
-    # Seeding & extending using duplicate readpairs
+    # Seeding & extending using duplicate read pairs
     #
     duplicates = BarcodeDuplicates()
-    report_progress('Seeding barcode ID duplicates')
     for chromosome in duplicate_position_dict:
 
         for duplicate_start in sorted(duplicate_position_dict[chromosome].keys()):
@@ -141,6 +127,7 @@ def main():
             possible_duplicate_seeds = dict()
             for readpair in duplicate_position_dict[chromosome][duplicate_start]:
 
+                # Fetching information from read/mate
                 mate = readpair[0]
                 mate_pos = mate.get_reference_positions()
                 mate_start_stop = tuple(mate_pos[::len(mate_pos)-1]) # Get first and last position
@@ -149,6 +136,7 @@ def main():
                 read_start_stop = tuple(read_pos[::len(read_pos)-1]) # Get first and last position
                 barcode_ID = int(read.get_tag('RG'))
 
+                # Add all barcodes IDs to set, check later if total > 2 at positions.
                 if not (mate_start_stop,read_start_stop) in possible_duplicate_seeds:
                     possible_duplicate_seeds[(mate_start_stop, read_start_stop)] = set()
                 possible_duplicate_seeds[(mate_start_stop,read_start_stop)].add(barcode_ID)
@@ -157,12 +145,10 @@ def main():
             for possible_seed, barcode_IDs in possible_duplicate_seeds.items():
                 if len(barcode_IDs) >= 2:
                     summaryInstance.duplicateSeeds += 1
-
                     duplicates.seed(barcode_IDs)
 
-
-    report_progress("{:,}".format(summaryInstance.duplicateSeeds) + ' seeds generated')
-    report_progress('Extending seeds using singleton read duplcates')
+    report_progress('Seeds generated:\t' + "{:,}".format(summaryInstance.duplicateSeeds))
+    report_progress('Extending seeds using singleton read duplicates')
 
     #
     # Extending seeds using duplicate singletons
@@ -171,32 +157,36 @@ def main():
         for position in singleton_duplicate_position[chromosome]:
             duplicates.extend(list(singleton_duplicate_position[chromosome][position]))
 
-    #
-    # Write output
-    #
-
+    # Fetch all seeds which are above -t (--threshold, default=0) number of overlaps (require readpair overlap for seed)
     barcode_ID_merge_dict = duplicates.fetch_significant_seeds()
 
-    # Reduce several step redundancy in merge dict
     report_progress('Reducing several step redundancy in dictionary')
+
+    # Reduce several step redundancy in merge dict (20->15->5 will become 20->5 ; 15->5)
     for barcode_ID_key in sorted(barcode_ID_merge_dict.keys())[::-1]:
         barcode_ID_value = barcode_ID_merge_dict[barcode_ID_key]
         if barcode_ID_value in barcode_ID_merge_dict:
             del barcode_ID_merge_dict[barcode_ID_key]
             barcode_ID_merge_dict[barcode_ID_key] = barcode_ID_merge_dict[barcode_ID_value]
 
-    report_progress('Writing output')
-    infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
-    out = pysam.AlignmentFile(args.output_bam, 'wb', template=infile)
+    #
+    # Writing outputs
+    #
 
+    progressBar = ProgressBar(name='Writing output', min=0, max=summaryInstance.totalReadPairsCount, step=1)
+
+    # Option: EXPLICIT MERGE - Writes bc_seq + prev_bc_id + new_bc_id
     if args.explicit_merge:
         explicit_merge_file = open(args.explicit_merge, 'w')
         bc_seq_already_written = set()
 
+    # Bamfile
+    infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
+    out = pysam.AlignmentFile(args.output_bam, 'wb', template=infile)
     for read in infile.fetch(until_eof=True):
-
         previous_barcode_id = int(read.get_tag('RG'))
 
+        # If read barcode in merge dict, change tag and header to compensate.
         if not previous_barcode_id in barcode_ID_merge_dict:
             out.write(read)
         else:
@@ -204,14 +194,22 @@ def main():
             read.set_tag('RG', new_barcode_id, value_type='Z')
             read.query_name = '_'.join(read.query_name.split('_')[:-1]) + '_RG:Z:' + new_barcode_id
 
+            # Option: EXPLICIT MERGE - Write bc seq and new + prev bc ID
             if args.explicit_merge:
                 barcode_seq = read.query_name.split()[0].split('_')[-2]
+                # Only write unique entries.
                 if barcode_seq in bc_seq_already_written:
                     pass
                 else:
                     bc_seq_already_written.add(barcode_seq)
                     explicit_merge_file.write(str(new_barcode_id) + '\t' + str(barcode_seq) + '\t' +str(previous_barcode_id) + '\n')
 
+        progressBar.update()
+
+    # Option: EXPLICIT MERGE - close file
+    if args.explicit_merge: explicit_merge_file.close()
+
+    progressBar.terminate()
     report_progress('Analysis finished')
 
 def process_readpairs(list_of_start_stop_tuples):
@@ -295,6 +293,89 @@ def process_readpairs(list_of_start_stop_tuples):
                 # Add read to dictionary
                 singleton_duplicate_position[chromosome][positions].append(int(single_read.get_tag('RG')))
 
+def process_singleton_reads(list_of_singleton_reads):
+    """
+    Saves all reads if one is marked as duplicate since 'original' read will not be marked.
+    """
+
+    duplicate = bool()
+
+    # Loop through all reads at current position and look for duplicates
+    for read in list_of_singleton_reads:
+        if read.is_duplicate:
+            duplicate = True
+            break
+
+    # If one of the reads were marked as duplicates, save all reads at current position
+    if duplicate == True:
+        for read in cache_position_tracker[chromosome].values():
+
+            barcode_ID = int(read.get_tag('RG'))
+
+            # If chr not in dict, add it
+            if not chromosome in singleton_duplicate_position:
+                singleton_duplicate_position[chromosome] = dict()
+
+            # If this position has no reads yet, add position as key giving empty list as value
+            if not positions in singleton_duplicate_position[chromosome]:
+                singleton_duplicate_position[chromosome][start_stop] = set()
+
+            # Add read to dictionary
+            singleton_duplicate_position[chromosome][start_stop].add(barcode_ID)
+
+def match_clusterid(clusterid_list_one, clusterid_list_two):
+    """
+    Takes two lists returns matching entries between the two.
+    """
+
+    match_set = set()
+    for clusterid_one in clusterid_list_one:
+        for clusterid_two in clusterid_list_two:
+
+            if clusterid_one == clusterid_two:
+                match_set.add(int(clusterid_one))
+
+    match_sorted_list = sorted(match_set)
+    return match_sorted_list
+
+def report_matches(current_match_dict, merge_dict, chromosome):#, duplicate_position_list):
+    """ Reports matches by updating merge_dict with newfound matches. Dictionary will be mutually exclusive for
+    key > value (can't contain key with more than one value)."""
+
+
+    # Updates merge_dict() with new matches for every position pair and for every match found at those positions.
+    for position, duplicate_set in current_match_dict.items():
+
+        duplicate_list = sorted(duplicate_set)
+        lower_cluster_id = duplicate_list[0]
+
+        # If multiple matches found on one position, takes one at the time for easier code structure
+        for higher_cluster_id in duplicate_list[1:]:
+            prev_value = None
+            try:
+                prev_value = merge_dict[lower_cluster_id]
+            except KeyError:
+                merge_dict[higher_cluster_id] = lower_cluster_id
+            if not prev_value == None:
+                if prev_value == lower_cluster_id:
+                    pass
+                elif prev_value < lower_cluster_id:
+                    merge_dict[higher_cluster_id] = prev_value
+                    merge_dict[lower_cluster_id] = prev_value
+                else:
+                    del merge_dict[higher_cluster_id]
+                    merge_dict[higher_cluster_id] = lower_cluster_id
+                    merge_dict[prev_value] = lower_cluster_id
+
+    return merge_dict
+
+def report_progress(string):
+    """
+    Writes a time stamp followed by a message (=string) to standard out.
+    Input: String
+    Output: [date]  string
+    """
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
 
 class BarcodeDuplicates(object):
     """
@@ -359,60 +440,6 @@ class BarcodeDuplicates(object):
                 self.seeds_over_threshold[from_bc_id] = min_bc_id
 
         return self.seeds_over_threshold
-
-def match_clusterid(clusterid_list_one, clusterid_list_two):
-    """
-    Takes two lists returns matching entries between the two.
-    """
-
-    match_set = set()
-    for clusterid_one in clusterid_list_one:
-        for clusterid_two in clusterid_list_two:
-
-            if clusterid_one == clusterid_two:
-                match_set.add(int(clusterid_one))
-
-    match_sorted_list = sorted(match_set)
-    return match_sorted_list
-
-def report_matches(current_match_dict, merge_dict, chromosome):#, duplicate_position_list):
-    """ Reports matches by updating merge_dict with newfound matches. Dictionary will be mutually exclusive for
-    key > value (can't contain key with more than one value)."""
-
-
-    # Updates merge_dict() with new matches for every position pair and for every match found at those positions.
-    for position, duplicate_set in current_match_dict.items():
-
-        duplicate_list = sorted(duplicate_set)
-        lower_cluster_id = duplicate_list[0]
-
-        # If multiple matches found on one position, takes one at the time for easier code structure
-        for higher_cluster_id in duplicate_list[1:]:
-            prev_value = None
-            try:
-                prev_value = merge_dict[lower_cluster_id]
-            except KeyError:
-                merge_dict[higher_cluster_id] = lower_cluster_id
-            if not prev_value == None:
-                if prev_value == lower_cluster_id:
-                    pass
-                elif prev_value < lower_cluster_id:
-                    merge_dict[higher_cluster_id] = prev_value
-                    merge_dict[lower_cluster_id] = prev_value
-                else:
-                    del merge_dict[higher_cluster_id]
-                    merge_dict[higher_cluster_id] = lower_cluster_id
-                    merge_dict[prev_value] = lower_cluster_id
-
-    return merge_dict
-
-def report_progress(string):
-    """
-    Writes a time stamp followed by a message (=string) to standard out.
-    Input: String
-    Output: [date]  string
-    """
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
 
 class ProgressBar(object):
     """
@@ -520,7 +547,6 @@ class Summary(object):
         self.duplicatePositionWithoutProximity = int()# Duplicates without proximity to other duplicates (=> cannot be cluster duplicate)
         self.readPairsMerged = int() # Rather the count of reads that have changed cluster ID.
         self.ClustersRemovedDueToMerge = int()
-        #self.mergeDict = str() # Removed since there are A LOT of clusters being merged
         self.overlap_dict = dict() # Format for tracking # barcode overlap occurrances during writing of file
         self.coupling_dict = dict() # Summarises overlap_dict (bins values)
         self.readable_coupling_dict = str()
