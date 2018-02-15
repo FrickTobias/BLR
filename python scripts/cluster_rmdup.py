@@ -77,8 +77,8 @@ def main():
     #
 
     report_progress('Total reads in file:\t' + "{:,}".format(summaryInstance.totalReadPairsCount))
-    report_progress('Duplicate positions and barcode ID:s from read pairs saved')
-    report_progress('Fetching unpaired read duplicate posions & barcode ID:s')
+    report_progress('Duplicate positions and barcode ID:s from read pairs saved\n')
+    report_progress('Fetching unpaired read duplicate positions & barcode ID:s')
 
 
     #
@@ -121,7 +121,7 @@ def main():
     #
     #
     #
-
+    report_progress('Unpaired duplicate reads fetched\n')
     report_progress('Seeding barcode ID duplicates')
 
     #
@@ -160,20 +160,20 @@ def main():
     #
     #
 
-    report_progress('Seeds generated:\t' + "{:,}".format(summaryInstance.duplicateSeeds))
+    report_progress('Seeds generated:\t' + "{:,}".format(summaryInstance.duplicateSeeds) + '\n')
     report_progress('Extending seeds using singleton read duplicates')
 
     #
-    # Extending seeds using duplicate singletons
+    # Extending seeds using duplicates and reducing redundancy
     #
     for chromosome in singleton_duplicate_position:
         for position in singleton_duplicate_position[chromosome]:
             duplicates.extend(list(singleton_duplicate_position[chromosome][position]))
 
+    report_progress('Reducing several step redundancy in dictionary')
+
     # Fetch all seeds which are above -t (--threshold, default=0) number of overlaps (require readpair overlap for seed)
     barcode_ID_merge_dict = duplicates.fetch_significant_seeds()
-
-    report_progress('Reducing several step redundancy in dictionary')
 
     # Reduce several step redundancy in merge dict (20->15->5 will become 20->5 ; 15->5)
     for barcode_ID_key in sorted(barcode_ID_merge_dict.keys())[::-1]:
@@ -181,12 +181,19 @@ def main():
         if barcode_ID_value in barcode_ID_merge_dict:
             del barcode_ID_merge_dict[barcode_ID_key]
             barcode_ID_merge_dict[barcode_ID_key] = barcode_ID_merge_dict[barcode_ID_value]
+    summaryInstance.clusters_removed = len(barcode_ID_merge_dict.keys())
+
+    #
+    #
+    #
+
+    report_progress('Merge dict finished\n')
+    report_progress('Barcode ID:s removed:\t' + "{:,}".format(summaryInstance.clusters_removed))
+    progressBar = ProgressBar(name='Writing output', min=0, max=summaryInstance.totalReadPairsCount, step=1)
 
     #
     # Writing outputs
     #
-
-    progressBar = ProgressBar(name='Writing output', min=0, max=summaryInstance.totalReadPairsCount, step=1)
 
     # Option: EXPLICIT MERGE - Writes bc_seq + prev_bc_id + new_bc_id
     if args.explicit_merge:
@@ -568,6 +575,7 @@ class Summary(object):
         self.coupling_dict = dict() # Summarises overlap_dict (bins values)
         self.readable_coupling_dict = str()
         self.log = args.output_bam + '.log'
+        self.clusters_removed = int()
 
         with open(self.log, 'w') as openout:
             pass
