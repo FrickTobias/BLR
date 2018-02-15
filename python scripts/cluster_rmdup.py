@@ -64,17 +64,22 @@ def main():
         else:
 
             # Send chunk of reads to function
-            for the_only_entry in cache_readpair_tracker.values(): process_readpairs(the_only_entry)
+            for the_only_entry in cache_readpair_tracker.values(): process_readpairs(list_of_start_stop_tuples=the_only_entry)
             cache_readpair_tracker = dict()
             cache_readpair_tracker[rp_start] = list()
             cache_readpair_tracker[rp_start].append((mate, read))
 
     # Takes care of the last chunk of reads
-    for the_only_entry in cache_readpair_tracker.values(): process_readpairs(the_only_entry)
+    for the_only_entry in cache_readpair_tracker.values(): process_readpairs(list_of_start_stop_tuples=the_only_entry)
 
-    report_progress('Reads in file:\t' + "{:,}".format(summaryInstance.totalReadPairsCount))
+    #
+    #
+    #
+
+    report_progress('Total reads in file:\t' + "{:,}".format(summaryInstance.totalReadPairsCount))
     report_progress('Duplicate positions and barcode ID:s from read pairs saved')
     report_progress('Fetching unpaired read duplicate posions & barcode ID:s')
+
 
     #
     # For all unpaired reads, save positions for extending duplicate seeds
@@ -99,19 +104,23 @@ def main():
         else:
 
             # Saves all reads for current position if one is marked as duplicate
-            process_singleton_reads(cache_position_tracker[chromosome].values())
+            for the_only_entry in cache_position_tracker[chromosome].values(): process_singleton_reads(list_of_singleton_reads=the_only_entry)
 
             # Empty current list and add the current read
-            cache_read_tracker = dict()
-            cache_read_tracker[chromosome] = dict()
-            cache_read_tracker[chromosome][start_stop] = list()
+            cache_position_tracker = dict()
+            cache_position_tracker[chromosome] = dict()
+            cache_position_tracker[chromosome][start_stop] = list()
             cache_position_tracker[chromosome][start_stop].append(unpaired_read)
 
     # Last chunk
-    process_singleton_reads()
+    for the_only_entry in cache_position_tracker[chromosome].values(): process_singleton_reads(list_of_singleton_reads=the_only_entry)
 
     # Close input file
     infile.close()
+
+    #
+    #
+    #
 
     report_progress('Seeding barcode ID duplicates')
 
@@ -146,6 +155,10 @@ def main():
                 if len(barcode_IDs) >= 2:
                     summaryInstance.duplicateSeeds += 1
                     duplicates.seed(barcode_IDs)
+
+    #
+    #
+    #
 
     report_progress('Seeds generated:\t' + "{:,}".format(summaryInstance.duplicateSeeds))
     report_progress('Extending seeds using singleton read duplicates')
@@ -211,6 +224,10 @@ def main():
 
     progressBar.terminate()
     report_progress('Analysis finished')
+
+    #
+    #
+    #
 
 def process_readpairs(list_of_start_stop_tuples):
     """
