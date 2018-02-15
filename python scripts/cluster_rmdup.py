@@ -7,7 +7,7 @@ def main():
     # Imports & globals
     #
 
-    global args, summaryInstance, output_tagged_bamfile, sys, time
+    global args, summaryInstance, output_tagged_bamfile, sys, time, duplicate_position_dict, singleton_duplicate_position
     import pysam, sys, time
 
     #
@@ -38,6 +38,7 @@ def main():
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
     current_read_count = 1000000
     cache_read_tracker = dict()
+    cache_readpair_tracker = dict()
     singleton_duplicate_position = dict()
     for read in infile.fetch(until_eof=True):
 
@@ -58,116 +59,70 @@ def main():
             cache_read_tracker[header] = read
             continue
 
-        rp_start = mate.get_reference_positions[0]
-        if rp_start in cacher_read_tracker:
+        # Save all reads sharing position
+        rp_start = mate.get_reference_positions()[0]
+        if rp_start in cache_readpair_tracker:
             cache_readpair_tracker[rp_start].append((mate, read))
         else:
 
-            # First look if duplicates are present in the set of readpairs
-            mate_dup, read_dup = bool(), bool()
-            for readpair in cache_read_tracker.values():
-                mate = readpair[0]
-                read = readpair[1]
+            # Send chunk of reads to function
+            for the_only_entry in cache_readpair_tracker.values(): process_readpairs(the_only_entry)
+            cache_readpair_tracker = dict()
+            cache_readpair_tracker[rp_start] = list()
+            cache_readpair_tracker[rp_start].append((mate, read))
 
-                # Look if we only find duplicates in read, mate or in whole read pair
-                if read.is_duplicate and mate.is_duplicate:
-                    mate_dup, read_dup = True, True
-                    break # Doesn't need to look more, all are True
-                elif mate.is_duplicate:
-                    mate_dup = True
-                    if read_dup:
-                        break # Doesn't need to look more, all are True
-                elif read.is_duplicate:
-                    read_dup = True
-                    if mate_dup:
-                        break # Doesn't need to look more, all are True
+    sys.stderr.write('YOU MUST CODE DUPLICATE READ SAVING TO DICT AS FUNCTION\n')
+    sys.stderr.write('OTHERWISE FIRST READ IN DUPLICATE GROUPS WILL BE MISSED!\n')
 
-            # If duplicates are found, save appropriately dependant if read, mate or both are marked
-            for readpair in cache_read_tracker.values():
-                mate = readpair[0]
-                read = readpair[1]
-                # Only fetch positions marked as duplicates
-                if mate_dup and read_dup:
-
-                    # Stats & fetch information
-                    summaryInstance.totalReadPairsMarkedAsDuplicates += 2
-                    chromosome = read.reference_name
-                    start_position = min(read.get_reference_positions())
-
-                    # If chr not in dict, add it
-                    if not chromosome in duplicate_position_dict:
-                        duplicate_position_dict[chromosome] = dict()
-
-                    # Add all chromosomes into singleton dict as not to get KeyError later
-                    if not chromosome in singleton_duplicate_position:
-                        singleton_duplicate_position[chromosome] = dict()
-
-                    # Fetch chromosome lengths for progress bars later!
-
-                    # If this position has no reads yet, add position as key giving empty list as value
-                    if not start_position in duplicate_position_dict[chromosome]:
-                        duplicate_position_dict[chromosome][start_position] = []
-
-                    # Add mate and read to dictionary for later investigation
-                    if not start_position in duplicate_position_dict[chromosome]:
-                        duplicate_position_dict[chromosome][start_position] = list()
-                    duplicate_position_dict[chromosome][start_position].append((mate, read)
-
-                else:
-                    # Check if only only one read is a duplicate, then save position & barcode for extending seeds
-                    if mate_dup:
-                        list_pos = 0
-                    elif read_dup:
-                        list_pos = 1
-                    else:
-                        continue
-
-                    single_read = (mate, read)[list_pos]
-
-                    # Fetch & Stats
-                    summaryInstance.totalReadPairsMarkedAsDuplicates += 1
-                    positions = single_read.get_reference_positions()
-                    chromosome = single_read.reference_name()
-
-                    # If chr not in dict, add it
-                    if not chromosome in singleton_duplicate_position:
-                        singleton_duplicate_position[chromosome] = dict()
-
-                    # If this position has no reads yet, add position as key giving empty list as value
-                    if not positions in singleton_duplicate_position:
-                        singleton_duplicate_position[chromosome][positions] = list()
-
-                    # Add read to dictionary
-                    singleton_duplicate_position[chromosome][positions].append(int(single_read.get_tag('RG')))
-            cache_read_tracker = dict()
-            cache_read_tracker[rp_start] = list()
-
-    infile.close()
     report_progress('Duplicate positions and barcode ID:s from read pairs saved')
     report_progress('Fetching unpaired read duplicate posions & barcode ID:s')
 
-    #*
+    #
     # For all unpaired reads, save positions for extending duplicate seeds
     #
 
-    sys.stderr.write('IMPLEMENT CACHE READS FOR POSITIONS FOR SINGLETONS AS WELL!')
-    sys.stderr.write('AKA DONT SKIP OUT ON NON-DUPLICATE MARKED DUPLICATES!')
-    sys.exit()
+    cache_position_tracker = dict()
     for unpaired_read in cache_read_tracker.values():
-        if unpaired_read.is_duplicate:
-            chromosome = unpaired_read.reference_name
-            positions = unpaired_read.get_reference_positions
 
-            # If chr not in dict, add it
-            if not chromosome in singleton_duplicate_position:
-                singleton_duplicate_position[chromosome] = dict()
+        chromosome = unpaired_read.reference_name
+        positions = unpaired_read.get_reference_positions()
+        start_stop = (positions[0], positions[-1])
 
-            # If this position has no reads yet, add position as key giving empty list as value
-            if not positions in singleton_duplicate_position[chromosome]:
-                singleton_duplicate_position[chromosome][positions] = set()
 
-            # Add read to dictionary
-            singleton_duplicate_position[chromosome][positions].add(int(unpaired_read.get_tag('RG')))
+        if not chromosome in cache_position_tracker:
+            cache_position_tracker[chromosome] = dict()
+
+        # If start
+        if start_stop in cache_position_tracker[chromosome]:
+            cache_position_tracker[chromosome][start_stop].append(unpaired_read)
+
+        else:
+            duplicate = bool()
+            for read in cache_position_tracker[chromosome].values():
+
+                if read.is_duplicate:
+                    duplicate = True
+                    break
+
+            if duplicate == True:
+                for read in cache_position_tracker[chromosome].values():
+
+                    barcode_ID = int(read.get_tag('RG'))
+
+                    # If chr not in dict, add it
+                    if not chromosome in singleton_duplicate_position:
+                        singleton_duplicate_position[chromosome] = dict()
+
+                    # If this position has no reads yet, add position as key giving empty list as value
+                    if not positions in singleton_duplicate_position[chromosome]:
+                        singleton_duplicate_position[chromosome][start_stop] = set()
+
+                    # Add read to dictionary
+                    singleton_duplicate_position[chromosome][start_stop].add(barcode_ID)
+
+            cache_read_tracker = dict()
+            cache_read_tracker[chromosome] = dict()
+            cache_read_tracker[chromosome][start_stop] = list()
 
     infile.close()
 
@@ -186,21 +141,23 @@ def main():
             possible_duplicate_seeds = dict()
             for readpair in duplicate_position_dict[chromosome][duplicate_start]:
 
-                pdb.set_trace()
                 mate = readpair[0]
-                mate_pos = mate.get_reference_positions
+                mate_pos = mate.get_reference_positions()
+                mate_start_stop = tuple(mate_pos[::len(mate_pos)-1]) # Get first and last position
                 read = readpair[1]
-                read_pos = read.get_reference_positions
+                read_pos = read.get_reference_positions()
+                read_start_stop = tuple(read_pos[::len(read_pos)-1]) # Get first and last position
                 barcode_ID = int(read.get_tag('RG'))
 
-                if (mate_pos,read_pos) in possible_duplicate_seeds:
-                    possible_duplicate_seeds[mate_pos, read_pos] = list()
-                possible_duplicate_seeds[mate_pos,read_pos].append(barcode_ID)
+                if not (mate_start_stop,read_start_stop) in possible_duplicate_seeds:
+                    possible_duplicate_seeds[(mate_start_stop, read_start_stop)] = set()
+                possible_duplicate_seeds[(mate_start_stop,read_start_stop)].add(barcode_ID)
 
             # If more than one barcode at specific position is found, seed.
             for possible_seed, barcode_IDs in possible_duplicate_seeds.items():
                 if len(barcode_IDs) >= 2:
                     summaryInstance.duplicateSeeds += 1
+
                     duplicates.seed(barcode_IDs)
 
 
@@ -238,7 +195,7 @@ def main():
 
     for read in infile.fetch(until_eof=True):
 
-        previous_barcode_id = int(read.get_tag['RG'])
+        previous_barcode_id = int(read.get_tag('RG'))
 
         if not previous_barcode_id in barcode_ID_merge_dict:
             out.write(read)
@@ -257,6 +214,88 @@ def main():
 
     report_progress('Analysis finished')
 
+def process_readpairs(list_of_start_stop_tuples):
+    """
+    Takes readpairs with the same start positions and process them simultaneously (since if one is a duplicate, all
+    should be used for seeding duplicates).
+    """
+    # First look if duplicates are present in the set of readpairs
+    mate_dup, read_dup = bool(), bool()
+    list_pos = None
+    for readpair in list_of_start_stop_tuples:
+        mate = readpair[0]
+        read = readpair[1]
+
+        # Look if we only find duplicates in read, mate or in whole read pair
+        if read.is_duplicate and mate.is_duplicate:
+            mate_dup, read_dup = True, True
+            break  # Doesn't need to look more, all are True
+        elif mate.is_duplicate:
+            mate_dup = True
+            list_pos = 0
+            if read_dup:
+                break  # Doesn't need to look more, all are True
+        elif read.is_duplicate:
+            read_dup = True
+            list_pos = 1
+            if mate_dup:
+                break  # Doesn't need to look more, all are True
+
+    # If duplicates are found, save appropriately dependant if read, mate or both are marked
+    for readpair in list_of_start_stop_tuples:
+        mate = readpair[0]
+        read = readpair[1]
+        # Only fetch positions marked as duplicates
+        if mate_dup and read_dup:
+
+            # Stats & fetch information
+            summaryInstance.totalReadPairsMarkedAsDuplicates += 2
+            chromosome = read.reference_name
+            start_position = min(read.get_reference_positions())
+
+            # If chr not in dict, add it
+            if not chromosome in duplicate_position_dict:
+                duplicate_position_dict[chromosome] = dict()
+
+            # Add all chromosomes into singleton dict as not to get KeyError later
+            if not chromosome in singleton_duplicate_position:
+                singleton_duplicate_position[chromosome] = dict()
+
+            # Fetch chromosome lengths for progress bars later!
+
+            # If this position has no reads yet, add position as key giving empty list as value
+            if not start_position in duplicate_position_dict[chromosome]:
+                duplicate_position_dict[chromosome][start_position] = []
+
+            # Add mate and read to dictionary for later investigation
+            if not start_position in duplicate_position_dict[chromosome]:
+                duplicate_position_dict[chromosome][start_position] = list()
+            duplicate_position_dict[chromosome][start_position].append((mate, read))
+
+        else:
+
+            # Check if only only one read is a duplicate, then save position & barcode for extending seeds
+            if mate_dup or read_dup:
+
+                single_read = (mate, read)[list_pos]
+
+                # Fetch & Stats
+                summaryInstance.totalReadPairsMarkedAsDuplicates += 1
+                positions = single_read.get_reference_positions()
+                chromosome = single_read.reference_name()
+
+                # If chr not in dict, add it
+                if not chromosome in singleton_duplicate_position:
+                    singleton_duplicate_position[chromosome] = dict()
+
+                # If this position has no reads yet, add position as key giving empty list as value
+                if not positions in singleton_duplicate_position:
+                    singleton_duplicate_position[chromosome][positions] = list()
+
+                # Add read to dictionary
+                singleton_duplicate_position[chromosome][positions].append(int(single_read.get_tag('RG')))
+
+
 class BarcodeDuplicates(object):
     """
     Tracks barcode ID:s which have readpairs ovelapping with others.
@@ -271,18 +310,18 @@ class BarcodeDuplicates(object):
         self.threshold = args.threshold
         self.seeds_over_threshold = dict()
 
-    def seed(self, barcodeIDs):
+    def seed(self, barcode_IDs):
         """
         Adds barcode overlap to dictionary with a value of 1. If an overlap is already present, increases value. Give as
         integers.
         """
 
         # For all barcode IDs
-        for barcode_ID in barcodeIDs:
+        for barcode_ID in barcode_IDs:
             # Add to dict if not present
             if not barcode_ID in self.seeds: self.seeds[barcode_ID] = dict()
             # Add all other barcodes as values
-            for other_barcodes in barcode_ID:
+            for other_barcodes in barcode_IDs:
                 # Don't add self or larger barcode ID values
                 if other_barcodes >= barcode_ID: continue
                 # Increase value with 1 or seed at value 1
@@ -311,10 +350,9 @@ class BarcodeDuplicates(object):
         # Find the lowest barcode_id value for all barcodes over threshold
         for from_bc_id in self.seeds:
             to_set = set()
-            for to_bc_id in self.seeds[key]:
+            for to_bc_id in self.seeds[from_bc_id]:
                 if self.seeds[from_bc_id][to_bc_id] >= self.threshold:
                     to_set.add(to_bc_id)
-
             # Commit final entry
             if len(to_set) > 0:
                 min_bc_id = min(to_set)
@@ -345,7 +383,6 @@ def report_matches(current_match_dict, merge_dict, chromosome):#, duplicate_posi
     # Updates merge_dict() with new matches for every position pair and for every match found at those positions.
     for position, duplicate_set in current_match_dict.items():
 
-        # print(duplicate_list)
         duplicate_list = sorted(duplicate_set)
         lower_cluster_id = duplicate_list[0]
 
