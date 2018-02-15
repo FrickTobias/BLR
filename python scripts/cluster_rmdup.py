@@ -21,13 +21,12 @@ def main():
     summaryInstance = Summary()
 
     #
-    # Progress
-    #
-    report_progress('Reading input file and building duplicate position list')
-
-    #
     # Start of script
     #
+
+
+    report_progress('Reading input file and building duplicate position list')
+
 
     #
     # Find & mark duplicate positions and save paired reads of those positions
@@ -43,7 +42,7 @@ def main():
         # Progress
         summaryInstance.totalReadPairsCount += 1
         if current_read_count < summaryInstance.totalReadPairsCount:
-            report_progress("{:,}".format(current_read_count) + ' reads fetched')
+            report_progress("{:,}".format(current_read_count) + ' reads fetched\t' + "{:,}".format(summaryInstance.intact_read_pairs) + ' paired reads')
             current_read_count += 1000000
 
         # Cache read system
@@ -52,6 +51,7 @@ def main():
             # Fetch mate and remove from tracking dict
             mate = cache_read_tracker[header]
             del cache_read_tracker[header]
+            summaryInstance.intact_read_pairs += 1
         else:
             # Save read for later when mate is found
             cache_read_tracker[header] = read
@@ -76,7 +76,9 @@ def main():
     #
     #
 
+
     report_progress('Total reads in file:\t' + "{:,}".format(summaryInstance.totalReadPairsCount))
+    report_progress('Total paired reads:\t' + "{:,}".format(summaryInstance.intact_read_pairs*2))
     report_progress('Duplicate positions and barcode ID:s from read pairs saved\n')
     report_progress('Fetching unpaired read duplicate positions & barcode ID:s')
 
@@ -121,8 +123,11 @@ def main():
     #
     #
     #
+
+
     report_progress('Unpaired duplicate reads fetched\n')
     report_progress('Seeding barcode ID duplicates')
+
 
     #
     # Seeding & extending using duplicate read pairs
@@ -160,8 +165,10 @@ def main():
     #
     #
 
+
     report_progress('Seeds generated:\t' + "{:,}".format(summaryInstance.duplicateSeeds) + '\n')
     report_progress('Extending seeds using singleton read duplicates')
+
 
     #
     # Extending seeds using duplicates and reducing redundancy
@@ -187,9 +194,11 @@ def main():
     #
     #
 
+
     report_progress('Merge dict finished\n')
     report_progress('Barcode ID:s removed:\t' + "{:,}".format(summaryInstance.clusters_removed))
     progressBar = ProgressBar(name='Writing output', min=0, max=summaryInstance.totalReadPairsCount, step=1)
+
 
     #
     # Writing outputs
@@ -332,7 +341,7 @@ def process_singleton_reads(list_of_singleton_reads):
 
     # If one of the reads were marked as duplicates, save all reads at current position
     if duplicate == True:
-        for read in cache_position_tracker[chromosome].values():
+        for read in list_of_singleton_reads:
 
             barcode_ID = int(read.get_tag('RG'))
 
@@ -355,7 +364,6 @@ def match_clusterid(clusterid_list_one, clusterid_list_two):
     match_set = set()
     for clusterid_one in clusterid_list_one:
         for clusterid_two in clusterid_list_two:
-
             if clusterid_one == clusterid_two:
                 match_set.add(int(clusterid_one))
 
@@ -576,6 +584,7 @@ class Summary(object):
         self.readable_coupling_dict = str()
         self.log = args.output_bam + '.log'
         self.clusters_removed = int()
+        self.intact_read_pairs = int()
 
         with open(self.log, 'w') as openout:
             pass
