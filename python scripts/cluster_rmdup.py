@@ -175,8 +175,11 @@ def main():
     #######
     for chromosome in singleton_duplicate_position:
         for position in singleton_duplicate_position[chromosome]:
+            if len(singleton_duplicate_position[chromosome][position]) < 2:
+                summaryInstance.singleton_duplicate += 1
             duplicates.extend(list(singleton_duplicate_position[chromosome][position]))
 
+    report_progress('Duplicates without duplicate mate:\t' + "{:,}".format(summaryInstance.singleton_duplicate))
     report_progress('Reducing several step redundancy in dictionary')
 
     # Fetch all seeds which are above -t (--threshold, default=0) number of overlaps (require readpair overlap for seed)
@@ -585,6 +588,7 @@ class Summary(object):
         self.log = args.output_bam + '.log'
         self.clusters_removed = int()
         self.intact_read_pairs = int()
+        self.singleton_duplicate = int()
 
         with open(self.log, 'w') as openout:
             pass
