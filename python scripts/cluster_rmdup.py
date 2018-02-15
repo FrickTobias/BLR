@@ -42,7 +42,7 @@ def main():
         # Progress
         summaryInstance.totalReadPairsCount += 1
         if current_read_count < summaryInstance.totalReadPairsCount:
-            report_progress("{:,}".format(current_read_count) + ' reads\t' + "{:,}".format(summaryInstance.intact_read_pairs*2) + ' paired reads')
+            report_progress("{:,}".format(current_read_count) + ' reads \t' + "{:,}".format(summaryInstance.intact_read_pairs*2) + ' paired reads')
             current_read_count += 1000000
 
         # Cache read system
@@ -445,13 +445,13 @@ class BarcodeDuplicates(object):
                 except KeyError:
                     self.seeds[barcode_ID][other_barcodes] = 1
 
-    def extend(self, barcodeIDs):
+    def extend(self, barcode_IDs):
         """
         Increases value of barcode seeds with 1 for the overlaps provided
         """
 
         # Only increases value for previously seeded overlaps.
-        for barcode_ID in barcodeIDs:
+        for barcode_ID in barcode_IDs:
             for other_barcodes in barcode_IDs:
                 if other_barcodes >= barcode_ID: continue
                 if barcode_ID in self.seeds and other_barcodes in self.seeds[barcode_ID]:
