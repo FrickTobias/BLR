@@ -28,9 +28,9 @@ def main():
     report_progress('Reading input file and building duplicate position list')
 
 
-    #
-    # Find & mark duplicate positions and save paired reads of those positions
-    #
+    #######
+    ## 1 ## Find & mark duplicate positions and save paired reads of those positions
+    #######
     duplicate_position_dict = dict()
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
     current_read_count = 1000000
@@ -83,9 +83,9 @@ def main():
     report_progress('Fetching unpaired read duplicate positions & barcode ID:s')
 
 
-    #
-    # For all unpaired reads, save positions for extending duplicate seeds
-    #
+    #######
+    ## 2 ## For all unpaired reads, save positions for extending duplicate seeds
+    #######
     cache_position_tracker = dict()
     for unpaired_read in cache_read_tracker.values():
 
@@ -106,7 +106,7 @@ def main():
         else:
 
             # Saves all reads for current position if one is marked as duplicate
-            for the_only_entry in cache_position_tracker[chromosome].values(): process_singleton_reads(list_of_singleton_reads=the_only_entry)
+            for the_only_entry in cache_position_tracker[chromosome].values(): process_singleton_reads(chromosome, list_of_singleton_reads=the_only_entry)
 
             # Empty current list and add the current read
             cache_position_tracker = dict()
@@ -115,7 +115,7 @@ def main():
             cache_position_tracker[chromosome][start_stop].append(unpaired_read)
 
     # Last chunk
-    for the_only_entry in cache_position_tracker[chromosome].values(): process_singleton_reads(list_of_singleton_reads=the_only_entry)
+    for the_only_entry in cache_position_tracker[chromosome].values(): process_singleton_reads(chromosome, list_of_singleton_reads=the_only_entry)
 
     # Close input file
     infile.close()
@@ -129,9 +129,9 @@ def main():
     report_progress('Seeding barcode ID duplicates')
 
 
-    #
-    # Seeding & extending using duplicate read pairs
-    #
+    #######
+    ## 3 ## Seeding & extending using duplicate read pairs
+    #######
     duplicates = BarcodeDuplicates()
     for chromosome in duplicate_position_dict:
 
@@ -170,9 +170,9 @@ def main():
     report_progress('Extending seeds using singleton read duplicates')
 
 
-    #
-    # Extending seeds using duplicates and reducing redundancy
-    #
+    #######
+    ## 4 ## Extending seeds using duplicates and reducing redundancy
+    #######
     for chromosome in singleton_duplicate_position:
         for position in singleton_duplicate_position[chromosome]:
             duplicates.extend(list(singleton_duplicate_position[chromosome][position]))
@@ -200,9 +200,9 @@ def main():
     progressBar = ProgressBar(name='Writing output', min=0, max=summaryInstance.totalReadPairsCount, step=1)
 
 
-    #
-    # Writing outputs
-    #
+    #######
+    ## 5 ## Writing outputs
+    #######
 
     # Option: EXPLICIT MERGE - Writes bc_seq + prev_bc_id + new_bc_id
     if args.explicit_merge:
@@ -326,7 +326,7 @@ def process_readpairs(list_of_start_stop_tuples):
                 # Add read to dictionary
                 singleton_duplicate_position[chromosome][positions].append(int(single_read.get_tag('RG')))
 
-def process_singleton_reads(list_of_singleton_reads):
+def process_singleton_reads(chromosome, list_of_singleton_reads):
     """
     Saves all reads if one is marked as duplicate since 'original' read will not be marked.
     """
