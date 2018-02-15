@@ -42,7 +42,7 @@ def main():
         # Progress
         summaryInstance.totalReadPairsCount += 1
         if current_read_count < summaryInstance.totalReadPairsCount:
-            report_progress("{:,}".format(current_read_count) + ' reads fetched\t' + "{:,}".format(summaryInstance.intact_read_pairs) + ' paired reads')
+            report_progress("{:,}".format(current_read_count) + ' reads fetched\t' + "{:,}".format(summaryInstance.intact_read_pairs*2) + ' paired reads')
             current_read_count += 1000000
 
         # Cache read system
