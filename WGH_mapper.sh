@@ -105,10 +105,31 @@ r1=$ARG1
 r2=$ARG2
 output_bam=$ARG3
 
+printf "`date`"'\tMapping starting\n'
+
 (bowtie2 --maxins 2000 -p $processors -x $bowtie2_reference \
     -1 $r1 \
     -2 $r2 | \
-    samtools view -@ $processors -bS -F 0x04 -F 0x100 - > $output_bam.tmp.filt.bam) 2>map.filt.log
+    samtools view -@ $processors -bS - > $output_bam.tmp.bam) 2>mapper.log
+
+printf "`date`"'\tMapping done\n'
+printf "`date`"'\tFiltering starting\n'
+
+printf '\n'mapped'\n' >> mapper.log
+samtools flagstat $output_bam.tmp.bam >> mapper.log
+
+samtools view -@ $processors -bS -F 0x04 -F 0x100 $output_bam.tmp.bam > $output_bam.tmp.filt.bam
+
+if $remove
+then
+    rm $output_bam.tmp.bam
+fi
+
+printf "`date`"'\tFiltering done\n'
+printf "`date`"'\tSorting starting\n'
+
+printf '\n'mapped.filt'\n' >> mapper.log
+samtools flagstat $output_bam.tmp.filt.bam >> mapper.log
 
 samtools sort -@ processors $output_bam.tmp.filt.bam > $output_bam
 
@@ -116,3 +137,6 @@ if $remove
 then
     rm $output_bam.tmp.filt.bam
 fi
+
+printf "`date`"'\tSorting done\n'
+printf "`date`"'\tFINISHED\n'
