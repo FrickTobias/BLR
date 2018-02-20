@@ -105,6 +105,11 @@ r1=$ARG1
 r2=$ARG2
 output_bam=$ARG3
 
+if $mailing
+then
+    echo 'starting mapping '$date | mail -s 'wgh' $email
+fi
+
 printf "`date`"'\tMapping starting\n'
 
 (bowtie2 --maxins 2000 -p $processors -x $bowtie2_reference \
@@ -140,3 +145,9 @@ fi
 
 printf "`date`"'\tSorting done\n'
 printf "`date`"'\tFINISHED\n'
+
+
+if $mailing
+then
+    echo 'mapping finished '$date | mail -s 'wgh' $email
+fi
