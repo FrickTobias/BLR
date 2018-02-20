@@ -1,97 +1,137 @@
-#! /bin/bash 
+#!/bin/bash
 
-# Automation script for running whole analysis. 
-# bash WGH_Analysis <read_1.fq> <read_2.fq> <output_folder_name>
+#
+# Argument parsing & preparations
+#
 
-# Fetch paths to external software (defines WGH_path, bowtie2_ref, picard_path and fragScaff_path)
-. paths.sh
+# Initials
+processors=1
+mailing=false
+remove=false
+heapspace=90
 
-# Argument parsing
-r1=$1
-r2=$2
-output=$3
+# Parse arguments
+while getopts "m:hp:r:H" OPTION
+do
+    case ${OPTION} in
 
-# Stripping extension from file name for adding others
-file=$r1
+        p)
+            processors=${OPTARG}
+            ;;
+        m)
+            email=${OPTARG}
+            mailing=true
+            ;;
+        r)
+            remove=true
+            ;;
+        H)
+            heapspace=${OPTARG}
+            ;;
+        h)
+            printf '\nThis script runs the trimming parts of the WGH pipeline. Input are two WGH read files and output is written to a directory containing four sets of compressed fastq files. The final files are the ".trimmed.fq" files.
+
+Useage: bash WGH_read_processing.sh <options> <r1.fq> <r2.fq> <output_dir>
+
+Positional arguments (required)
+  <r1.fq>         Read one in .fastq format. Also handles gzip files (.fastq.gz)
+  <r2.fq>         Read two in .fastq format. Also handles gzip files (.fastq.gz)
+  <output_dir>    Output directory for analysis results
+
+Optional arguments
+  -h  help (this output)
+  -H  maximum heapspace (~RAM) for duplicate removal step. DEFAULT: 90Gb
+  -m  mails the supplied email when analysis is finished
+  -p  processors for threading. DEFAULT: 1
+  -r  removes files generated during analysis instead of just compressing them. DEFAULT: False
+
+NB: options must be given before arguments.\n'
+	        exit 0
+	        ;;
+    esac
+done
+
+# Positonal redundancy for option useage
+ARG1=${@:$OPTIND:1}
+ARG2=${@:$OPTIND+1:1}
+ARG3=${@:$OPTIND+2:1}
+
+# Mailing option
+if $mailing
+then
+    if [[ $email == *"@"* ]]
+    then
+        echo 'Mailing '$email' when finished.'
+    else
+        echo 'FORMAT ERROR: -m '
+        echo ''
+        echo 'Please supply email on format john.doe@domain.org'
+        echo '(got "'$email'" instead)'
+        exit 0
+    fi
+fi
+
+# Error handling
+if [ -z "$ARG1" ] || [ -z "$ARG2" ] || [ -z "$ARG3" ]
+then
+    echo ""
+    echo "ARGUMENT ERROR"
+    echo "Did not find all three positional arguments, see -h for more information."
+    echo "(got r1:"$ARG1", r2:"$ARG2" and output:"$ARG3" instead)"
+    echo ""
+    exit 0
+fi
+
+# Fetching paths to external programs (from paths.txt)
+
+# PATH to WGH_Analysis folder
+wgh_path=$(dirname "$0")
+
+# Loading PATH:s to software
+#   - reference:            $bowtie2_reference
+#   - Picard tools:         $picard_path
+. $wgh_path'/paths.txt'
+
+# output folder
+path=$ARG3
+
+# File one prep
+file=$ARG1
 name_ext=$(basename "$file")
 name="${name_ext%.*}"
 file_name="$path/${name_ext%.*}"
 
-# Stripping extension from file name for adding others
-file2=$r2
+# File two prep
+file2=$ARG2
 name_ext2=$(basename "$file2")
 name2="${name_ext2%.*}"
 file_name2="$path/${name_ext2%.*}"
 
-#
-# Intials
-#
-
-mkdir output
-
-#
-# Trimming & barcode extraction
-#
-
-# Trim away E handle on R1 5'.
-cutadapt -g CAGTTGATCATCAGCAGGTAATCTGG \
-    -o $file_name".h1_removed.fastq" \
-    -p $file_name2".h1_removed.fastq" $r1 $r2 \
-    --discard-untrimmed -e 0.2 &&
-
-# Get DBS using UMI-Tools -> _BDHVBDVHBDVHBDVH in header.
-umi_tools extract --stdin=$file_name".h1_removed.fastq" \
-    --stdout=$file_name".cut_n_extract.fastq" \
-    --bc-pattern=NNNNNNNNNNNNNNNNNNNN --bc-pattern2= \
-    --read2-in=$file_name2".h1_removed.fastq" \
-    --read2-out=$file_name2".cut_n_extract.fastq" \
-    -L $file_name".cut_n_extract_log.txt" &&
-
-#Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed.
-cutadapt -g AGATGTGTATAAGAGACAG -o $file_name".TES1_removed.fastq" \
-    -p $file_name2".TES1_removed.fastq" \
-    $file_name".cut_n_extract.fastq" \
-    $file_name2".cut_n_extract.fastq" --discard-untrimmed -e 0.2 &&
-
-#Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT
-cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
-	-o $file_name".TES2_removed.fastq" \
-	-p $file_name2".TES2_removed.fastq" \
-	$file_name".TES1_removed.fastq" \
-	$file_name2".TES1_removed.fastq" -e 0.2 &&
+# Mailing
+if $mailing
+    then
+    echo 'Emailing '$email ' when finished'
+    echo 'Starting run '$(date) | mail -s 'wgh' $email
+fi
 
 #
-# Mapping
+# Start of script
 #
 
-bowtie2 --maxins 2000 -x /Users/pontushojer/data_analysis/Reference/Bowtie2Index/genome \
-    -1 $r1 -2 $r2 -S $output/"mappedInserts.sam" | samtools view -bh - > $path/"mappedInserts.bam" &&
+printf '\n Starting analysis'
+printf 'MAKE SURE YOU HAVE AT LEAST 6X THE ORGINAL FILE SIZE AVAILABLE DISK SPACE'
+printf 'MAKE SURE YOUR SYSTEM HAS '$heapspace ' GB RAM AVAILABLE'
 
-rm $path/"mappedInserts.sam" &&
 
-samtools sort $path/"mappedInserts.bam" \
-    -o $path/"mappedInserts.sort.bam"
+. wgh_path/WGH_read_processing.sh -r -p $processors $ARG1 $ARG2 $path
 
-#
-# Clustering
-#
+. wgh_path/WGH_read_mapper.sh -r -p $processors $path/$file_name".trimmed.fastq.gz" $path/$file_name2".trimmed.fastq.gz" $path/map.filt.sort.bam
 
-python $WGH_path/python_scripts/cdhit_prep.py \
-    -r 2 -f 0
-for file in $output/indexing_barcodes/*.fa; do;
-	cd-hit-454 -T 0 -c 0.9 -gap -100 -g 1 -n 3 -M 0 -i $file -o $file'.clustered';
-	done
-cat $output/indexing_barcodes/*.clstr > NN.clstr
+. wgh_path/WGH_cluster_bc.sh -r -p $processors $path/$file_name".trimmed.fastq.gz" $path/map.filt.sort.bam $path/unique_bc
 
-#
-# Tagging and duplcate removal
-#
+. wgh_path/WGH_rmdup.sh -r -H $heapspace'G' -p $processors $path/map.filt.sort.bam.tag.bam $path/map.filt.sort.bam.tag.rmdup.x2.bam
 
-python $WGH_path/python_scripts/tag_bam.py 
-picardtools rmdup
-
-#
-# Scaffolding
-#
-
-perl $fragScaff_path 
+if $mailing
+then
+    echo 'Analysis finished '$date | mail -s 'wgh' $email
+fi

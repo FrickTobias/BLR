@@ -37,8 +37,8 @@ do
 	    echo "Optional arguments"
 	    echo "  -h  help (this output)"
 	    echo "  -m  mails the supplied email when analysis is finished"
-	    echo "  -p  processors for threading, not implemented yet"
-	    echo "  -r  removes files generated during analysis instead of just compressing them"
+	    echo "  -p  processors for threading. DEFAULT: 1"
+	    echo "  -r  removes files generated during analysis"
 	    echo ''
 	    exit 0
 	    ;;
@@ -110,7 +110,7 @@ python3 $wgh_path'/python scripts/cdhit_prep.py' $r1_with_header $output -r 3 -f
 
 for file in $output/*.fa;
 do
-    cd-hit-454 -i $file -o $file'.clustered' -T 0 -c 0.9 -gap 100 -g 1 -n 3 -M 0;
+    cd-hit-454 -i $file -o $file'.clustered' -T $processors -c 0.9 -gap 100 -g 1 -n 3 -M 0;
 done;
 
 #pigz $r1

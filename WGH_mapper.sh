@@ -40,8 +40,8 @@ do
 	    echo "Optional arguments"
 	    echo "  -h  help (this output)"
 	    echo "  -m  mails the supplied email when analysis is finished"
-	    echo "  -p  processors for threading, not implemented yet"
-	    echo "  -r  removes files generated during analysis instead of just compressing them"
+	    echo "  -p  processors for threading. DEFAULT: 1"
+	    echo "  -r  removes files generated during analysis"
 	    echo ''
 	    exit 0
 	    ;;
@@ -105,9 +105,14 @@ r1=$ARG1
 r2=$ARG2
 output_bam=$ARG3
 
-bowtie2 --maxins 2000 -p $processors -x $bowtie2_reference \
+(bowtie2 --maxins 2000 -p $processors -x $bowtie2_reference \
     -1 $r1 \
     -2 $r2 | \
-    samtools view -@ $processors -bS -F 0x04 -F 0x100 - > $output_bam.tmp.filt.bam
+    samtools view -@ $processors -bS -F 0x04 -F 0x100 - > $output_bam.tmp.filt.bam) 2>map.filt.log
 
-samtools sort -@ processors $output_bam.filt.bam > $output_bam
+samtools sort -@ processors $output_bam.tmp.filt.bam > $output_bam
+
+if $remove
+then
+    rm $output_bam.tmp.filt.bam
+fi
