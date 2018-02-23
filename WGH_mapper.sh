@@ -115,7 +115,7 @@ printf "`date`"'\tMapping starting\n'
 (bowtie2 --maxins 2000 -p $processors -x $bowtie2_reference \
     -1 $r1 \
     -2 $r2 | \
-    samtools view -@ $processors -bS - > $output_bam.tmp.bam) 2>mapper.log
+    samtools view -@ $processors -bh - > $output_bam.tmp.bam) 2>mapper.log
 
 printf "`date`"'\tMapping done\n'
 printf "`date`"'\tFiltering starting\n'
@@ -123,7 +123,7 @@ printf "`date`"'\tFiltering starting\n'
 printf '\n'mapped'\n' >> mapper.log
 samtools flagstat $output_bam.tmp.bam >> mapper.log
 
-samtools view -@ $processors -bS -F 0x04 -F 0x100 $output_bam.tmp.bam > $output_bam.tmp.filt.bam
+samtools view -@ $processors -bh -F 0x04 -F 0x100 $output_bam.tmp.bam > $output_bam.tmp.filt.bam
 
 if $remove
 then

@@ -12,7 +12,7 @@ remove=false
 # Argument parsing
 #
 
-while getopts "m:hp" OPTION
+while getopts "m:hp:r" OPTION
 do
     case ${OPTION} in
 
@@ -23,6 +23,10 @@ do
             email=${OPTARG}
             mailing=true
             ;;
+        r)
+            remove=true
+            ;;
+
         h)
             echo ''
 	    echo 'This script runs the trimming parts of the WGH pipeline. Input are two WGH read files and output is written to a directory containing four sets of compressed fastq files. The final files are the ".trimmed.fq" files.'
@@ -30,9 +34,9 @@ do
 	    echo 'Useage: bash WGH_read_processing.sh <r1.fq> <r2.fq> <output_dir>'
 	    echo ''
 	    echo "Positional arguments (required)"
-	    echo "  <r1.fq>         Read one in .fastq format. Also handles gzip files (.fastq.gz)"
+	    echo "  <r1.fq>         Read one in .fastq format. Does not handle gzip files (.fastq.gz)"
 	    echo "  <mapped.bam>    Mapped bamfile which is to be tagged with clustering information"
-	    echo "  <output_dir>    Output directory for clusterng files."
+	    echo "  <output_dir>    Output directory for clustering files."
 	    echo ""
 	    echo "Optional arguments"
 	    echo "  -h  help (this output)"
@@ -98,30 +102,52 @@ wgh_path=$(dirname "$0")
 #   - fragScaff:            $fragScafff_path
 . $wgh_path'/paths.txt'
 
-r1_with_header=$ARG1
 bam=$ARG2
 output=$ARG3
 
-#pigz -d $r1
+# File one prep
+file=$ARG1
+name_ext=$(basename "$file")
+name="${name_ext%.*}"
+r1_with_header="${name_ext%.*}"
 
-#echo 'Starting bc extraction '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
+bulle=$(basename "$file")
+bulle="${%.*bulleslut}"
 
-python3 $wgh_path'/python scripts/cdhit_prep.py' $r1_with_header $output -r 3 -f 0
+printf '\n'
+echo $name_ext
+echo $name
+printf '\n'
 
-for file in $output/*.fa;
-do
-    cd-hit-454 -i $file -o $file'.clustered' -T $processors -c 0.9 -gap 100 -g 1 -n 3 -M 0;
-done;
 
-#pigz $r1
-
-cat $output/*.clstr > $output/NNN.clstr
-
-python3 $wgh_path'/python scripts/tag_bam.py' $bam $output/NNN.clstr $bam'.tag.bam'
-
-rm $bam'.tag.bam.tmp.bam'
-
-if $mailing
-then
-    echo 'Barcodes clustered and bamfile tagged '$(date) | mail -s $bam $email
-fi
+#pigz -d $r1_with_header'.gz'
+#
+##echo 'Starting bc extraction '$(date) | mail -s 'wgh' tobias.frick@scilifelab.se
+#
+#python3 $wgh_path'/python scripts/cdhit_prep.py' $r1_with_header $output -r 3 -f 0
+#
+#echo '' > cluster_bc.log
+#
+#for file in $output/*.fa;
+#do
+#    wc -l $file >> cluster_bc.log
+#    cd-hit-454 -i $file -o $file'.clustered' -T $processors -c 0.9 -gap 100 -g 1 -n 3 -M 0;
+#done;
+#
+#pigz $r1_with_header
+#
+#cat $output/*.clstr > NNN.clstr
+#
+#if $remove
+#then
+#    rm -rf $output
+#fi
+#
+#python3 $wgh_path'/python scripts/tag_bam.py' $bam NNN.clstr $bam'.tag.bam'
+#
+#rm $bam'.tag.bam.tmp.bam'
+#
+#if $mailing
+#then
+#    echo 'Barcodes clustered and bamfile tagged '$(date) | mail -s $bam $email
+#fi
