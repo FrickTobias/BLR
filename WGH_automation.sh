@@ -146,12 +146,12 @@ name2="${name_ext2%.*}"
 file_name2="$path/${name_ext2%.*}"
 
 # Logfiles
-trim_logfile = $path'/1_trim.log'
-map_logfile = $path'/2_map.log'
-cluster_logfile = $path'/3_cluster.log'
+trim_logfile=$path'/1_trim.log'
+map_logfile=$path'/2_map.log'
+cluster_logfile=$path'/3_cluster.log'
 if duplicate_rmdup
 then
-    rmdup_logfile = $path'/4_rmdup.log'
+    rmdup_logfile=$path'/4_rmdup.log'
 fi
 
 # Mailing
