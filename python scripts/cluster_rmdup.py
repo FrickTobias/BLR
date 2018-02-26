@@ -123,7 +123,7 @@ def main():
             unpaired_duplicate_tracker[chromosome][start_stop].append(unpaired_read)
 
     # Last chunk
-    for the_only_entry in cache_position_tracker[chromosome].values(): process_singleton_reads(chromosome, start_stop, list_of_singleton_reads=the_only_entry)
+    for the_only_entry in unpaired_duplicate_tracker[chromosome].values(): process_singleton_reads(chromosome, start_stop, list_of_singleton_reads=the_only_entry)
 
     # Close input file
     infile.close()
@@ -141,9 +141,10 @@ def main():
     ## 3 ##     Seeding and calculating values for overlaps
     #######
 
-    overlapValues = overlapValues()
+    overlapValues = OverlapValues()
     duplicates = BarcodeDuplicates()
     window = 100000
+    pos_dict = dict()
     for chromosome in duplicate_position_dict:
 
         for duplicate_tuple in sorted(duplicate_position_dict[chromosome].keys()):
@@ -174,7 +175,7 @@ def main():
                 overlapValues.add_bc_set(bc_set=barcode_IDs, readpair=True)
 
                 # Update Proximal read dict to only contain read pairs which are close by
-                pos_dict = update_pos_dict(pos_dict, chromosome, position, window)
+                pos_dict = update_cache_dict(pos_dict, chromosome, possible_seed[0], window)
 
                 for position in pos_dict[chromosome]:
 
@@ -190,10 +191,11 @@ def main():
 
 
             # Fetch singleton duplicates and add bc_ids
-            sys.stderr.write('FETCH SINGLETON READS HERE (POSITION FOR R1 AND R2) AND ADD VALUE!')
-            #
+            sys.stderr.write('FETCH SINGLETON READS HERE (POSITION FOR R1 AND R2) AND ADD VALUE!\n')
 
-            unpaired_duplicate_tracker[chromosome][start_stop].append(unpaired_read)
+            if not start_stop in pos_dict[chromosome]:
+                pos_dict[chromosome][start_stop] = list()
+            pos_dict[chromosome][start_stop].append(unpaired_read)
 
     #
     #
@@ -211,13 +213,7 @@ def main():
     for bc_id_set in duplicates.seeds:
         duplicates.reduce_to_significant_overlaps(bc_id_set)
     duplicates.reduce_several_step_redundancy()
-
-    # Reduce several step redundancy in merge dict (20->15->5 will become 20->5 ; 15->5)
-    for barcode_ID_key in sorted(barcode_ID_merge_dict.keys())[::-1]:
-        barcode_ID_value = barcode_ID_merge_dict[barcode_ID_key]
-        if barcode_ID_value in barcode_ID_merge_dict:
-            del barcode_ID_merge_dict[barcode_ID_key]
-            barcode_ID_merge_dict[barcode_ID_key] = barcode_ID_merge_dict[barcode_ID_value]
+    barcode_ID_merge_dict = duplicates.translation_dict
     summaryInstance.clusters_removed = len(barcode_ID_merge_dict.keys())
 
     #
@@ -563,7 +559,7 @@ class BarcodeDuplicates(object):
             if barcode_to_keep in self.translation_dict:
                 real_barcode_to_keep = self.translation_dict[barcode_to_keep]
                 del self.translation_dict[barcode_to_remove]
-                self.translation_dict[barcode_to_remove] = real_barcode_to_keep d
+                self.translation_dict[barcode_to_remove] = real_barcode_to_keep
 
     def add(self, bc_id, min_id):
         """
