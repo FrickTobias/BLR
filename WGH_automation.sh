@@ -414,7 +414,7 @@ printf "`date`"'\tBam taggin done\n'
 #######################################
  #                                   #
 
-if duplicate_rmdup:
+if $duplicate_rmdup:
 then
 
     printf "`date`"'\tRemoving duplicates\n'
