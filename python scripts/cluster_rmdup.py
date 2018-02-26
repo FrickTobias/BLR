@@ -191,6 +191,9 @@ def main():
 
             # Fetch singleton duplicates and add bc_ids
             sys.stderr.write('FETCH SINGLETON READS HERE (POSITION FOR R1 AND R2) AND ADD VALUE!')
+            #
+
+            unpaired_duplicate_tracker[chromosome][start_stop].append(unpaired_read)
 
     #
     #
