@@ -7,7 +7,7 @@ def main():
     # Imports & globals
     #
     global args, summaryInstance, output_tagged_bamfile, sys, time
-    import multiprocessing, pysam, sys, time
+    import multiprocessing, pysam, sys, time, os
 
     #
     # Argument parsing
@@ -92,6 +92,7 @@ def main():
 
     infile.close()
     out.close()
+    os.remove(args.output_tagged_bam+'.tmp.bam')
 
 def readAndProcessClusters(openInfile):
     """ Reads clstr file and builds read:clusterId dict in Summary instance."""

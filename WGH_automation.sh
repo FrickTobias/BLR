@@ -37,10 +37,10 @@ processors=1
 mailing=false
 remove=false
 duplicate_rmdup=false
-keep_logiles_true=false
+keep_logiles=false
 
 # Argparsing
-while getopts "m:hp:r:d:k" OPTION
+while getopts "hrdkh:m:p:" OPTION
 do
     case ${OPTION} in
 
@@ -90,24 +90,6 @@ ARG1=${@:$OPTIND:1}
 ARG2=${@:$OPTIND+1:1}
 ARG3=${@:$OPTIND+2:1}
 
-# Mailing option
-if $mailing
-then
-    if [[ $email == *"@"* ]]
-    then
-        echo 'Mailing '$email' when finished.'
-    else
-        echo 'FORMAT ERROR: -m '
-        echo ''
-        echo 'Please supply email on format john.doe@domain.org'
-        echo '(got "'$email'" instead)'
-        exit 0
-    fi
-fi
-
-# Processor option
-printf '\nRunning with '$processors' threads\n'
-
 # Error handling
 if [ -z "$ARG1" ] || [ -z "$ARG2" ] || [ -z "$ARG3" ]
 then
@@ -117,6 +99,26 @@ then
     echo "(got r1:"$ARG1", r2:"$ARG2" and output:"$ARG3" instead)"
     echo ""
     exit 0
+fi
+
+printf '\n0. Argparsing & options'
+printf '\nRead 1:\t\t'$ARG1'\nRead 2:\t\t'$ARG2'\nOutput:\t\t'$ARG3
+printf '\nThreads:\t'$processors
+
+# Mailing option
+if $mailing
+then
+    if [[ $email == *"@"* ]]
+    then
+        printf '\nMail:\t\t'$email
+    else
+        echo ''
+        echo 'FORMAT ERROR: -m '
+        echo ''
+        echo 'Please supply email on format john.doe@domain.org'
+        echo '(got "'$email'" instead)'
+        exit 0
+    fi
 fi
 
 # Fetching paths to external programs (from paths.txt)
@@ -149,7 +151,7 @@ file_name2="$path/${name_ext2%.*}"
 trim_logfile=$path'/1_trim.log'
 map_logfile=$path'/2_map.log'
 cluster_logfile=$path'/3_cluster.log'
-if duplicate_rmdup
+if $duplicate_rmdup
 then
     rmdup_logfile=$path'/4_rmdup.log'
 fi
@@ -159,6 +161,8 @@ if $mailing
 then
     echo 'ANALYSIS STARTING '$(date) | mail -s $path $email
 fi
+
+printf '\n\n'"`date`"'\tANALYSIS STARTING\n'
 
 # 1. ###################################################################################
 
@@ -178,7 +182,8 @@ if $mailing
 then
     echo '1_trim starting '$(date) | mail -s $path $email
 fi
-printf "`date`"'\nRemoving 1st adaptor\n'
+printf '\n1. Demultiplexing\n'
+printf "`date`"'\t1st adaptor removal\n'
 
 # Trim away E handle on R1 5'. Also removes reads shorter than 85 bp.
 cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
@@ -189,27 +194,32 @@ cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
     $ARG2 \
     --discard-untrimmed -e 0.2 -m 65 > $trim_logfile # Tosses reads shorter than len(e+bc+handle+TES)
 
-printf "`date`"'\n1st adaptor removal done\n'
-printf "`date`"'\nExtracting barcode\n'
+printf "`date`"'\t1st adaptor removal done\n'
+printf "`date`"'\tBarcode extraction\n'
 
 ## Get DBS using UMI-Tools -> _BDHVBDVHBDVHBDVH in header.
-python3 $wgh_path'/python scripts/bc_extract.py' \
-    $file_name".h1.fastq"
-    $file_name2".h1.fastq"
-    $file_name".h1.bc.fastq"
-    $file_name2"h1.bc.fastq"
+(python3 $wgh_path'/python scripts/bc_extract.py' \
+    $file_name".h1.fastq" \
+    $file_name2".h1.fastq" \
+    $file_name".h1.bc.fastq" \
+    $file_name2".h1.bc.fastq") 2>$path"/bc_extract.stderr"
+if ! $keep_logiles
+then
+    rm $path"/bc_extract.stderr"
+fi
 if $remove
 then
-    rm $file_name".h1.fastq.gz"
-    rm $file_name2".h1.fastq.gz"
+    rm $file_name".h1.fastq"
+    rm $file_name2".h1.fastq"
+else
+    pigz $file_name".h1.fastq"
+    pigz $file_name2".h1.fastq"
 fi
-pigz $file_name".h1.fastq"
-pigz $file_name2".h1.fastq"
 pigz $file_name".h1.bc.fastq"
 pigz $file_name2".h1.bc.fastq"
 
-printf "`date`"'\nBarcode extraction done\n'
-printf "`date`"'\nRemoving 2nd adaptor\n'
+printf "`date`"'\tBarcode extraction done\n'
+printf "`date`"'\t2nd adaptor removal\n'
 
 #Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed.
 cutadapt -g AGATGTGTATAAGAGACAG -o $file_name".h1.bc.h2.fastq" \
@@ -226,8 +236,8 @@ fi
 pigz $file_name".h1.bc.h2.fastq"
 pigz $file_name2".h1.bc.h2.fastq"
 
-printf "`date`"'\n2nd adaptor removed\n'
-printf "`date`""\nTrimming 5'"
+printf "`date`"'\t2nd adaptor removal done\n'
+printf "`date`""\t3' trimming\n"
 
 #Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT
 cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
@@ -237,7 +247,7 @@ cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
 	-m 25 \
 	$file_name".h1.bc.h2.fastq.gz" \
 	$file_name2".h1.bc.h2.fastq.gz" \
-	-e 0.2  >> $path/trimming.log
+	-e 0.2  >> $trim_logfile
 if $remove
 then
     rm $file_name".h1.bc.h2.fastq.gz"
@@ -246,16 +256,16 @@ fi
 pigz $file_name".trimmed.fastq"
 pigz $file_name2".trimmed.fastq"
 
-# Ugly solution to calculate % construOK
-var1=$( cat $trim_logfile | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 1 )
-var2=$( cat $trim_logfile | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 2 )
-awk '{print "\nIntact reads: "$1*$2*0.0001" %\n"}' <<< "$var1 $var2"
-
 if $mailing
     then
     echo '1_trim finished '$(date) | mail -s $path $email
 fi
-printf "`date`""\n5' trimmed"
+printf "`date`""\t3' trimming done\n"
+
+# Ugly solution to calculate % construOK
+var1=$( cat $trim_logfile | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 1 )
+var2=$( cat $trim_logfile | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 2 )
+printf "`date`""\t"; awk '{print "Intact reads: "$1*$2*0.0001" %"}' <<< "$var1 $var2"
 
 # 2. ###################################################################################
 
@@ -273,9 +283,9 @@ if $mailing
 then
     echo '2_map starting '$(date) | mail -s $path $email
 fi
-
-printf "`date`"'\tMapping starting\n'
-pritnf '\n\n Map stats: .sort.bam\n' >> $map_logfile
+printf '\n2. Mapping\n'
+printf "`date`"'\tMapping\n'
+printf '\n\n Map stats: .sort.bam\n' >> $map_logfile
 
 # Mapping & bam conversion
 (bowtie2 \
@@ -303,13 +313,13 @@ then
 fi
 
 printf "`date`"'\tSorting done\n'
-printf "`date`"'\tMap stats\n'
-pritnf '\n\n flagstat: .bam\n' >> $map_logfile
+printf "`date`"'\t1st map stats\n'
+printf '\n\n flagstat: .bam\n' >> $map_logfile
 samtools flagstat \
     $file_name".sort.bam" >> $map_logfile
 
 
-printf "`date`"'\tMap stats done\n'
+printf "`date`"'\t1st map stats done\n'
 printf "`date`"'\tFiltering\n'
 
 # Filtering
@@ -321,9 +331,9 @@ samtools view \
     -F 0x100 > $file_name".sort.filt.bam"
 
 printf "`date`"'\tFiltering done\n'
-printf "`date`"'\tMap stats\n'
+printf "`date`"'\t2nd map stats\n'
 
-pritnf '\n\n flagstat: sort.filt.bam\n' >> $map_logfile
+printf '\n\n flagstat: sort.filt.bam\n' >> $map_logfile
 samtools flagstat \
     $file_name".sort.filt.bam" >> $map_logfile
 
@@ -332,7 +342,7 @@ then
     echo '2_map finished '$(date) | mail -s $path $email
 fi
 
-printf "`date`"'\tMap stats done\n'
+printf "`date`"'\t2nd map stats done\n'
 
 # 3. ###################################################################################
 
@@ -350,26 +360,33 @@ if $mailing
 then
     echo '3_clustering starting'$(date) | mail -s $path $email
 fi
-printf "`date`"'\tExtracting barcodes\n'
+printf '\n3. Clustering\n'
+printf "`date`"'\tBarcode fasta generation\n'
 
 # Barcode extraction
 pigz -d $file_name".trimmed.fastq.gz"
-python3 $wgh_path'/python scripts/cdhit_prep.py' \
+(python3 $wgh_path'/python scripts/cdhit_prep.py' \
     $file_name".trimmed.fastq" \
-    $path"unique_bc" \
+    $path"/unique_bc" \
     -r 3\
-    -f 0
+    -f 0 >$path"/cdhit_prep.stdout") 2>$path"/cdhit_prep.stderr"
+if ! $keep_logiles
+then
+    rm $path"/cdhit_prep.stdout"
+    rm $path"/cdhit_prep.stderr"
+fi
 pigz $file_name".trimmed.fastq"
 
-printf "`date`"'\tBarcode extraction done\n'
-printf "`date`"'\tClustering barcodes\n'
+printf "`date`"'\tBarcode fasta generation done\n'
+printf "`date`"'\tBarcode clustering\n'
 
 # Barcode clustering
+touch $path"/cdhit.log"
 for file in $path"/unique_bc"/*.fa
 do
-    printf '\n' >> $map_logfile
-    wc -l $file >> $map_logfile
-    cd-hit-454 \
+    printf '\n' >> $cluster_logfile
+    wc -l $file >> $cluster_logfile
+    (cd-hit-454 \
         -i $file \
         -o $file'.clustered' \
         -T $processors \
@@ -377,29 +394,44 @@ do
         -gap 100 \
         -g 1 \
         -n 3 \
-        -M 0
+        -M 0) >> $path"/cdhit.log"
 done
 cat $path"/unique_bc/"*".clstr" > $path"/NNN.clstr"
+
+if ! $keep_logiles
+then
+    rm $path"/cdhit.log"
+fi
 
 if $remove
 then
     rm -rf $path"/unique_bc"
 fi
 
-printf "`date`"'\tBarcodes clustering done\n'
-printf "`date`"'\tTaggin bam\n'
+printf "`date`"'\tBarcode clustering done\n'
+printf "`date`"'\tBam tagging\n'
 
 # Tagging bamfile
-python3 $wgh_path'/python scripts/tag_bam.py' \
+(python3 $wgh_path'/python scripts/tag_bam.py' \
     $file_name".sort.filt.bam" \
     $path/NNN.clstr \
-    $file_name".sort.filt.tag.bam"
+    $file_name".sort.filt.tag.bam") 2>$path"/tag_bam.stderr"
+if ! $keep_logiles
+then
+    rm $path"/tag_bam.stderr"
+    rm $file_name".sort.filt.tag.log"
+fi
+if $remove
+then
+    rm $file_name".sort.filt.bam"
+fi
+
 
 if $mailing
 then
     echo '3_clustering finished '$(date) | mail -s $path $email
 fi
-printf "`date`"'\tBam taggin done\n'
+printf "`date`"'\tBam tagging done\n'
 
 # 4. ###################################################################################
 
@@ -414,52 +446,61 @@ printf "`date`"'\tBam taggin done\n'
 #######################################
  #                                   #
 
-if $duplicate_rmdup:
+if $duplicate_rmdup
 then
-
-    printf "`date`"'\tRemoving duplicates\n'
 
     if $mailing
     then
         echo '4_rmdup starting '$(date) | mail -s $path $email
     fi
+    printf '\n4. Duplicate removal\n'
+    printf "`date`"'\tDuplicate removal\n'
 
-
-    java -jar $picard_path MarkDuplicates \
+    (java -jar $picard_path MarkDuplicates \
         I=$file_name".sort.filt.tag.bam" \
         O=$file_name".sort.filt.tag.rmdup.bam" \
         M=$rmdup_logfile \
         ASSUME_SORT_ORDER=coordinate \
-        REMOVE_DUPLICATES=true BARCODE_TAG=RG
+        REMOVE_DUPLICATES=true BARCODE_TAG=RG) 2>$path/picard.log
 
     printf "`date`"'\tDuplicate removal done\n'
-    printf "`date`"'\tMarking barcode duplicates\n'
+    printf "`date`"'\tBarcode duplicate marking\n'
 
-    java -jar $picard_path MarkDuplicates \
+    (java -jar $picard_path MarkDuplicates \
         I=$file_name".sort.filt.tag.rmdup.bam" \
         O=$file_name".sort.filt.tag.rmdup.mkdup.bam" \
         M=$path/picard_mkdup.txt \
-        ASSUME_SORT_ORDER=coordinate
+        ASSUME_SORT_ORDER=coordinate) 2>>$path/picard.log
     cat $path/picard_mkdup.txt >> $rmdup_logfile
     rm $path/picard_mkdup.txt
 
-    printf "`date`"'\tBarcode duplicates marking done\n'
-    printf "`date`"'\tMerging clusters\n'
+    if $remove
+    then
+        rm $file_name".sort.filt.tag.rmdup.bam"
+    fi
+
+    printf "`date`"'\tBarcode duplicate marking done\n'
+    printf "`date`"'\tCluster merging\n'
 
     python3 $wgh_path'/python scripts/cluster_rmdup.py' \
         $file_name".sort.filt.tag.rmdup.mkdup.bam" \
         $file_name".sort.filt.tag.rmdup.x2.bam"
 
     printf "`date`"'\tCluster merging done\n'
-    printf "`date`"'\tGenerating fastqs\n'
+    printf "`date`"'\tFastq generation\n'
 
-    java -jar $picard_path SamToFastq \
-        I=$file_name".sort.filt.rmdup.x2.bam" \
+    (java -jar $picard_path SamToFastq \
+        I=$file_name".sort.filt.tag.rmdup.x2.bam" \
         FASTQ=$file_name".final.fastq" \
-        SECOND_END_FASTQ=$file_name2".final.fastq"
+        SECOND_END_FASTQ=$file_name2".final.fastq") 2>>$path/picard.log
+
+    if ! $keep_logiles
+    then
+        rm $path/picard.log
+    fi
 
     pigz $file_name".final.fastq"
-    pgiz $file_name2".final.fastq"
+    pigz $file_name2".final.fastq"
 
     if $mailing
     then
@@ -469,7 +510,7 @@ then
 
 fi
 
-printf "`date`"'\tFINISHED\n'
+printf '\n'"`date`"'\tANALYSIS FINISHED\n'
 
 if $mailing
 then
