@@ -169,7 +169,7 @@ def main():
 
 
             # When all overlaps found for current position, try finding proximal read pairs with same overlap
-            for possible_seed, barcode_IDs in possible_duplicate_seeds.items():
+            for possible_seed, barcode_IDs in possible_duplicate_seeds.items(): # Only one entry
 
                 # Increase value for duplicate read pair
                 overlapValues.add_bc_set(bc_set=barcode_IDs, readpair=True)
@@ -189,9 +189,16 @@ def main():
                 # Add current set to pos dict for next iteration
                 pos_dict[duplicate_tuple] = barcode_IDs
 
-
-            # Fetch singleton duplicates and add bc_ids
-            sys.stderr.write('FETCH SINGLETON READS HERE (POSITION FOR R1 AND R2) AND ADD VALUE!\n')
+                # Adding value for all unpaired read duplicates
+                for position_tuple in (mate_start_stop, read_start_stop):
+                    if chromosome in unpaired_duplicate_tracker:
+                        if position_tuple in unpaired_duplicate_tracker[chromosome][position_tuple]:
+                            unpaired_read_list = unpaired_duplicate_tracker[chromosome][position_tuple]
+                            unpaired_bc_ID_set = set()
+                            for unpaired_read in unpaired_read_list:
+                                unpaired_bc_ID_set.add(unpaired_read.get_tag('RG'))
+                            barcode_IDs_to_add = unpaired_read_list - barcode_IDs
+                            overlapValues.add_bc_set(bc_set=barcode_IDs_to_add, readpair=False)
 
             if not start_stop in pos_dict[chromosome]:
                 pos_dict[chromosome][start_stop] = list()
