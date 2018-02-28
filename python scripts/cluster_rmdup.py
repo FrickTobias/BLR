@@ -24,7 +24,6 @@ def main():
     # Start of script
     #
 
-
     report_progress('Reading input file and building duplicate position list')
 
 
@@ -159,7 +158,7 @@ def main():
                 read_pos_tuple = (read.get_reference_positions()[0], read.get_reference_positions()[-1])
                 mate_pos_tuple = (mate.get_reference_positions()[0], mate.get_reference_positions()[-1])
                 readpair_pos_tuple = (mate_pos_tuple, read_pos_tuple)
-                barcode_ID = int(read.get_tag('RG'))
+                barcode_ID = int(read.get_tag(args.barcode_tag))
 
                 # Add all barcodes IDs to set, check later if total > 2 at positions.
                 if not readpair_pos_tuple in possible_duplicate_seeds:
@@ -196,7 +195,7 @@ def main():
                             unpaired_read_list = unpaired_duplicate_tracker[chromosome][position_tuple]
                             unpaired_bc_ID_set = set()
                             for unpaired_read in unpaired_read_list:
-                                unpaired_bc_ID_set.add(unpaired_read.get_tag('RG'))
+                                unpaired_bc_ID_set.add(unpaired_read.get_tag(args.barcode_tag))
                             barcode_IDs_to_add = unpaired_read_list - barcode_IDs
                             overlapValues.add_bc_set(bc_set=barcode_IDs_to_add, readpair=False)
 
@@ -245,14 +244,14 @@ def main():
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
     out = pysam.AlignmentFile(args.output_bam, 'wb', template=infile)
     for read in infile.fetch(until_eof=True):
-        previous_barcode_id = int(read.get_tag('RG'))
+        previous_barcode_id = int(read.get_tag(args.barcode_tag))
 
         # If read barcode in merge dict, change tag and header to compensate.
         if not previous_barcode_id in barcode_ID_merge_dict:
             out.write(read)
         else:
             new_barcode_id = str(barcode_ID_merge_dict[previous_barcode_id])
-            read.set_tag('RG', new_barcode_id, value_type='Z')
+            read.set_tag(args.barcode_tag, new_barcode_id, value_type='Z')
             read.query_name = '_'.join(read.query_name.split('_')[:-1]) + '_RG:Z:' + new_barcode_id
 
             # Option: EXPLICIT MERGE - Write bc seq and new + prev bc ID
@@ -374,7 +373,7 @@ def process_readpairs(list_of_start_stop_tuples):
                     singleton_duplicate_position[chromosome][positions] = list()
 
                 # Add read to dictionary
-                singleton_duplicate_position[chromosome][positions].append(int(single_read.get_tag('RG')))
+                singleton_duplicate_position[chromosome][positions].append(int(single_read.get_tag(args.barcode_tag)))
 
 def process_singleton_reads(chromosome, start_stop, list_of_singleton_reads):
     """
@@ -393,7 +392,7 @@ def process_singleton_reads(chromosome, start_stop, list_of_singleton_reads):
     if duplicate == True:
         for read in list_of_singleton_reads:
 
-            barcode_ID = int(read.get_tag('RG'))
+            barcode_ID = int(read.get_tag(args.barcode_tag))
 
             # If chr not in dict, add it
             if not chromosome in singleton_duplicate_position:
@@ -652,7 +651,7 @@ class readArgs(object):
         parser = argparse.ArgumentParser(description=__doc__)
 
         # Arguments
-        parser.add_argument("input_tagged_bam", help=".bam file tagged with @RG tags and duplicates marked (not taking "
+        parser.add_argument("input_tagged_bam", help=".bam file tagged with RG tags and duplicates marked (not taking "
                                                      "cluster id into account).")
         parser.add_argument("output_bam", help=".bam file without cluster duplicates")
 
@@ -665,6 +664,7 @@ class readArgs(object):
                                                                             "readpairs) is needed for mergin two barcode "
                                                                             "clusters.")
         parser.add_argument("-e", "--explicit_merge", metavar="<FILENAME>", type=str, help="Writes a file with new_bc_id \\t original_bc_seq")
+        parser.add_argument("-bc", "--barcode_tag", metavar="<BARCODE_TAG>", type=str, default='RG', help="Bamfile tag in which the barcode is specified in. DEFAULT: RG")
 
         args = parser.parse_args()
 
