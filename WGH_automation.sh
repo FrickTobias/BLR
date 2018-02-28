@@ -222,7 +222,8 @@ printf "`date`"'\tBarcode extraction done\n'
 printf "`date`"'\t2nd adaptor removal\n'
 
 #Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed.
-cutadapt -g AGATGTGTATAAGAGACAG -o $file_name".h1.bc.h2.fastq" \
+cutadapt -g AGATGTGTATAAGAGACAG \
+    -o $file_name".h1.bc.h2.fastq" \
     -j $processors \
     -p $file_name2".h1.bc.h2.fastq" \
     $file_name".h1.bc.fastq.gz" \

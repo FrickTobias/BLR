@@ -31,9 +31,7 @@ python3 setup.py install
 
 It will also be required to have downloaded [Picard Tools](https://github.com/broadinstitute/picard) and a Bowtie2 reference genome (e.g. GRCh38), available at e.g. [Illumina iGenomes](https://support.illumina.com/sequencing/sequencing_software/igenome.html).
 
-## Useage
-
-### Setup
+## Setup
 
 First, download the github repository by writing the cloning command in your terminal.
 
@@ -48,11 +46,13 @@ Then provide WGH_Analysis with the appropriate paths for Picard Tools and your B
 bash setpath.sh <picard_path> <bowtie2_reference>
 ```
 
-### Automated analysis
-The whole pipeline can be run be using the automation script WGH_Analysis.sh. For standard useage, run the following command.
+
+## Useage
+
+The whole pipeline can be run be using the automation script WGH_automation.sh. For standard useage, run the following command.
 
 ```
-bash WGH_automation.sh -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
+bash WGH_automation.sh -r -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
 ```
 
 For all available options, see -h (--help) and for more details consult the [step-by-step](https://github.com/FrickTobias/WGH_Analysis/tree/master/step-by-step) 

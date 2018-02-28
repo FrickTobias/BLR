@@ -1,118 +1,161 @@
 ### Main steps
-Here, every step will be explained in detail. For more details about in-house option useage, see example folder. There
-are also semi-automated scripts for performing the main parts of the analysis, see [semi_auto.md](https://github.com/FrickTobias/WGH_Analysis/blob/master/step-by-step/semi_automated.md).
+Here every step will be explained in detail, for exact commands used in-house see example folder. Whenever arrows (< >) 
+encloses something, replace it with what is written inside (without the arrows). 
 
 #### Read trimming and barcode identification
-This is comprised of four steps. First handle 1 is trimmed from the 5' end of read1. Then the next 20 bases are moved 
-from the sequence up to the header using UMItools extract followed by another trimming of another hadle.
+This is comprised of four steps, steps 1-3 only trim read 1 and step 4 trims both sequences. First handle 1 is trimmed 
+from the 5' end of read 1 followed by moving the barcode (20 bp) from the read sequence to the header. Subsequently 
+h2 (TES) is trimmed from the same end and lastly, short inserts are trimmed for TES' in their 3' end. The handle 
+sequences are as follows:
 
 ```
-cutadapt \
-    [-OPTIONS] \
+h1 = CAGTTGATCATCAGCAGGTAATCTGG
+h2 = TES = CTGTCTCTTATACACATCT
+
+```
+
+```
+# Trim handle 1
+cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
     <read_1.fq> \
     <read_2.fq> \
-    <read_1.h1.fq> \
-    <read_2.h1.fq> 
-    
-UMItools \
-    [-OPTIONS] \
+    -o <read_1.h1.fq> \
+    -p <read_2.h1.fq> \
+    -j <processors> \
+    --discard_untrimmed \
+    -e 0.2 \
+    -m 65 
+  
+# Remove and extract bc to header  
+python3 bc_extract.py \
     <read_1.h1.fq> \
     <read_2.h1.fq> \
     <read_1.h1.bc.fq> \
     <read_2.h1.bc.fq>
-    
-cutadapt \
-    [-OPTIONS] \ 
+ 
+# Trim handle 2 
+cutadapt -g AGATGTGTATAAGAGACAG \
     <read_1.h1.bc.fq> \    
     <read_2.h1.bc.fq> \
-    <read_1.h1.bc.h2.fq> \
-    <read_2.h1.bc.h2.fq>
+    -o <read_1.h1.bc.h2.fq> \
+    -p <read_2.h1.bc.h2.fq> \
+    -j <processors> \
+    --discard_untrimmed \
+    -g 0.2 \
+    -m 65
     
-cutadapt \
-    [-OPTIONS] \ 
+# Trim handle 2:s reverse complement from 3' end (in both reads)  
+cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
     <read_1.h1.bc.h2.fq> \    
     <read_2.h1.bc.h2.fq> \
-    <read_1.trimmed.fq> \
-    <read_2.trimmed.fq> 
+    -o <read_1.trimmed.fq> \
+    -p <read_2.trimmed.fq> \
+    -j <processors> \
+    -e 0.2 \
+    -m 25
 ```
 
-#### Mapping
+#### Mapping & Filtering
 
-Mapping is done with bowtie2.
+Here reads are mapped to the human genome. The mapping results are then filtered to remove unmapped reads and
+non-primary alignements.
 
 ```
+# Mapping reads and writing as bam
 bowtie2 \
-    [-OPTIONS] \
-    <read_1.fq> \
-    <read_2.fq> \
-    <reference/Bowtie2/genome> \
-    <output>
+    -1 <read_1.trimmed.fq> \
+    -2 <read_2.trimmed.fq> \
+    -x <reference/Bowtie2/genome> \
+    --maxins 2000 \
+    -p <processors> |
+    samtools view \
+        - \
+        -@ <processors>
+        -bh > <mapped.bam>
+   
+# Sorting file (necessary for downstream analysis)
+samtools sort \
+    <mapped.bam> > <mapped.sort.bam>
+    
+# Filtering for unmapped reads (0x04) and non-primary alignments (0xs100)
+samtools view \
+    <mapped.sort.bam> \
+    -bh \
+    -F 0x04 \
+    -F 0x100 > <mapped.sort.filt.tag.bam> 
+    
 ```
 
 #### Clustering
-The clustering is based on dividing barcode sequences in several files according to their first bases. First, 
-barcode sequences are extracted from one of the read file headers and divided into a number of files (-r), 
-depending on how many indexing bases are used. Optimally none would be used but using more significantly increases 
-clustering speed. After this, run CD-HIT-454 on all generated fasta files in the generated directory and merge clstr
-files to one single file.
 
-Option recommendation for cdhit_prep.py:
+The clustering is done in three steps; preparation, clustering and tagging. The preparation steps takes trimmed reads
+and writes .fasta files containing only unique barcode sequences which then are clustered by CD-HIT-454. Lastly the
+clustered barcodes are used are used to tag the .bam file with reads where they are given a cluster ID (a number) 
+alongside their barcode sequence in the header as well as a RG tag with the barcode ID.
 
-   - 2 base indexing (-r 2)
+In order to cluster a vast amount of unique barcodes sequences (>100M) the barcode sequences are divided into several 
+files according on its first nucleotides. These are used as an index and these files are clustered separately and this
+can be reglated in the preparation step (cdhit_prep.py, -r option).
 
 ```
+# Preparation, using 3 indexing nucleotides
 python cdhit_prep.py \
-    [-OPTIONS] \
     <read_1.fq> \
     <output_barcode_directory>
+    -r <index>
+    -f 0
     
-for index_file in <barcode_directory>/*.clstr
+# Clustering all indexing files separately
+for index_file in <output_barode_directory>/*.fa
 do
-    cd-hit-454 7
-        [-OPTIONS] \
+    cd-hit-454 \
         -i $index_file \
-        -o $index_file'.clustered' 
+        -o $index_file'.clustered' \
+        -T <processors> \
+        -c 0.9 \
+        -gap 100 \
+        -g 1 \
+        -n 3 \
+        -M 0
 done
-    
-cat <barcode>/.clstr > barcodes.clstr
-```
 
-#### Filtering
-
-The mapped files are first filtered for mapping flags (unmapped and non-primary alignments) using samtools followed by 
-being sorted. Afterwards duplicates are removed but without removing duplicates tagged with different barcode
-ID:s (found in the @RG tag). 
-
-Following this, a necessary preparation step is to mark duplicates but this time without 
-but without taking barcode ID:s intpo account. Now the file will be ready for cluster duplicatate
-removal which cluster_rmdup.py is used for.
+# Merging results into one file
+cat <outpute_barcode_directory>/*.clstr > barcodes_<index>.clstr
+ 
+# Tagging .bam file with clustered barcodes
+python3 tag_bam.py \
+    mapped.sort.filt.bam \
+    mapped.sort.filt.tag.bam
 
 ```
-samtools view
-    [-OPTIONS]
-    <inserts.tag.bam> 
-    > <inserts.tag.filt.bam>
-    
-samtools sort \
-    [-OPTIONS]
-    <inserts.tag.filt.bam> \
-    > <inserts.tag.filt.sort.bam> 
 
-java -jar picard.jar MarkDuplicates
-    [-OPTIONS]
-    I=<>
-    O=<>
-    M=<>
+#### Duplicate removal
 
+Now the file is ready for removing read duplicates and cluster dupilcates. First read duplicates are removed (not if 
+they have different barcodes) followed by marking remaining duplicates (not taking barcode into account), yielding a 
+file with only cluster duplicates marked. The clusters marked as duplicates are then merged if two phased read pairs 
+within phasing distance and they both share the same barcodes.
+
+```
+# Removing duplicates, keeping reads if they have different barcodes
+java -jar picard.jar MarkDuplicates 
+    I=<mapped.sort.filt.tag.bam>
+    O=<mapped.sort.filt.tag.rmdup.bam>
+    M=<rmdup.log>
+    ASSUME_SORT_ORDER=true \
+    REMOVE_DUPLICATES=true \
+    BARCODE_TAG=RG
+ 
+# Marking cluster duplicates
 java -jar picard.jar MarkDuplicates
-    I=<>
-    O=<>
-    M=<>
+    I=<mapped.sort.filt.tag.rmdup.bam>
+    O=<mapped.sort.filt.tag.rmdup.mkdup.bam>
+    M=<mkdup.log>
    
+# Merging cluster duplicates
 python cluster_rmdup.py \
-    [-OPTIONS]
-    <> \
-    <>
+    <mapped.sort.filt.tag.rmdup.mkdup.bam> \
+    <mapped.sort.filt.tag.rmdup.x2.bam>
 ```
 
-By now you will have an analysis-ready file, free of duplicates.
+By now you will have an analysis-ready file.
