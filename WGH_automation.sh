@@ -42,7 +42,7 @@ heap_space=90
 index_nucleotides=3
 threshold=0
 start_step=1
-end_step=3
+end_step=4
 
 # Argparsing
 while getopts "hrkh:m:p:i:H:s:e:t:" OPTION
@@ -104,7 +104,7 @@ Global optional arguments
 
 Advanced options: globals
   -s  start at this step number (see Pipeline outline)                                  DEFAULT: 1
-  -e  end after this step number (see Pipeline outline)                                 DEFAULT: 3
+  -e  end after this step number (see Pipeline outline)                                 DEFAULT: 4
   -k  keep all logfiles generated during analysis instead of keeping only specifics     DEFAULT: false
 
 Advanced options: software settings
