@@ -116,7 +116,6 @@ testdata_read1.fastq.sort.bam
 NNN.clstr
 testdata_read1.fastq.sort.filt.tag.bam
 testdata_read1.fastq.sort.filt.tag.rmdup.mkdup.bam
-rmdup_mkdup.log
 testdata_read1.fastq.sort.filt.tag.rmdup.x2.bam
 testdata_read1.fastq.sort.filt.tag.rmdup.x2.bam.log
 testdata_read1.fastq.final.fastq.gz	

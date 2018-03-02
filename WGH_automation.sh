@@ -541,10 +541,11 @@ then
     printf '\n4. Duplicate removal\n'
     printf "`date`"'\tDuplicate removal\n'
 
+    # Read duplicate removal
     (java '-Xmx'$heap_space'G' -jar $picard_path MarkDuplicates \
         I=$file_name".sort.filt.tag.bam" \
         O=$file_name".sort.filt.tag.rmdup.bam" \
-        M=$path"/rmdup_mkdup.log" \
+        M=$path"/picard.log" \
         ASSUME_SORT_ORDER=coordinate \
         REMOVE_DUPLICATES=true \
         BARCODE_TAG=RG) 2>$rmdup_logfile
@@ -552,12 +553,13 @@ then
     printf "`date`"'\tDuplicate removal done\n'
     printf "`date`"'\tBarcode duplicate marking\n'
 
+    # Cluster duplicate marking
     (java '-Xmx'$heap_space'G' -jar $picard_path MarkDuplicates \
         I=$file_name".sort.filt.tag.rmdup.bam" \
         O=$file_name".sort.filt.tag.rmdup.mkdup.bam" \
         M=$path"/mkdup.log" \
         ASSUME_SORT_ORDER=coordinate) 2>>$rmdup_logfile
-    cat $path/"/mkdup.log" >> $path"/rmdup_mkdup.log"
+    cat $path/"/mkdup.log" >> $path"/picard.log"
     rm $path"/mkdup.log"
 
     if $remove
@@ -568,13 +570,16 @@ then
     printf "`date`"'\tBarcode duplicate marking done\n'
     printf "`date`"'\tCluster merging\n'
 
+    # Cluster duplicate merging
     (python3 $wgh_path'/python scripts/cluster_rmdup.py' \
         $file_name".sort.filt.tag.rmdup.mkdup.bam" \
         $file_name".sort.filt.tag.rmdup.x2.bam") 2>>$rmdup_logfile
 
+
     printf "`date`"'\tCluster merging done\n'
     printf "`date`"'\tFastq generation\n'
 
+    # Fastq generation
     (java -jar $picard_path SamToFastq \
         I=$file_name".sort.filt.tag.rmdup.x2.bam" \
         FASTQ=$file_name".final.fastq" \
@@ -582,6 +587,7 @@ then
 
     if ! $keep_logiles
     then
+        rm $file_name".sort.filt.tag.rmdup.x2.bam.log"
         rm $path/picard.log
     fi
 
