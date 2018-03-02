@@ -17,11 +17,11 @@ bash WGH_automation.sh testdata_read1.fastq.gz testdata_read2.fastq.gz testdata_
 Recommended options, for running on a computer with (-p) 24 processors, (-m) mailing 
 to john.doe@domain.com and (-r) removing redundant files created in the pipeline:
 
-#### Advanced useage
-
 ```
 bash WGH_automation.sh -r -m john.doe@domain.com -p 24 testdata_read1.fastq.gz testdata_read2.fastq.gz testdata_analysis
 ```
+
+#### Advanced useage
 
 (-s) Starting at step 2 and (-e) ending after step 3 (see -h, pipeline outline for information about more information 
 about step numbers):
