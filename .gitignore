@@ -5,5 +5,6 @@ pictures/*
 paths.sh
 paths.txt
 
-# .idea folder
-.idea/
+# Generated testdata folder
+example/testdata_analysis
+
