@@ -547,7 +547,7 @@ then
         M=$path"/rmdup_mkdup.log" \
         ASSUME_SORT_ORDER=coordinate \
         REMOVE_DUPLICATES=true \
-        BARCODE_TAG=RG) 2>$path/picard.log
+        BARCODE_TAG=RG) 2>$rmdup_logfile
 
     printf "`date`"'\tDuplicate removal done\n'
     printf "`date`"'\tBarcode duplicate marking\n'
@@ -556,7 +556,7 @@ then
         I=$file_name".sort.filt.tag.rmdup.bam" \
         O=$file_name".sort.filt.tag.rmdup.mkdup.bam" \
         M=$path"/mkdup.log" \
-        ASSUME_SORT_ORDER=coordinate) 2>>$path/picard.log
+        ASSUME_SORT_ORDER=coordinate) 2>>$rmdup_logfile
     cat $path/"/mkdup.log" >> $path"/rmdup_mkdup.log"
     rm $path"/mkdup.log"
 

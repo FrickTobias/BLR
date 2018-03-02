@@ -52,7 +52,7 @@ Read 1:		testdata_read1.fastq.gz
 Read 2:		testdata_read2.fastq.gz
 Output:		testdata_analysis
  
-Threads:	    8
+Threads:	    24
 Starts at step:	1
 End at step:	4
 Mail:           john.doe@myworkplace.com
