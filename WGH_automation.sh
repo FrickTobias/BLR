@@ -1,97 +1,610 @@
-#! /bin/bash 
+#!/bin/bash
 
-# Automation script for running whole analysis. 
-# bash WGH_Analysis <read_1.fq> <read_2.fq> <output_folder_name>
+# WGH_automation
+#
+# author: Tobias Frick
+# mail: tobias.frick@scilifelab.se
+# github: https://github.com/FrickTobias/WGH_Analysis
 
-# Fetch paths to external software (defines WGH_path, bowtie2_ref, picard_path and fragScaff_path)
-. paths.sh
+  #                                         #
+# # # # # # # # # # # # # # # # # # # # # # # #
+  #                                         #
+  # 0. Argument parsing & initials          #
+  # 1. Read trimming & demultiplexing       #
+  # 2. Mapping & filtering                  #
+  # 3. Barcode clustering & tagging         #
+  # 4. Clstr rmdup & fastq generation       #
+  #   - optional, requires A LOT of RAM     #
+  #                                         #
+# # # # # # # # # # # # # # # # # # # # # # # #
+  #                                         #
 
-# Argument parsing
-r1=$1
-r2=$2
-output=$3
 
-# Stripping extension from file name for adding others
-file=$r1
+# 0. ###################################################################################
+
+ #                                   #
+############# Overview ################
+ #                                   #
+ #   - Argument parsing              #
+ #   - Option handling               #
+ #   - Variable names & paths        #
+ #                                   #
+#######################################
+ #                                   #
+
+# Initials
+processors=1
+mailing=false
+remove=false
+duplicate_rmdup=false
+keep_logiles=false
+heap_space=90
+index_nucleotides=3
+threshold=0
+start_step=1
+end_step=4
+
+# Argparsing
+while getopts "hrkh:m:p:i:H:s:e:t:" OPTION
+do
+    case ${OPTION} in
+
+        p)
+            processors=${OPTARG}
+            ;;
+        m)
+            email=${OPTARG}
+            mailing=true
+            ;;
+        r)
+            remove=true
+            ;;
+        k)
+            keep_logfiles=true
+            ;;
+        i)
+            index_nucleotides=${OPTARG}
+            ;;
+        H)
+            heap_space=${OPTARG}
+            ;;
+        t)
+            threshold=${OPTARG}
+            ;;
+        s)
+            start_step=${OPTARG}
+            ;;
+        e)
+            end_step=${OPTARG}
+            ;;
+        h)
+            printf 'WGH_automation.sh
+
+Useage:     bash WGH_automation.sh <options> <r1.fq> <r2.fq> <output_dir>
+Example:    bash WGH_automation.sh -r -p 24 -m john.doe@domain.org N1298_read1.fastq N1298_read2.fastq 180220_N1298
+NB:         options must be given before arguments.
+
+Pipeline outline:
+  0.Argparsing & options
+  1.Demultiplexing
+  2.Mapping
+  3.Clustering
+  4.Duplicate removal
+
+Positional arguments (REQUIRED)
+  <r1.fq>       Read one in .fastq format. Also handles gzip files (.fastq.gz)
+  <r2.fq>       Read two in .fastq format. Also handles gzip files (.fastq.gz)
+  <output_dir>  Output directory for analysis results
+
+Global optional arguments
+  -m  mails the supplied email when analysis is finished                                DEFAULT: None
+  -p  processors for threading                                                          DEFAULT: 1
+  -r  removes files generated during analysis instead of just compressing them          DEFAULT: false
+  -h  help (this output)                                                                DEFAULT: N/A
+
+Advanced options: globals
+  -s  start at this step number (see Pipeline outline)                                  DEFAULT: 1
+  -e  end after this step number (see Pipeline outline)                                 DEFAULT: 4
+  -k  keep all logfiles generated during analysis instead of keeping only specifics     DEFAULT: false
+
+Advanced options: software settings
+  -i  indexing nucletide number used for clustering (cdhit_prep.py)                     DEFAULT: 3
+  -t  threshold for cluster duplicate calling (cluster_rmdup.py)                        DEFAULT: 0
+  -H  heap space (~RAM) in GB for duplicate removal step                                DEFAULT: 90
+  \n'
+	        exit 0
+	        ;;
+    esac
+done
+
+# Positonal redundancy for option useage
+ARG1=${@:$OPTIND:1}
+ARG2=${@:$OPTIND+1:1}
+ARG3=${@:$OPTIND+2:1}
+
+# Error handling
+if [ -z "$ARG1" ] || [ -z "$ARG2" ] || [ -z "$ARG3" ]
+then
+    echo ""
+    echo "ARGUMENT ERROR"
+    echo "Did not find all three positional arguments, see -h for more information."
+    echo "(got r1:"$ARG1", r2:"$ARG2" and output:"$ARG3" instead)"
+    echo ""
+    exit 0
+fi
+
+printf '\n0. Argparsing & options'
+printf '\nRead 1:\t\t'$ARG1'\nRead 2:\t\t'$ARG2'\nOutput:\t\t'$ARG3'\n'
+printf '\nThreads:\t'$processors
+printf '\nStarts at step:\t'$start_step
+printf '\nEnd at step:\t'$end_step
+
+
+# Mailing option
+if $mailing
+then
+    if [[ $email == *"@"* ]]
+    then
+        printf '\nMail:\t\t'$email
+    else
+        echo ''
+        echo 'OPTION ERROR: -m '
+        echo ''
+        echo 'Please supply email on format john.doe@domain.org'
+        echo '(got "'$email'" instead)'
+        exit 0
+    fi
+fi
+
+# Fetching paths to external programs (from paths.txt)
+
+# PATH to WGH_Analysis folder
+wgh_path=$(dirname "$0")
+
+# Loading PATH:s to software
+#   - reference:            $bowtie2_reference
+#   - Picard tools:         $picard_path
+. $wgh_path'/paths.txt'
+
+# output folder
+path=$ARG3
+mkdir -p $path
+
+# File one prep
+file=$ARG1
 name_ext=$(basename "$file")
 name="${name_ext%.*}"
 file_name="$path/${name_ext%.*}"
 
-# Stripping extension from file name for adding others
-file2=$r2
+# File two prep
+file2=$ARG2
 name_ext2=$(basename "$file2")
 name2="${name_ext2%.*}"
 file_name2="$path/${name_ext2%.*}"
 
-#
-# Intials
-#
+# Logfiles
+trim_logfile=$path'/1_trim.log'
+map_logfile=$path'/2_map.log'
+cluster_logfile=$path'/3_cluster.log'
+rmdup_logfile=$path'/4_rmdup.log'
 
-mkdir output
+# Remaining options
+current_step=0
+continue=true
+if (( "$start_step" > "$end_step" ))
+then
+    printf "\n\nOPTION ERROR\nStart step cannot be larger than end step, see -s and -e option\n"
+    exit 0
+elif (( "$start_step" < 1 )) || (( "$start_step" > 4 ))
+then
+    printf "\n\nOPTION ERROR\nStart step must be within 1 and 4\n"
+    exit 0
+fi
 
-#
-# Trimming & barcode extraction
-#
+# Mailing
+if $mailing
+then
+    echo 'ANALYSIS STARTING '$(date) | mail -s $path $email
+fi
 
-# Trim away E handle on R1 5'.
-cutadapt -g CAGTTGATCATCAGCAGGTAATCTGG \
-    -o $file_name".h1_removed.fastq" \
-    -p $file_name2".h1_removed.fastq" $r1 $r2 \
-    --discard-untrimmed -e 0.2 &&
+printf '\n\n'"`date`"'\tANALYSIS STARTING\n'
 
-# Get DBS using UMI-Tools -> _BDHVBDVHBDVHBDVH in header.
-umi_tools extract --stdin=$file_name".h1_removed.fastq" \
-    --stdout=$file_name".cut_n_extract.fastq" \
-    --bc-pattern=NNNNNNNNNNNNNNNNNNNN --bc-pattern2= \
-    --read2-in=$file_name2".h1_removed.fastq" \
-    --read2-out=$file_name2".cut_n_extract.fastq" \
-    -L $file_name".cut_n_extract_log.txt" &&
+# 1. ###################################################################################
 
-#Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed.
-cutadapt -g AGATGTGTATAAGAGACAG -o $file_name".TES1_removed.fastq" \
-    -p $file_name2".TES1_removed.fastq" \
-    $file_name".cut_n_extract.fastq" \
-    $file_name2".cut_n_extract.fastq" --discard-untrimmed -e 0.2 &&
+ #                                   #
+############# Overview ################
+ #                                   #
+ #   - Cut first handle (=e)         #
+ #   - Extract barcode to header     #
+ #   - Cut second handle (=TES)      #
+ #   - Trim 3' end for TES'          #
+ #                                   #
+#######################################
+ #                                   #
 
-#Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT
-cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
-	-o $file_name".TES2_removed.fastq" \
-	-p $file_name2".TES2_removed.fastq" \
-	$file_name".TES1_removed.fastq" \
-	$file_name2".TES1_removed.fastq" -e 0.2 &&
+# Check if this step should be run
+current_step=$((current_step+1))
+if (( "$current_step" >= "$start_step" )) && [ "$continue" == true ]
+then
 
-#
-# Mapping
-#
+    # Mailing
+    if $mailing
+    then
+        echo '1_trim starting '$(date) | mail -s $path $email
+    fi
+    printf '\n1. Demultiplexing\n'
+    printf "`date`"'\t1st adaptor removal\n'
 
-bowtie2 --maxins 2000 -x /Users/pontushojer/data_analysis/Reference/Bowtie2Index/genome \
-    -1 $r1 -2 $r2 -S $output/"mappedInserts.sam" | samtools view -bh - > $path/"mappedInserts.bam" &&
+    # Trim away E handle on R1 5'. Also removes reads shorter than 85 bp.
+    cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
+        -j $processors \
+        -o $file_name".h1.fastq" \
+        -p $file_name2".h1.fastq" \
+        $ARG1 \
+        $ARG2 \
+        --discard-untrimmed -e 0.2 -m 65 > $trim_logfile # Tosses reads shorter than len(e+bc+handle+TES)
 
-rm $path/"mappedInserts.sam" &&
+    printf "`date`"'\t1st adaptor removal done\n'
+    printf "`date`"'\tBarcode extraction\n'
 
-samtools sort $path/"mappedInserts.bam" \
-    -o $path/"mappedInserts.sort.bam"
+    ## Get DBS using UMI-Tools -> _BDHVBDVHBDVHBDVH in header.
+    (python3 $wgh_path'/python scripts/bc_extract.py' \
+        $file_name".h1.fastq" \
+        $file_name2".h1.fastq" \
+        $file_name".h1.bc.fastq" \
+        $file_name2".h1.bc.fastq") 2>$path"/bc_extract.stderr"
+    if ! $keep_logiles
+    then
+        rm $path"/bc_extract.stderr"
+    fi
+    if $remove
+    then
+        rm $file_name".h1.fastq"
+        rm $file_name2".h1.fastq"
+    else
+        pigz $file_name".h1.fastq"
+        pigz $file_name2".h1.fastq"
+    fi
+    pigz $file_name".h1.bc.fastq"
+    pigz $file_name2".h1.bc.fastq"
 
-#
-# Clustering
-#
+    printf "`date`"'\tBarcode extraction done\n'
+    printf "`date`"'\t2nd adaptor removal\n'
 
-python $WGH_path/python_scripts/cdhit_prep.py \
-    -r 2 -f 0
-for file in $output/indexing_barcodes/*.fa; do;
-	cd-hit-454 -T 0 -c 0.9 -gap -100 -g 1 -n 3 -M 0 -i $file -o $file'.clustered';
-	done
-cat $output/indexing_barcodes/*.clstr > NN.clstr
+    #Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed.
+    cutadapt -g AGATGTGTATAAGAGACAG \
+        -o $file_name".h1.bc.h2.fastq" \
+        -j $processors \
+        -p $file_name2".h1.bc.h2.fastq" \
+        $file_name".h1.bc.fastq.gz" \
+        $file_name2".h1.bc.fastq.gz" \
+        --discard-untrimmed -e 0.2  >> $trim_logfile
+    if $remove
+    then
+        rm $file_name".h1.bc.fastq.gz"
+        rm $file_name2".h1.bc.fastq.gz"
+    fi
+    pigz $file_name".h1.bc.h2.fastq"
+    pigz $file_name2".h1.bc.h2.fastq"
 
-#
-# Tagging and duplcate removal
-#
+    printf "`date`"'\t2nd adaptor removal done\n'
+    printf "`date`""\t3' trimming\n"
 
-python $WGH_path/python_scripts/tag_bam.py 
-picardtools rmdup
+    #Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT
+    cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
+        -j $processors \
+        -o $file_name".trimmed.fastq" \
+        -p $file_name2".trimmed.fastq" \
+        -m 25 \
+        $file_name".h1.bc.h2.fastq.gz" \
+        $file_name2".h1.bc.h2.fastq.gz" \
+        -e 0.2  >> $trim_logfile
+    if $remove
+    then
+        rm $file_name".h1.bc.h2.fastq.gz"
+        rm $file_name2".h1.bc.h2.fastq.gz"
+    fi
+    pigz $file_name".trimmed.fastq"
+    pigz $file_name2".trimmed.fastq"
 
-#
-# Scaffolding
-#
+    if $mailing
+        then
+        echo '1_trim finished '$(date) | mail -s $path $email
+    fi
+    printf "`date`""\t3' trimming done\n"
 
-perl $fragScaff_path 
+    # Ugly solution to calculate % construOK
+    var1=$( cat $trim_logfile | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 1 )
+    var2=$( cat $trim_logfile | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 2 )
+    printf "`date`""\t"; awk '{print "Intact reads: "$1*$2*0.0001" %"}' <<< "$var1 $var2"
+
+fi
+
+if (( "$current_step" == "$end_step" ))
+then
+    continue=false
+fi
+
+# 2. ###################################################################################
+
+ #                                   #
+############# Overview ################
+ #                                   #
+ #   - Map & convert to bam          #
+ #   - Sorting                       #
+ #   - Filtering (unmap + prim map)  #
+ #                                   #
+#######################################
+ #                                   #
+
+# Check if this step should be run
+current_step=$((current_step+1))
+if (( "$current_step" >= "$start_step" )) && [ "$continue" == true ]
+then
+
+    if $mailing
+    then
+        echo '2_map starting '$(date) | mail -s $path $email
+    fi
+    printf '\n2. Mapping\n'
+    printf "`date`"'\tMapping\n'
+    printf '\n\n Map stats: .sort.bam\n' >> $map_logfile
+
+    # Mapping & bam conversion
+    (bowtie2 \
+        -1 $file_name".trimmed.fastq.gz" \
+        -2 $file_name2".trimmed.fastq.gz" \
+        -x $bowtie2_reference \
+        --maxins 2000 \
+        -p $processors | \
+        samtools view \
+            - \
+            -@ $processors \
+            -bh > $file_name".bam") 2>$map_logfile
+
+    printf "`date`"'\tMapping done\n'
+    printf "`date`"'\tSorting\n'
+
+    # Sorting
+    samtools sort \
+        $file_name".bam" \
+        -@ processors > $file_name".sort.bam"
+
+    if $remove
+    then
+        rm $file_name".bam"
+    fi
+
+    printf "`date`"'\tSorting done\n'
+    printf "`date`"'\t1st map stats\n'
+    printf '\n\n flagstat: .bam\n' >> $map_logfile
+    samtools flagstat \
+        $file_name".sort.bam" >> $map_logfile
+
+
+    printf "`date`"'\t1st map stats done\n'
+    printf "`date`"'\tFiltering\n'
+
+    # Filtering
+    samtools view \
+        $file_name".sort.bam" \
+        -@ $processors \
+        -bh \
+        -F 0x04 \
+        -F 0x100 > $file_name".sort.filt.bam"
+
+    printf "`date`"'\tFiltering done\n'
+    printf "`date`"'\t2nd map stats\n'
+
+    printf '\n\n flagstat: sort.filt.bam\n' >> $map_logfile
+    samtools flagstat \
+        $file_name".sort.filt.bam" >> $map_logfile
+
+    if $mailing
+    then
+        echo '2_map finished '$(date) | mail -s $path $email
+    fi
+
+    printf "`date`"'\t2nd map stats done\n'
+
+fi
+
+if (( "$current_step" == "$end_step" ))
+then
+    continue=false
+fi
+
+# 3. ###################################################################################
+
+ #                                   #
+############# Overview ################
+ #                                   #
+ #   - Bc seq extraction             #
+ #   - Clustering                    #
+ #   - Merge clust files & tag bam   #
+ #                                   #
+#######################################
+ #                                   #
+
+# Check if this step should be run
+current_step=$((current_step+1))
+if (( "$current_step" >= "$start_step" )) && [ "$continue" == true ]
+then
+
+    if $mailing
+    then
+        echo '3_clustering starting'$(date) | mail -s $path $email
+    fi
+    printf '\n3. Clustering\n'
+    printf "`date`"'\tBarcode fasta generation\n'
+
+    # Barcode extraction
+    pigz -d $file_name".trimmed.fastq.gz"
+    (python3 $wgh_path'/python scripts/cdhit_prep.py' \
+        $file_name".trimmed.fastq" \
+        $path"/unique_bc" \
+        -r $index_nucleotides\
+        -f 0 >$path"/cdhit_prep.stdout") 2>$path"/cdhit_prep.stderr"
+    if ! $keep_logiles
+    then
+        rm $path"/cdhit_prep.stdout"
+        rm $path"/cdhit_prep.stderr"
+    fi
+    pigz $file_name".trimmed.fastq"
+
+    printf "`date`"'\tBarcode fasta generation done\n'
+    printf "`date`"'\tBarcode clustering\n'
+
+    # Barcode clustering
+    touch $path"/cdhit.log"
+    for file in $path"/unique_bc"/*.fa
+    do
+        printf '\n' >> $cluster_logfile
+        wc -l $file >> $cluster_logfile
+        (cd-hit-454 \
+            -i $file \
+            -o $file'.clustered' \
+            -T $processors \
+            -c 0.9 \
+            -gap 100 \
+            -g 1 \
+            -n 3 \
+            -M 0) >> $path"/cdhit.log"
+    done
+    N_string=''; for i in $(seq 1 $index_nucleotides); do N_string=$N_string'N'; done; # Ugly solution for getting N*index length string
+    cat $path"/unique_bc/"*".clstr" > $path"/"$N_string".clstr"
+
+    if ! $keep_logiles
+    then
+        rm $path"/cdhit.log"
+    fi
+
+    if $remove
+    then
+        rm -rf $path"/unique_bc"
+    fi
+
+    printf "`date`"'\tBarcode clustering done\n'
+    printf "`date`"'\tBam tagging\n'
+
+    # Tagging bamfile
+    (python3 $wgh_path'/python scripts/tag_bam.py' \
+        $file_name".sort.filt.bam" \
+        $path"/"$N_string".clstr" \
+        $file_name".sort.filt.tag.bam") 2>$path"/tag_bam.stderr"
+    if ! $keep_logiles
+    then
+        rm $path"/tag_bam.stderr"
+        rm $file_name".sort.filt.tag.log"
+    fi
+    if $remove
+    then
+        rm $file_name".sort.filt.bam"
+    fi
+
+
+    if $mailing
+    then
+        echo '3_clustering finished '$(date) | mail -s $path $email
+    fi
+    printf "`date`"'\tBam tagging done\n'
+
+fi
+
+if (( "$current_step" == "$end_step" ))
+then
+    continue=false
+fi
+
+# 4. ###################################################################################
+
+ #                                   #
+############# Overview ################
+ #                                   #
+ #   - rmdup (with TAG=RG)           #
+ #   - mkdup (without TAG)           #
+ #   - Cluster rmdup                 #
+ #   - Fastq generation              #
+ #                                   #
+#######################################
+ #                                   #
+
+# Check if this step should be run
+current_step=$((current_step+1))
+if (( "$current_step" >= "$start_step" )) && [ "$continue" == true ]
+then
+
+    if $mailing
+    then
+        echo '4_rmdup starting '$(date) | mail -s $path $email
+    fi
+    printf '\n4. Duplicate removal\n'
+    printf "`date`"'\tDuplicate removal\n'
+
+    # Read duplicate removal
+    (java '-Xmx'$heap_space'G' -jar $picard_path MarkDuplicates \
+        I=$file_name".sort.filt.tag.bam" \
+        O=$file_name".sort.filt.tag.rmdup.bam" \
+        M=$path"/picard.log" \
+        ASSUME_SORT_ORDER=coordinate \
+        REMOVE_DUPLICATES=true \
+        BARCODE_TAG=RG) 2>$rmdup_logfile
+
+    printf "`date`"'\tDuplicate removal done\n'
+    printf "`date`"'\tBarcode duplicate marking\n'
+
+    # Cluster duplicate marking
+    (java '-Xmx'$heap_space'G' -jar $picard_path MarkDuplicates \
+        I=$file_name".sort.filt.tag.rmdup.bam" \
+        O=$file_name".sort.filt.tag.rmdup.mkdup.bam" \
+        M=$path"/mkdup.log" \
+        ASSUME_SORT_ORDER=coordinate) 2>>$rmdup_logfile
+    cat $path/"/mkdup.log" >> $path"/picard.log"
+    rm $path"/mkdup.log"
+
+    if $remove
+    then
+        rm $file_name".sort.filt.tag.rmdup.bam"
+    fi
+
+    printf "`date`"'\tBarcode duplicate marking done\n'
+    printf "`date`"'\tCluster merging\n'
+
+    # Cluster duplicate merging
+    (python3 $wgh_path'/python scripts/cluster_rmdup.py' \
+        $file_name".sort.filt.tag.rmdup.mkdup.bam" \
+        $file_name".sort.filt.tag.rmdup.x2.bam") 2>>$rmdup_logfile
+
+
+    printf "`date`"'\tCluster merging done\n'
+    printf "`date`"'\tFastq generation\n'
+
+    # Fastq generation
+    (java -jar $picard_path SamToFastq \
+        I=$file_name".sort.filt.tag.rmdup.x2.bam" \
+        FASTQ=$file_name".final.fastq" \
+        SECOND_END_FASTQ=$file_name2".final.fastq") 2>>$path/picard.log
+
+    if ! $keep_logiles
+    then
+        rm $file_name".sort.filt.tag.rmdup.x2.bam.log"
+        rm $path/picard.log
+    fi
+
+    pigz $file_name".final.fastq"
+    pigz $file_name2".final.fastq"
+
+    if $mailing
+    then
+        echo '4_rmdup finished '$(date) | mail -s $path $email
+    fi
+    printf "`date`"'\tFastq generation done\n'
+
+fi
+
+printf '\n'"`date`"'\tANALYSIS FINISHED\n'
+
+if $mailing
+then
+    echo 'ANALYSIS FINISHED '$(date) | mail -s $path $email
+fi

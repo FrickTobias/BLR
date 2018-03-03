@@ -1,4 +1,4 @@
-#! /usr/bin/env python2
+#! /usr/bin python3
 
 def main():
     """Takes a fastq file barcode sequences in the header and writes a barcode fasta file with only unique entries. """

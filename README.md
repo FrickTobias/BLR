@@ -10,18 +10,28 @@ To run the pipeline, the following software need to be installed:
   - [cutadapt](https://github.com/marcelm/cutadapt.git)
   - [bowtie2](https://github.com/BenLangmead/bowtie2)
   - [samtools](https://github.com/samtools/samtools)
+  - [qvalues](https://github.com/jeffhsu3/qvalue.git)
   
-This can be done by writing the following command in your terminal.
+This can be done by writing the following command in your terminal which will install everything but qvalues (since pip 
+will default to the python 2 version). 
 
 ```
 sudo bash prerequisites.sh
 ```
 
+To get qvalues for python 3, clone the github fork above and install it.
+
+```
+git clone https://github.com/jeffhsu3/qvalue.git
+```
+```
+python3 setup.py build
+python3 setup.py install
+```
+
 It will also be required to have downloaded [Picard Tools](https://github.com/broadinstitute/picard) and a Bowtie2 reference genome (e.g. GRCh38), available at e.g. [Illumina iGenomes](https://support.illumina.com/sequencing/sequencing_software/igenome.html).
 
-## Useage
-
-### Setup
+## Setup
 
 First, download the github repository by writing the cloning command in your terminal.
 
@@ -36,11 +46,13 @@ Then provide WGH_Analysis with the appropriate paths for Picard Tools and your B
 bash setpath.sh <picard_path> <bowtie2_reference>
 ```
 
-### Automated analysis
-The whole pipeline can be run be using the automation script WGH_Analysis.sh. For standard useage, run the following command.
+
+## Useage
+
+The whole pipeline can be run be using the automation script WGH_automation.sh. For standard useage, run the following command.
 
 ```
-bash WGH_automation.sh <read_1.fq> <read_2.fq> <output> -m <john.doe@myworkplace.com -p <processors>
+bash WGH_automation.sh -r -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
 ```
 
 For all available options, see -h (--help) and for more details consult the [step-by-step](https://github.com/FrickTobias/WGH_Analysis/tree/master/step-by-step) 

@@ -1,4 +1,4 @@
-#! /usr/bin/env python2
+#! /usr/bin python3
 
 def main():
     """Takes a fastq file barcode sequences in the header and writes a barcode fasta file with only unique entries. """
@@ -6,8 +6,8 @@ def main():
     #
     # Imports & globals
     #
-    import multiprocessing, pysam
-    global args, summaryInstance, output_tagged_bamfile
+    global args, summaryInstance, output_tagged_bamfile, sys, time
+    import multiprocessing, pysam, sys, time, os
 
     #
     # Argument parsing
@@ -31,7 +31,7 @@ def main():
     add_to_RG_headers = list()
     # Tagging bam mapping entries with RG:Z:clusterid
     infile = pysam.AlignmentFile(args.input_mapped_bam, 'rb')
-    out = pysam.AlignmentFile(args.output_tagged_bam+'.temp.bam', 'wb', template=infile)
+    out = pysam.AlignmentFile(args.output_tagged_bam+'.tmp.bam', 'wb', template=infile)
 
     for read in infile.fetch(until_eof=True):
         read_bc = read.query_name.split()[0].split('_')[-1]
@@ -58,8 +58,7 @@ def main():
                 add_to_RG_headers.append(bc_id)  # For RG headers later
 
             # Set tag to bc_id
-            read.set_tag('RG', str(bc_id),
-                         value_type='Z')  # Stores as string, makes duplicate removal possible. Can do it as integer as well.
+            read.set_tag('RG', str(bc_id),value_type='Z')  # Stores as string, makes duplicate removal possible. Can do it as integer as well.
             read.query_name = (read.query_name + '_@RG:Z:' + str(bc_id))
             out.write(read)
 
@@ -68,7 +67,7 @@ def main():
     infile.close()
     out.close()
 
-    infile = pysam.AlignmentFile(args.output_tagged_bam+'.temp.bam', 'rb')
+    infile = pysam.AlignmentFile(args.output_tagged_bam+'.tmp.bam', 'rb')
     header_dict = infile.header.copy()
     header_dict['RG'] = list()
 
@@ -93,11 +92,13 @@ def main():
 
     infile.close()
     out.close()
+    os.remove(args.output_tagged_bam+'.tmp.bam')
 
 def readAndProcessClusters(openInfile):
     """ Reads clstr file and builds read:clusterId dict in Summary instance."""
 
     # Set clusterInstance for first loop
+    report_progress('Reading cluster file.')
     for first_line in openInfile:
         clusterInstance = ClusterObject(clusterId=first_line)
         break
@@ -108,13 +109,20 @@ def readAndProcessClusters(openInfile):
         if line.startswith('>'):
             summaryInstance.updateReadToClusterDict(clusterInstance.barcode_to_bc_dict)
             clusterInstance = ClusterObject(clusterId=line)
-
         # Add accession entry for current cluster id
         else:
             clusterInstance.addRead(line)
 
     # Add last cluster to master dict
     summaryInstance.updateReadToClusterDict(clusterInstance.barcode_to_bc_dict)
+
+def report_progress(string):
+    """
+    Writes a time stamp followed by a message (=string) to standard out.
+    Input: String
+    Output: [date]  string
+    """
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
 
 class ClusterObject(object):
     """ Cluster object"""

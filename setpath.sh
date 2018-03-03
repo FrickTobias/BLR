@@ -10,7 +10,6 @@ while getopts "he:" OPTION; do
 	    e)
             echo 'picard_path=/external/picard-tools-1.114/'
             echo 'bowtie2_reference=/references/Bowtie2Index/genome'
-            echo 'fragScaff_path=/external/fragScaff.pl'
             exit 0
 	        ;;
 
@@ -23,7 +22,6 @@ while getopts "he:" OPTION; do
 			echo "Positional arguments (required)"
 			echo "  <picard_path>       Path to picard tools folder"
 			echo "  <Bowtie2_ref>       Path to bowtie2 reference (e.g. /Bowtie2Index/genome)"
-			echo "  <fragScaff_path>    Path to fragScaff.pl"
 			echo ""
 			echo "Optional arguments"
 			echo "  -h  help (this output)"
@@ -40,14 +38,13 @@ done
 
 ARG1=${@:$OPTIND:1}
 ARG2=${@:$OPTIND+1:1}
-ARG3=${@:$OPTIND+2:1}
 
-if [ -z "$ARG1" ] || [ -z "$ARG2" ] || [ -z "$ARG3" ]
+if [ -z "$ARG1" ] || [ -z "$ARG2" ]
 then
     echo ""
     echo "ARGUMENT ERROR"
     echo "Did not find all three positional arguments, see -h for more information."
-    echo "(got picard_path:"$ARG1", Bowtie2_ref:"$ARG2" and fragScaff_path:"$ARG3" instead)"
+    echo "(got picard_path:"$ARG1" and Bowtie2_ref:"$ARG2" instead)"
     echo ""
     exit 0
 fi
@@ -67,12 +64,6 @@ then
     echo 'set_paths: bowtie2_ref supplied as relative, writing as absolute'
     work_dir=$(pwd)
     ARG2=$work_dir'/'$ARG2
-
-elif [[ "$ARG3" != /* ]]
-then
-    echo 'set_paths: fragScaff_path supplied as relative, writing as absolute'
-    work_dir=$(pwd)
-    ARG3=$work_dir'/'$ARG3
 fi
 
 #
@@ -82,6 +73,5 @@ fi
 wgh_path=$(dirname "$0")
 echo 'set_paths: Creating paths.txt in your WGH_Analysis folder'
 
-printf '\npicard_path='$ARG1 > $wgh_path/paths.txt
+printf 'picard_path='$ARG1 > $wgh_path/paths.txt
 printf '\nbowtie2_reference='$ARG2 >> $wgh_path/paths.txt
-printf '\nfragScaff_path='$ARG3 >> $wgh_path/paths.txt
