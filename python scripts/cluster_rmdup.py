@@ -47,6 +47,9 @@ def main():
 
         # Cache read system
         header = read.query_name
+        print(header)
+        print(read.get_reference_positions()[0])
+        print(read.get_reference_positions()[-1])
         if header in cache_read_tracker:
             # Fetch mate and remove from tracking dict
             mate = cache_read_tracker[header]
@@ -94,7 +97,7 @@ def main():
     #######
 
     unpaired_duplicate_tracker = dict()
-    for unpaired_read in cache_read_tracker.values():
+    for unpaired_read in cache_read_trackermv ~.values():
 
         # Fetch informatiopn
         chromosome = unpaired_read.reference_name
@@ -160,10 +163,15 @@ def main():
                 readpair_pos_tuple = (mate_pos_tuple, read_pos_tuple)
                 barcode_ID = int(read.get_tag(args.barcode_tag))
 
+                print(barcode_ID)
+
                 # Add all barcodes IDs to set, check later if total > 2 at positions.
                 if not readpair_pos_tuple in possible_duplicate_seeds:
                     possible_duplicate_seeds[readpair_pos_tuple] = set()
                 possible_duplicate_seeds[readpair_pos_tuple].add(barcode_ID)
+
+            print(chromosome)
+            print(possible_duplicate_seeds)
 
             # When all overlaps found for current position, try finding proximal read pairs with same overlap
             for possible_seed, barcode_IDs in possible_duplicate_seeds.items(): # Only one entry

@@ -488,10 +488,10 @@ then
     printf "`date`"'\tBam tagging\n'
 
     # Tagging bamfile
-    (python3 $wgh_path'/python scripts/tag_bam.py' \
+    python3 $wgh_path'/python scripts/tag_bam.py' \
         $file_name".sort.filt.bam" \
         $path"/"$N_string".clstr" \
-        $file_name".sort.filt.tag.bam") 2>$path"/tag_bam.stderr"
+        $file_name".sort.filt.tag.bam" #) 2>$path"/tag_bam.stderr"
     if ! $keep_logiles
     then
         rm $path"/tag_bam.stderr"
@@ -542,7 +542,7 @@ then
     printf "`date`"'\tDuplicate removal\n'
 
     # Read duplicate removal
-    (java '-Xmx'$heap_space'G' -jar $picard_path MarkDuplicates \
+    (java '-Xmx'$heap_space'g' -jar $picard_path MarkDuplicates \
         I=$file_name".sort.filt.tag.bam" \
         O=$file_name".sort.filt.tag.rmdup.bam" \
         M=$path"/picard.log" \
@@ -554,7 +554,7 @@ then
     printf "`date`"'\tBarcode duplicate marking\n'
 
     # Cluster duplicate marking
-    (java '-Xmx'$heap_space'G' -jar $picard_path MarkDuplicates \
+    (java '-Xmx'$heap_space'g' -jar $picard_path MarkDuplicates \
         I=$file_name".sort.filt.tag.rmdup.bam" \
         O=$file_name".sort.filt.tag.rmdup.mkdup.bam" \
         M=$path"/mkdup.log" \

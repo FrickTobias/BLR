@@ -4,11 +4,11 @@
 # Argument parsing
 #
 
-while getopts "he:" OPTION; do
+while getopts "he" OPTION; do
 	case ${OPTION} in
 
 	    e)
-            echo 'picard_path=/external/picard-tools-1.114/'
+            echo 'picard_path=/external/picard-tools-2.5.0/picard.jar'
             echo 'bowtie2_reference=/references/Bowtie2Index/genome'
             exit 0
 	        ;;
