@@ -82,7 +82,7 @@ samtools view \
     <mapped.sort.bam> \
     -bh \
     -F 0x04 \
-    -F 0x100 > <mapped.sort.filt.tag.bam> 
+    -F 0x100 > <mapped.sort.filt.bam> 
     
 ```
 
@@ -125,6 +125,7 @@ cat <outpute_barcode_directory>/*.clstr > barcodes_<index>.clstr
 # Tagging .bam file with clustered barcodes
 python3 tag_bam.py \
     mapped.sort.filt.bam \
+    barcodes_<index>.clstr \
     mapped.sort.filt.tag.bam
 
 ```
