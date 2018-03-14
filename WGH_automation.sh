@@ -488,10 +488,10 @@ then
     printf "`date`"'\tBam tagging\n'
 
     # Tagging bamfile
-    python3 $wgh_path'/python scripts/tag_bam.py' \
+    (python3 $wgh_path'/python scripts/tag_bam.py' \
         $file_name".sort.filt.bam" \
         $path"/"$N_string".clstr" \
-        $file_name".sort.filt.tag.bam" #) 2>$path"/tag_bam.stderr"
+        $file_name".sort.filt.tag.bam" ) 2>$path"/tag_bam.stderr"
     if ! $keep_logiles
     then
         rm $path"/tag_bam.stderr"
