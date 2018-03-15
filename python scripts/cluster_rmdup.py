@@ -7,7 +7,7 @@ def main():
     # Imports & globals
     #
 
-    global args, summaryInstance, output_tagged_bamfile, sys, time, duplicate_position_dict, singleton_duplicate_position
+    global args, summaryInstance, output_tagged_bamfile, sys, time, duplicate_position_dict, singleton_duplicate_position, overlapValues
     import pysam, sys, time
 
     #
@@ -47,9 +47,6 @@ def main():
 
         # Cache read system
         header = read.query_name
-        print(header)
-        print(read.get_reference_positions()[0])
-        print(read.get_reference_positions()[-1])
         if header in cache_read_tracker:
             # Fetch mate and remove from tracking dict
             mate = cache_read_tracker[header]
@@ -78,6 +75,7 @@ def main():
             cache_readpair_tracker[rp_position_tuple] = list()
             cache_readpair_tracker[rp_position_tuple].append((mate, read))
 
+
     # Takes care of the last chunk of reads
     for the_only_entry in cache_readpair_tracker.values(): process_readpairs(list_of_start_stop_tuples=the_only_entry)
 
@@ -97,7 +95,7 @@ def main():
     #######
 
     unpaired_duplicate_tracker = dict()
-    for unpaired_read in cache_read_trackermv ~.values():
+    for unpaired_read in cache_read_tracker.values():
 
         # Fetch informatiopn
         chromosome = unpaired_read.reference_name
@@ -163,15 +161,10 @@ def main():
                 readpair_pos_tuple = (mate_pos_tuple, read_pos_tuple)
                 barcode_ID = int(read.get_tag(args.barcode_tag))
 
-                print(barcode_ID)
-
                 # Add all barcodes IDs to set, check later if total > 2 at positions.
                 if not readpair_pos_tuple in possible_duplicate_seeds:
                     possible_duplicate_seeds[readpair_pos_tuple] = set()
                 possible_duplicate_seeds[readpair_pos_tuple].add(barcode_ID)
-
-            print(chromosome)
-            print(possible_duplicate_seeds)
 
             # When all overlaps found for current position, try finding proximal read pairs with same overlap
             for possible_seed, barcode_IDs in possible_duplicate_seeds.items(): # Only one entry
@@ -185,16 +178,18 @@ def main():
                 for position in pos_dict[chromosome]:
 
                     # Check overlapping/remaining/non-added
-                    print(barcode_IDs)
-                    print(pos_dict[chromosome][position])
                     overlapping_bc_ids = barcode_IDs & pos_dict[chromosome][position]
 
                     # Add if more than two are overlapping
                     if len(overlapping_bc_ids) >= 2:
-                        duplicates.seeds.add(overlapping_bc_ids)
+                        #min_id = min(overlapping_bc_ids)
+                        #for bc_id in overlapping_bc_ids:
+                        #    duplicates.add(bc_id, min_id=min_id)
+
+                        duplicates.seeds.add(tuple(sorted(overlapping_bc_ids)))
 
                 # Add current set to pos dict for next iteration
-                pos_dict[readpair_pos_tuple] = barcode_IDs
+                pos_dict[chromosome][readpair_pos_tuple] = barcode_IDs
 
                 # Adding value for all unpaired read duplicates
                 for position_tuple in rp_position_tuple:
@@ -207,6 +202,8 @@ def main():
                             barcode_IDs_to_add = unpaired_read_list - barcode_IDs
                             overlapValues.add_bc_set(bc_set=barcode_IDs_to_add, readpair=False)
 
+
+
     #
     #
     #
@@ -214,11 +211,13 @@ def main():
 
     report_progress('Barcodes seeded')
     report_progress('Removing overlaps under threshold and reducing several step redundancy\n')
-    report_progress('Barcodes seeded for removal:\t' + "{:,}".format(len(duplicates.translation_dict.keys())))
+    report_progress('Barcodes seeded for removal:\t' + "{:,}".format(len(duplicates.seeds)))
+
 
     #######
     ## 3 ##     Fetching dictionary for overlaps over threshold and reducing redundancy
     #######
+
 
     # Fetch all seeds which are above -t (--threshold, default=0) number of overlaps (require readpair overlap for seed)
     for bc_id_set in duplicates.seeds:
@@ -295,7 +294,7 @@ def update_cache_dict(pos_dict, chromosome, position, window):
         # Sort list from small to big value
         for position_from_dict in sorted(pos_dict[chromosome].keys()):
             # Erase all entries which are not withing $window of $position
-            if position_from_dict[0] + window >= position[0]:
+            if position_from_dict[-1][-1] + window >= position[0]:
                 break
             else:
                 del pos_dict[chromosome][position_from_dict]
@@ -511,9 +510,10 @@ class OverlapValues(object):
 
             # Fetch all overlap values and save to list for current bc_id.
             for other_bc_id in bc_set:
+
                 if bc_id < other_bc_id:
                     value_vector_dict[bc_id].append(self.matrix[other_bc_id][bc_id])
-                elif bc > other_bc_id:
+                elif bc_id > other_bc_id:
                     value_vector_dict[bc_id].append(self.matrix[bc_id][other_bc_id])
 
             # Remove list and keep max value
@@ -542,18 +542,19 @@ class BarcodeDuplicates(object):
         """
 
         # Fetch max overlap values for the given bc_set
+        bc_set = set(bc_set)
         overlap_values = overlapValues.fetch_value_vectors(bc_set)
 
         # Remove overlaps with value < threshold
-        for pot_merge in bc_set:
-            if overlap_values[pot_merge] < self.threshold:
+        for pot_merge in bc_set.copy():
+            if overlap_values[pot_merge] <= self.threshold:
                 bc_set.remove(pot_merge)
 
         # If more than one barcode id has value >= threshold, commit to translation dict
         if len(bc_set) >= 2:
             min_id = min(bc_set)
             for bc_id in bc_set:
-                if bc_id > bc_set:
+                if bc_id > min_id:
                     self.add(bc_id, min_id)
 
     def reduce_several_step_redundancy(self):
