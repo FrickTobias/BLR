@@ -56,7 +56,7 @@ bash WGH_automation.sh -r -m <john.doe@myworkplace.com -p <processors> <read_1.f
 ```
 
 For all available options, see -h (--help) and for more details consult the [step-by-step](https://github.com/FrickTobias/WGH_Analysis/tree/master/step-by-step) 
-folder which describes all steps performed by WGH_automation. For examples, see the [example folder](https://github.com/FrickTobias/WGH_Analysis/tree/master/example) 
+folder which describes all steps performed by WGH_automation. For examples and analysis file contents, see the [example folder](https://github.com/FrickTobias/WGH_Analysis/tree/master/example) 
 where an example run is thouroughly described.
 
 ## Overview
