@@ -1,6 +1,6 @@
-### Examples of how run pipeline
+## Examples of how run pipeline
 
-#### Basics
+### Basics
 
 List information about script and options available (plus default settings):
 
@@ -21,7 +21,7 @@ to john.doe@myworkplace.com and (-r) removing redundant files created in the pip
 bash WGH_automation.sh -r -m john.doe@myworkplace.com -p 24 testdata_read1.fastq.gz testdata_read2.fastq.gz testdata_analysis
 ```
 
-#### Advanced useage
+### Advanced useage
 
 (-s) Starting at step 2 and (-e) ending after step 3 (see -h, pipeline outline for information about more information 
 about step numbers):
@@ -36,7 +36,7 @@ Running with 4 barcode index nucleotides:
 bash WGH_automation.sh -i 4 testdata_read1.fastq.gz testdata_read2.fastq.gz testdata_analysis
 ```
 
-#### Testdata output
+### Testdata output
 
 Command:
 
@@ -121,4 +121,40 @@ testdata_read1.fastq.sort.filt.tag.rmdup.x2.bam.log
 testdata_read1.fastq.final.fastq.gz	
 testdata_read2.fastq.final.fastq.gz
 
+```
+
+### File contents
+
+Logfiles
+
+```
+<FILE>                              <CONTENT>
+1_trim.log                          Handle integrity
+2_map.log                           Mapping details 
+3_cluster.log                       Counts (number unique sequences) for barcode index files
+4_rmdup.log	                        Counts for duplicate marked reads
+
+```
+.fastq files
+```					
+<FILE>                              <CONTENT>		
+R1.trimmed.fastq.gz                 Demultiplexed & trimmed reads
+R2.trimmed.fastq.gz                 Demultiplexed & trimmed reads
+R1.final.fastq.gz                   Final filtered reads
+R2.final.fastq.gz                   Final filtered reads
+
+```
+.bam files
+```	
+<FILE>                              <CONTENT>
+.sort.bam                           Mapped inserts
+.sort.filt.tag.bam                  -..-, filtered for unmapped reads, non-primary alignments, tagged with barcode sequences
+.sort.filt.tag.rmdup.mkdup.bam      -..-, with read duplicates removed and cluster duplicates marked
+.sort.filt.tag.rmdup.x2.bam         -..-, with cluster duplicates merged
+
+```
+Barcode files
+```	
+<FILE>                              <CONTENT>
+.clstr                              Clustered barcode sequences 
 ```

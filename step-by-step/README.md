@@ -1,8 +1,8 @@
-### Main steps
+## Main steps
 Here every step will be explained in detail, for exact commands used in-house see example folder. Whenever arrows (< >) 
 encloses something, replace it with what is written inside (without the arrows). 
 
-#### Read trimming and barcode identification
+### Read trimming and barcode identification
 This is comprised of four steps, steps 1-3 only trim read 1 and step 4 trims both sequences. First handle 1 is trimmed 
 from the 5' end of read 1 followed by moving the barcode (20 bp) from the read sequence to the header. Subsequently 
 h2 (TES) is trimmed from the same end and lastly, short inserts are trimmed for TES' in their 3' end. The handle 
@@ -55,7 +55,7 @@ cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
     -m 25
 ```
 
-#### Mapping & Filtering
+### Mapping & Filtering
 
 Here reads are mapped to the human genome. The mapping results are then filtered to remove unmapped reads and
 non-primary alignements.
@@ -86,7 +86,7 @@ samtools view \
     
 ```
 
-#### Clustering
+### Clustering
 
 The clustering is done in three steps; preparation, clustering and tagging. The preparation steps takes trimmed reads
 and writes .fasta files containing only unique barcode sequences which then are clustered by CD-HIT-454. Lastly the
@@ -130,7 +130,7 @@ python3 tag_bam.py \
 
 ```
 
-#### Duplicate removal
+### Duplicate removal
 
 Now the file is ready for removing read duplicates and cluster dupilcates. First read duplicates are removed (not if 
 they have different barcodes) followed by marking remaining duplicates (not taking barcode into account), yielding a 
