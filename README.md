@@ -24,6 +24,7 @@ To get qvalues for python 3, clone the github fork above and install it.
 ```
 git clone https://github.com/jeffhsu3/qvalue.git
 ```
+Installing qvalues
 ```
 python3 setup.py build
 python3 setup.py install
