@@ -132,7 +132,7 @@ Logfiles
 1_trim.log                          Handle integrity
 2_map.log                           Mapping details 
 3_cluster.log                       Counts (number unique sequences) for barcode index files
-4_rmdup.log	                        Counts for duplicate marked reads
+4_rmdup.log                         Counts for duplicate marked reads
 
 ```
 .fastq files
