@@ -255,11 +255,11 @@ def main():
 
         # If read barcode in merge dict, change tag and header to compensate.
         if not previous_barcode_id in barcode_ID_merge_dict:
-            out.write(read)
+            pass
         else:
             new_barcode_id = str(barcode_ID_merge_dict[previous_barcode_id])
             read.set_tag(args.barcode_tag, new_barcode_id, value_type='Z')
-            read.query_name = '_'.join(read.query_name.split('_')[:-1]) + '_RG:Z:' + new_barcode_id
+            read.query_name = '_'.join(read.query_name.split('_')[:-1]) + '_' + args.barcode_tag + ':Z:' + new_barcode_id
 
             # Option: EXPLICIT MERGE - Write bc seq and new + prev bc ID
             if args.explicit_merge:
@@ -270,6 +270,9 @@ def main():
                 else:
                     bc_seq_already_written.add(barcode_seq)
                     explicit_merge_file.write(str(new_barcode_id) + '\t' + str(barcode_seq) + '\t' +str(previous_barcode_id) + '\n')
+
+        # Write read to out
+        out.write(read)
 
         progressBar.update()
 
