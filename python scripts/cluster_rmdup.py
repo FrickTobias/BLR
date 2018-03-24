@@ -259,7 +259,7 @@ def main():
         else:
             new_barcode_id = str(barcode_ID_merge_dict[previous_barcode_id])
             read.set_tag(args.barcode_tag, new_barcode_id, value_type='Z')
-            read.query_name = '_'.join(read.query_name.split('_')[:-1]) + '_' + args.barcode_tag + ':Z:' + new_barcode_id
+            read.query_name = '_'.join(read.query_name.split('_')[:-1]) + '_' + args.barcode_tag + ':Z:' + new_barcode_id
 
             # Option: EXPLICIT MERGE - Write bc seq and new + prev bc ID
             if args.explicit_merge:
