@@ -75,10 +75,10 @@ def main():
             summaryInstance.unmapped_read_pair += 1
             continue
         elif read_unmapped:
-            cache_readpair_tracker[mate.query_name] = mate
+            cache_read_tracker[mate.query_name] = mate
             continue
         elif mate_unmapped:
-            cache_readpair_tracker[read.query_name] = read
+            cache_read_tracker[read.query_name] = read
             continue
 
         # Save all reads sharing position
