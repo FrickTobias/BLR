@@ -45,6 +45,10 @@ def main():
             report_progress("{:,}".format(current_read_count) + ' reads \t' + "{:,}".format(summaryInstance.intact_read_pairs*2) + ' paired reads')
             current_read_count += 1000000
 
+        if read.is_secondary:
+            summaryInstance.non_primary_alignments += 1
+            continue
+
         # Cache read system
         header = read.query_name
         if header in cache_read_tracker:
@@ -57,10 +61,26 @@ def main():
             cache_read_tracker[header] = read
             continue
 
+        # Check if a read or mate is unmapped, if so, send mapped record to unpaired_reads
+        try: read_start = mate.get_reference_positions()[0]
+        except IndexError:
+            read_unmapped = True
+        try: mate_start = read.get_reference_positions()[0]
+        except IndexError:
+            mate_unmapped = True
+
+        if read_unmapped and mate_unmapped:
+            summaryInstance.unmapped_read_pair += 1
+            continue
+        elif read_unmapped:
+            cache_readpair_tracker[mate.query_name] = mate
+            continue
+        elif mate_unmapped:
+            cache_readpair_tracker[read.query_name] = read
+            continue
+
         # Save all reads sharing position
-        read_start = mate.get_reference_positions()[0]
         read_stop = mate.get_reference_positions()[-1]
-        mate_start = read.get_reference_positions()[0]
         mate_stop = read.get_reference_positions()[-1]
 
         rp_position_tuple = (read_start, read_stop, mate_start, mate_stop)
@@ -86,6 +106,8 @@ def main():
 
     report_progress('Total reads in file:\t' + "{:,}".format(summaryInstance.totalReadPairsCount))
     report_progress('Total paired reads:\t' + "{:,}".format(summaryInstance.intact_read_pairs*2))
+    report_progress('Reads in unmapped read pairs:\t' + "{:,}".format(summaryInstance.unmapped_read_pair*2))
+    report_progress('Non-primary alignments in file:\t' + "{:,}".format(summaryInstance.non_primary_alignments))
     report_progress('Duplicate positions and barcode ID:s from read pairs saved\n')
     report_progress('Fetching unpaired read duplicate positions & barcode ID:s')
 
@@ -708,6 +730,8 @@ class Summary(object):
         self.totalReadPairsMarkedAsDuplicates = int()
         self.log = args.output_bam + '.log'
         self.intact_read_pairs = int()
+        self.unmapped_read_pair = int()
+        self.non_primary_alignments = int()
 
         with open(self.log, 'w') as openout:
             pass
