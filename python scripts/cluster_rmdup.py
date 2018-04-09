@@ -62,6 +62,8 @@ def main():
             continue
 
         # Check if a read or mate is unmapped, if so, send mapped record to unpaired_reads
+        read_unmapped = False
+        mate_unmapped = False
         try: read_start = mate.get_reference_positions()[0]
         except IndexError:
             read_unmapped = True
