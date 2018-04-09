@@ -390,7 +390,6 @@ then
         $file_name".sort.bam" \
         -@ $processors \
         -bh \
-        -F 0x04 \
         -F 0x100 > $file_name".sort.filt.bam"
 
     printf "`date`"'\tFiltering done\n'
