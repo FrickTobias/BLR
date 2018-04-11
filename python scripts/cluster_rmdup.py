@@ -45,6 +45,7 @@ def main():
             report_progress("{:,}".format(current_read_count) + ' reads \t' + "{:,}".format(summaryInstance.intact_read_pairs*2) + ' paired reads')
             current_read_count += 1000000
 
+        # Should only use one alignments in calculations, currently assumes primary is correct
         if read.is_secondary:
             summaryInstance.non_primary_alignments += 1
             continue
@@ -62,28 +63,23 @@ def main():
             continue
 
         # Check if a read or mate is unmapped, if so, send mapped record to unpaired_reads
-        read_unmapped = False
-        mate_unmapped = False
-        try: read_start = mate.get_reference_positions()[0]
-        except IndexError:
-            read_unmapped = True
-        try: mate_start = read.get_reference_positions()[0]
-        except IndexError:
-            mate_unmapped = True
-
-        if read_unmapped and mate_unmapped:
+        if read.is_unmapped and mate.is_unmapped:
             summaryInstance.unmapped_read_pair += 1
             continue
-        elif read_unmapped:
+        elif read.is_unmapped:
             cache_read_tracker[mate.query_name] = mate
             continue
-        elif mate_unmapped:
+        elif mate.is_unmapped:
             cache_read_tracker[read.query_name] = read
             continue
 
         # Save all reads sharing position
-        read_stop = mate.get_reference_positions()[-1]
-        mate_stop = read.get_reference_positions()[-1]
+        all_read_pos = read.get_reference_positions()
+        all_mate_pos = mate.get_reference_positions()
+        read_start = all_read_pos[0]
+        mate_start = all_mate_pos[0]
+        read_stop = all_mate_pos[-1]
+        mate_stop = all_mate_pos[-1]
 
         rp_position_tuple = (read_start, read_stop, mate_start, mate_stop)
 
@@ -97,9 +93,9 @@ def main():
             cache_readpair_tracker[rp_position_tuple] = list()
             cache_readpair_tracker[rp_position_tuple].append((mate, read))
 
-
     # Takes care of the last chunk of reads
     for the_only_entry in cache_readpair_tracker.values(): process_readpairs(list_of_start_stop_tuples=the_only_entry)
+
 
     #
     #
