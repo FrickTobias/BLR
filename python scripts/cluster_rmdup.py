@@ -127,6 +127,7 @@ def main():
         try: start_stop[0]
         except IndexError:
             summaryInstance.unmapped_singleton += 1
+            continue
 
         # Add chrom to dict if not present
         if not chromosome in unpaired_duplicate_tracker:
