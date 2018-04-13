@@ -67,9 +67,11 @@ def main():
             summaryInstance.unmapped_read_pair += 1
             continue
         elif read.is_unmapped:
+            summaryInstance.unmapped_singleton += 1
             cache_read_tracker[mate.query_name] = mate
             continue
         elif mate.is_unmapped:
+            summaryInstance.unmapped_singleton += 1
             cache_read_tracker[read.query_name] = read
             continue
 
@@ -122,6 +124,10 @@ def main():
         positions = unpaired_read.get_reference_positions()
         start_stop = (positions[0], positions[-1])
 
+        try: start_stop[0]
+        except IndexError:
+            summaryInstance.unmapped_singleton += 1
+
         # Add chrom to dict if not present
         if not chromosome in unpaired_duplicate_tracker:
             unpaired_duplicate_tracker[chromosome] = dict()
@@ -154,6 +160,7 @@ def main():
 
 
     report_progress('Unpaired duplicate reads fetched\n')
+    report_progress('Non-mapped unpaired reads:\t' + str(summaryInstance.unmapped_singleton))
     report_progress('Seeding barcode ID duplicates')
 
 
@@ -730,6 +737,7 @@ class Summary(object):
         self.intact_read_pairs = int()
         self.unmapped_read_pair = int()
         self.non_primary_alignments = int()
+        self.unmapped_singleton = int()
 
         with open(self.log, 'w') as openout:
             pass
