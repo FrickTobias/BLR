@@ -704,7 +704,7 @@ class readArgs(object):
         parser.add_argument("-t", "--threshold", metavar="<INTEGER>", type=int, default=0, help="Threshold for how many additional overlaps "
                                                                             "(other than four exact positions from two "
                                                                             "readpairs) is needed for mergin two barcode "
-                                                                            "clusters.")
+                                                                            "clusters. DEFAULT: 0")
         parser.add_argument("-e", "--explicit_merge", metavar="<FILENAME>", type=str, help="Writes a file with new_bc_id \\t original_bc_seq")
         parser.add_argument("-bc", "--barcode_tag", metavar="<BARCODE_TAG>", type=str, default='RG', help="Bamfile tag in which the barcode is specified in. DEFAULT: RG")
 
