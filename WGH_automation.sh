@@ -137,7 +137,7 @@ printf '\n0. Argparsing & options'
 printf '\nRead 1:\t\t'$ARG1'\nRead 2:\t\t'$ARG2'\nOutput:\t\t'$ARG3'\n'
 printf '\nThreads:\t'$processors
 printf '\nStarts at step:\t'$start_step
-printf '\nEnd at step:\t'$end_step
+printf '\nEnd after step:\t'$end_step
 
 
 # Mailing option
