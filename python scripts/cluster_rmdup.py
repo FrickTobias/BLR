@@ -124,13 +124,12 @@ def main():
         positions = unpaired_read.get_reference_positions()
 
         # Handles unmapped unpaired reads
-        try: start_stop[0]
+        try: positions[0]
         except IndexError:
             summaryInstance.unmapped_singleton += 1
             continue
 
         start_stop = (positions[0], positions[-1])
-
 
         # Add chrom to dict if not present
         if not chromosome in unpaired_duplicate_tracker:
