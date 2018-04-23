@@ -45,6 +45,9 @@ def main():
             report_progress("{:,}".format(current_read_count) + ' reads \t' + "{:,}".format(summaryInstance.intact_read_pairs*2) + ' paired reads')
             current_read_count += 1000000
 
+        if not read.is_duplicate:
+            continue
+
         # Should only use one alignments in calculations, currently assumes primary is correct
         if read.is_secondary:
             summaryInstance.non_primary_alignments += 1
@@ -212,10 +215,6 @@ def main():
 
                     # Add if more than two are overlapping
                     if len(overlapping_bc_ids) >= 2:
-                        #min_id = min(overlapping_bc_ids)
-                        #for bc_id in overlapping_bc_ids:
-                        #    duplicates.add(bc_id, min_id=min_id)
-
                         duplicates.seeds.add(tuple(sorted(overlapping_bc_ids)))
 
                 # Add current set to pos dict for next iteration
