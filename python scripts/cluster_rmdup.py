@@ -124,6 +124,9 @@ def main():
     unpaired_duplicate_tracker = dict()
     for unpaired_read in cache_read_tracker.values():
 
+        if not unpaired_read.is_dupliate:
+            continue
+
         # Fetch informatiopn
         chromosome = unpaired_read.reference_name
         positions = unpaired_read.get_reference_positions()
