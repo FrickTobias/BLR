@@ -63,10 +63,6 @@ def main():
             cache_read_tracker[header] = read
             continue
 
-        # If none of the reads are marked as duplicate they are not interesting.
-        if not read.is_duplicate and not mate.is_duplicate:
-            continue
-
         # Check if a read or mate is unmapped, if so, send mapped record to unpaired_reads
         if read.is_unmapped and mate.is_unmapped:
             summaryInstance.unmapped_read_pair += 1
@@ -123,9 +119,6 @@ def main():
 
     unpaired_duplicate_tracker = dict()
     for unpaired_read in cache_read_tracker.values():
-
-        if not unpaired_read.is_dupliate:
-            continue
 
         # Fetch informatiopn
         chromosome = unpaired_read.reference_name
