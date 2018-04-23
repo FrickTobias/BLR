@@ -45,8 +45,6 @@ def main():
             report_progress("{:,}".format(current_read_count) + ' reads \t' + "{:,}".format(summaryInstance.intact_read_pairs*2) + ' paired reads')
             current_read_count += 1000000
 
-        if not read.is_duplicate:
-            continue
 
         # Should only use one alignments in calculations, currently assumes primary is correct
         if read.is_secondary:
@@ -63,6 +61,10 @@ def main():
         else:
             # Save read for later when mate is found
             cache_read_tracker[header] = read
+            continue
+
+        # If none of the reads are marked as duplicate they are not interesting.
+        if not read.is_duplicate and not mate.is_duplicate:
             continue
 
         # Check if a read or mate is unmapped, if so, send mapped record to unpaired_reads
