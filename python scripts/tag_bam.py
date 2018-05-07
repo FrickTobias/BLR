@@ -44,8 +44,8 @@ def main():
                 continue
 
             # Set tag to bc_id
-            read.set_tag('RG', str(bc_id), value_type='Z')  # Stores as string, makes duplicate removal possible. Can do it as integer as well.
-            read.query_name = (read.query_name + '_@RG:Z:' + str(bc_id))
+            read.set_tag(args.barcode_tag, str(bc_id), value_type='Z')  # Stores as string, makes duplicate removal possible. Can do it as integer as well.
+            read.query_name = (read.query_name + '_@' + args.barcode_tag + ':Z:' + str(bc_id))
             out.write(read)
 
         # Includes barcodes with N first three bases (but they won't be clustered, RG=bc_seq)
@@ -58,40 +58,49 @@ def main():
                 add_to_RG_headers.append(bc_id)  # For RG headers later
 
             # Set tag to bc_id
-            read.set_tag('RG', str(bc_id),value_type='Z')  # Stores as string, makes duplicate removal possible. Can do it as integer as well.
-            read.query_name = (read.query_name + '_@RG:Z:' + str(bc_id))
+            read.set_tag(args.barcode_tag, str(bc_id),value_type='Z')  # Stores as string, makes duplicate removal possible. Can do it as integer as well.
+            read.query_name = (read.query_name + '_@' + args.barcode_tag + ':Z:' + str(bc_id))
             out.write(read)
 
     not_atgc_dict = dict()
 
     infile.close()
     out.close()
-
     infile = pysam.AlignmentFile(args.output_tagged_bam+'.tmp.bam', 'rb')
-    header_dict = infile.header.copy()
-    header_dict['RG'] = list()
 
-    for clusterId in summaryInstance.read_to_barcode_dict.values():
-        try:
-            not_atgc_dict[clusterId] += 1
-        except KeyError:
-            not_atgc_dict[clusterId] = 1
-            header_dict['RG'].append({'ID':str(clusterId), 'SM':'1'})
+    # If barcode_tag == RG all reads groups must be found in header as well.
+    if args.barcode_tag == 'RG':
 
-    for clusterId in add_to_RG_headers:
-        try:
-            not_atgc_dict[clusterId] += 1
-        except KeyError:
-            not_atgc_dict[clusterId] = 1
-            header_dict['RG'].append({'ID':str(clusterId), 'SM':'1'})
+        header_dict = infile.header.copy()
+        header_dict['RG'] = list()
 
-    out = pysam.AlignmentFile(args.output_tagged_bam, 'wb', header=header_dict)
+        for clusterId in summaryInstance.read_to_barcode_dict.values():
+            try:
+                not_atgc_dict[clusterId] += 1
+            except KeyError:
+                not_atgc_dict[clusterId] = 1
+                header_dict['RG'].append({'ID':str(clusterId), 'SM':'1'})
+
+        for clusterId in add_to_RG_headers:
+            try:
+                not_atgc_dict[clusterId] += 1
+            except KeyError:
+                not_atgc_dict[clusterId] = 1
+                header_dict['RG'].append({'ID':str(clusterId), 'SM':'1'})
+
+        out = pysam.AlignmentFile(args.output_tagged_bam, 'wb', header=header_dict)
+
+    # If barcode_tag != RG, then just use infile for header template
+    else:
+        out = pysam.AlignmentFile(args.output_tagged_bam, 'wb', template=infile)
 
     for read in infile.fetch(until_eof=True):
         out.write(read)
 
     infile.close()
     out.close()
+
+    # Removes tmp-file
     os.remove(args.output_tagged_bam+'.tmp.bam')
 
 def readAndProcessClusters(openInfile):
@@ -171,6 +180,8 @@ class readArgs(object):
                                  "TagGD_prep.py -p 2 insert_r1.fq unique.fa")
         parser.add_argument("-e", "--exclude_N", type=bool, default=True, help="If True (default), excludes .bam file "
                                                                                "reads with barcodes containing N.")
+        parser.add_argument("-bc", "--barcode_tag", metavar="<BARCODE_TAG>", type=str, default='BC',
+                            help="Bamfile tag in which the barcode is specified in. DEFAULT: BC")
 
         args = parser.parse_args()
 

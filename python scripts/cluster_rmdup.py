@@ -797,7 +797,7 @@ class readArgs(object):
                                                                             "readpairs) is needed for mergin two barcode "
                                                                             "clusters. DEFAULT: 0")
         parser.add_argument("-e", "--explicit_merge", metavar="<FILENAME>", type=str, help="Writes a file with new_bc_id \\t original_bc_seq")
-        parser.add_argument("-bc", "--barcode_tag", metavar="<BARCODE_TAG>", type=str, default='RG', help="Bamfile tag in which the barcode is specified in. DEFAULT: RG")
+        parser.add_argument("-bc", "--barcode_tag", metavar="<BARCODE_TAG>", type=str, default='BC', help="Bamfile tag in which the barcode is specified in. DEFAULT: BC")
 
         args = parser.parse_args()
 

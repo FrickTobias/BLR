@@ -547,7 +547,7 @@ then
         M=$path"/picard.log" \
         ASSUME_SORT_ORDER=coordinate \
         REMOVE_DUPLICATES=true \
-        BARCODE_TAG=RG) 2>$rmdup_logfile
+        BARCODE_TAG=BC) 2>$rmdup_logfile
 
     printf "`date`"'\tDuplicate removal done\n'
     printf "`date`"'\tBarcode duplicate marking\n'
