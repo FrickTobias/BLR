@@ -576,11 +576,22 @@ then
 
 
     printf "`date`"'\tCluster merging done\n'
+    printf "`date`"'\tCluster filtering\n'
+
+    mkdir -p $path"/cluster_stats"
+    # Cluster filtering
+    (python3 $wgh_path'/python scripts/filter_clusters.py' \
+        -f $file_name".sort.filt.tag.rmdup.x2.filt.bam" \
+        -M 260 \
+        $file_name".sort.filt.tag.rmdup.x2.bam" \
+        $path"/cluster_stats/x2.filt.stats") 2>>$rmdup_logfile
+
+    printf "`date`"'\tClusters filtering done\n'
     printf "`date`"'\tFastq generation\n'
 
     # Fastq generation
     (java -jar $picard_path SamToFastq \
-        I=$file_name".sort.filt.tag.rmdup.x2.bam" \
+        I=$file_name".sort.filt.tag.rmdup.x2.filt.bam" \
         FASTQ=$file_name".final.fastq" \
         SECOND_END_FASTQ=$file_name2".final.fastq") 2>>$path/picard.log
 
