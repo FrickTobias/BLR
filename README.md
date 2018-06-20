@@ -47,7 +47,7 @@ For all available options, see -h (--help) and for more details consult the [ste
 folder which describes all steps performed by WGH_automation. For examples and analysis file contents, see the [example folder](https://github.com/FrickTobias/WGH_Analysis/tree/master/example) 
 where an example run is thouroughly described.
 
-####_de novo_ Metagenomics
+#### _de novo_ Metagenomics
 
 First trim read sequences and extract barcode sequences with WGH_automation using the -e 1 option.
 
@@ -64,7 +64,7 @@ bash WGH_automation.sh -r -m <john.doe@myworkplace.com -p <processors> <read_1.f
 Following this, run athena_assembly.sh provided through the [WGH metagenomics](https://github.com/jennifertheland/WGH_metagenomics) 
 GitHub repository.
 
-####Human Haplotyping and Assembly
+#### Human Haplotyping and Assembly
 
 Start by running the complete preprocessing pipeline with the fastq generation option.
 
@@ -76,7 +76,7 @@ Continue by converting filtered fastq files to Long Ranger/Supernova input forma
 and run the appropriate pipeline.
 
 
-####Custom Phasing Analysis
+#### Custom Phasing Analysis
 
 Run the preprocessing pipeline using default settings.
 
