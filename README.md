@@ -86,7 +86,7 @@ bash WGH_automation.sh -r -m <john.doe@myworkplace.com -p <processors> <read_1.f
 
 ## Overview
 
-![](https://github.com/FrickTobias/WGH_Analysis/blob/master/figures/pipeline.png)
+![](https://github.com/FrickTobias/WGH_Analysis/blob/master/figures/pipeline.png | width=100)
 
 **Figure 1:** Overview. Data analysis overview. **(a)** Reads are trimmed for their first handle using cutadapt
 followed by extraction fo the barcode sequence to a separate fasta files. Reads continue to be trimmed for 
