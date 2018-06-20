@@ -13,8 +13,7 @@
   # 1. Read trimming & demultiplexing       #
   # 2. Mapping & filtering                  #
   # 3. Barcode clustering & tagging         #
-  # 4. Clstr rmdup & fastq generation       #
-  #   - optional, requires A LOT of RAM     #
+  # 4. Rmdup + filtering + fq-generation    #
   #                                         #
 # # # # # # # # # # # # # # # # # # # # # # # #
   #                                         #
@@ -523,6 +522,7 @@ fi
  #   - rmdup (with TAG=RG)           #
  #   - mkdup (without TAG)           #
  #   - Cluster rmdup                 #
+ #   - Cluster filtering             #
  #   - Fastq generation              #
  #                                   #
 #######################################
