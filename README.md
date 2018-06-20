@@ -1,13 +1,14 @@
 # WGH_Analysis
 
 This GitHub repository describes and distributes all script used in "[Efficient whole genome haplotyping and 
-high-throughput single molecule phasing with barcode-linked reads]()". The code is divided into three parts (See [Fig. 1](https://github.com/FrickTobias/WGH_Analysis/blob/master/README.md#overview) 
-for overview) where this repository inhabits data handling and preprocessing prior to analysis. It takes raw 
-fastq files as input and outputs either (1) fastq files for metagenomic _de novo_ analysis, (2) fastq files for '
-Human Genome haplotyping or (3) bam files ready custom variant calling and phasing analysis. 
+high-throughput single molecule phasing with barcode-linked reads]()", see [figure 1](https://github.com/FrickTobias/WGH_Analysis/blob/master/README.md#overview) 
+for overview. This GitHub is used for preprocessing of read data and takes raw fastq files as input and outputs 
+either (1) fastq files for metagenomic _de novo_ analysis, (2) fastq files for Human Genome haplotyping or (3) 
+bam files ready custom variant calling and phasing analysis. 
 
-To run the metagenomic assembly analysis look at [WGH metagenomics](https://github.com/jennifertheland/WGH_metagenomics) 
-and for Long Ranger or Supernova analysis consider [wfa2tenx](https://github.com/remiolsen/wfa2tenx).
+To run analyse (1) output and get metagenomic assemblies look at [WGH metagenomics](https://github.com/jennifertheland/WGH_metagenomics).
+Processing of (2) for Human Genome Haplotyping or reference-free assemnbly please conside the [wfa2tenx](https://github.com/remiolsen/wfa2tenx)
+GitHub.
 
 ## Dependencies
 
