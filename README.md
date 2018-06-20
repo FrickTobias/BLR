@@ -1,7 +1,7 @@
 # WGH_Analysis
 
-This GitHub repository describes and distributes all [WGH]() used in "Efficient Whole Genome Haplotyping and _de 
-novo_ sequencing". The code is divided into three parts (See [Fig. 1](https://github.com/FrickTobias/WGH_Analysis/blob/master/README.md#overview) 
+This GitHub repository describes and distributes all script used in "[Efficient whole genome haplotyping and 
+high-throughput single molecule phasing with barcode-linked reads]()". The code is divided into three parts (See [Fig. 1](https://github.com/FrickTobias/WGH_Analysis/blob/master/README.md#overview) 
 for overview) where this repository inhabits data handling and preprocessing prior to analysis. It takes raw 
 fastq files as input and outputs either (1) fastq files for metagenomic _de novo_ analysis, (2) fastq files for '
 Human Genome haplotyping or (3) bam files ready custom variant calling and phasing analysis. 
