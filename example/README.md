@@ -41,7 +41,7 @@ bash WGH_automation.sh -i 4 testdata_read1.fastq.gz testdata_read2.fastq.gz test
 Command:
 
 ```
-bash WGH_automation.sh -r -m john.doe@myworkplace.com -p 24 testdata_read1.fastq.gz testdata_read2.fastq.gz testdata_analysis
+bash WGH_automation.sh -f -r -m john.doe@myworkplace.com -p 24 testdata_read1.fastq.gz testdata_read2.fastq.gz testdata_analysis
 ```
 
 Output:

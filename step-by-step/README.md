@@ -15,7 +15,7 @@ h2 = TES = CTGTCTCTTATACACATCT
 ```
 
 ```
-# Trim handle 1
+# Trim handle 1 and discard untrimmed read pairs
 cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
     <read_1.fq> \
     <read_2.fq> \
@@ -33,7 +33,7 @@ python3 bc_extract.py \
     <read_1.h1.bc.fq> \
     <read_2.h1.bc.fq>
  
-# Trim handle 2 
+# Trim handle 2 and discard untrimmed read pairs
 cutadapt -g AGATGTGTATAAGAGACAG \
     <read_1.h1.bc.fq> \    
     <read_2.h1.bc.fq> \
@@ -44,7 +44,7 @@ cutadapt -g AGATGTGTATAAGAGACAG \
     -g 0.2 \
     -m 65
     
-# Trim handle 2:s reverse complement from 3' end (in both reads)  
+# Trim handle 2:s reverse complement from 3' end in both reads  
 cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
     <read_1.h1.bc.h2.fq> \    
     <read_2.h1.bc.h2.fq> \
@@ -57,8 +57,7 @@ cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
 
 ### Mapping & Filtering
 
-Here reads are mapped to the human genome. The mapping results are then filtered to remove unmapped reads and
-non-primary alignements.
+Here reads are mapped to the human genome and converted from sam to bam format.
 
 ```
 # Mapping reads and writing as bam
@@ -73,29 +72,22 @@ bowtie2 \
         -@ <processors>
         -bh > <mapped.bam>
    
-# Sorting file (necessary for downstream analysis)
+# Sorting file (necessary for downstream analysis, will also reduce memory needed)
 samtools sort \
     <mapped.bam> > <mapped.sort.bam>
-    
-# Filtering for unmapped reads (0x04) and non-primary alignments (0xs100)
-samtools view \
-    <mapped.sort.bam> \
-    -bh \
-    -F 0x04 \
-    -F 0x100 > <mapped.sort.filt.bam> 
-    
+        
 ```
 
 ### Clustering
 
 The clustering is done in three steps; preparation, clustering and tagging. The preparation steps takes trimmed reads
-and writes .fasta files containing only unique barcode sequences which then are clustered by CD-HIT-454. Lastly the
-clustered barcodes are used are used to tag the .bam file with reads where they are given a cluster ID (a number) 
-alongside their barcode sequence in the header as well as a RG tag with the barcode ID.
+and writes fasta files containing only unique barcode sequences which are individually clustered by CD-HIT-454. Lastly 
+the clustered barcodes are used are used to tag the .bam file with reads where they are given a cluster ID (an integer) 
+alongside their barcode sequence in the header as well as a BC tag with the barcode ID.
 
-In order to cluster a vast amount of unique barcodes sequences (>100M) the barcode sequences are divided into several 
-files according on its first nucleotides. These are used as an index and these files are clustered separately and this
-can be reglated in the preparation step (cdhit_prep.py, -r option).
+In order to cluster a vast amount of unique barcodes sequences (>100M), barcode sequences are divided into several 
+files according on its first nucleotides. This can be regulated by using the cdhit_prep.py -r (--reduce) option or
+in the -i (--indexing_nucleotides) option in the automation script.
 
 ```
 # Preparation, using 3 indexing nucleotides
@@ -134,8 +126,11 @@ python3 tag_bam.py \
 
 Now the file is ready for removing read duplicates and cluster dupilcates. First read duplicates are removed (not if 
 they have different barcodes) followed by marking remaining duplicates (not taking barcode into account), yielding a 
-file with only cluster duplicates marked. The clusters marked as duplicates are then merged if two phased read pairs 
-within phasing distance and they both share the same barcodes.
+file with only read duplicates with different barcodes marked. These reads are then used to find pairs of phased reads
+within the same clusters which have another pair of phased reads at the same position with another barcode (pairs of 
+phased reads are defined as two proximal read pairs). If this is
+identified this is interpreted as the barcodes either originating from the same emulsion or not being missed in the 
+clustering step.
 
 ```
 # Removing duplicates, keeping reads if they have different barcodes
