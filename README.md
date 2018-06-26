@@ -6,7 +6,7 @@ for overview. This GitHub is used for pre-processing of read data and takes raw 
 either (1) fastq files for metagenomic _de novo_ analysis, (2) fastq files for Human Genome haplotyping or (3) 
 bam files ready custom variant calling and phasing analysis. 
 
-To run subsequent analysis to the (1) output and get metagenomic assemblies look at [WGH metagenomics](https://github.com/jennifertheland/WGH_metagenomics).
+To run subsequent analysis to the (1) output and get metagenomic assemblies look at [BLR metagenomics](https://github.com/jennifertheland/WGH_metagenomics).
 Processing from (2) for for Human Genome Haplotyping or human reference-free assembly please consider the [wfa2tenx](https://github.com/remiolsen/wfa2tenx)
 GitHub.
 
@@ -61,7 +61,7 @@ Now cluster barcode sequences with the -s (--start) 3 -e (--end) 3 options.
 bash BLR_automation.sh -s 3 -e 3 -r -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
 ```
 
-Following this, run athena_assembly.sh provided through the [WGH metagenomics](https://github.com/jennifertheland/WGH_metagenomics) 
+Following this, run athena_assembly.sh provided through the [BLR_metagenomics](https://github.com/jennifertheland/WGH_metagenomics) 
 GitHub repository.
 
 ### (2) Human Haplotyping and Assembly
