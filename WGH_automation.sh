@@ -77,10 +77,10 @@ do
             end_step=${OPTARG}
             ;;
         h)
-            printf 'WGH_automation.sh
+            printf 'BLR_automation.sh
 
-Useage:     bash WGH_automation.sh <options> <r1.fq> <r2.fq> <output_dir>
-Example:    bash WGH_automation.sh -r -p 24 -m john.doe@domain.org N1298_read1.fastq N1298_read2.fastq 180220_N1298
+Useage:     bash BLR_automation.sh <options> <r1.fq> <r2.fq> <output_dir>
+Example:    bash BLR_automation.sh -r -p 24 -m john.doe@domain.org N1298_read1.fastq N1298_read2.fastq 180220_N1298
 NB:         options must be given before arguments.
 
 Pipeline outline:
