@@ -1,4 +1,4 @@
-# WGH_Analysis
+# Barcode-Linked reads Analysis
 
 This GitHub repository describes and distributes all script used in "[Efficient whole genome haplotyping and 
 high-throughput single molecule phasing with barcode-linked reads]()", see [figure 1](https://github.com/FrickTobias/WGH_Analysis/blob/master/README.md#overview) 
