@@ -1,7 +1,7 @@
 # Barcode-Linked Reads Analysis
 
 This GitHub repository describes and distributes all script used in "[Efficient whole genome haplotyping and 
-high-throughput single molecule phasing with barcode-linked reads]()", see [figure 1](https://github.com/FrickTobias/WGH_Analysis/blob/master/README.md#overview) 
+high-throughput single molecule phasing with barcode-linked reads]()", see [figure 1](https://github.com/FrickTobias/BLR/blob/master/README.md#overview) 
 for overview. This GitHub is used for pre-processing of read data and takes raw fastq files as input and outputs 
 either (1) fastq files for metagenomic _de novo_ analysis, (2) fastq files for Human Genome haplotyping or (3) 
 bam files ready custom variant calling and phasing analysis. 
@@ -34,8 +34,8 @@ First, download this GitHub repository by writing the cloning command in your te
 git clone https://github.com/FrickTobias/BLR.git
 ```
 
-Then provide WGH_Analysis with the appropriate paths for Picard Tools and your Bowtie2 reference data (consult 
-[example folder](https://github.com/FrickTobias/WGH_Analysis/tree/master/example) for further details).
+Then provide BLR_Analysis with the appropriate paths for Picard Tools and your Bowtie2 reference data (consult 
+[example folder](https://github.com/FrickTobias/BLR/tree/master/example) for further details).
 
 ```
 bash setpath.sh </path/to/picardtools> </path/to/bowtie2_reference>
@@ -43,13 +43,13 @@ bash setpath.sh </path/to/picardtools> </path/to/bowtie2_reference>
 
 ## Useage
 
-For all available options, see -h (--help) and for more consult the [step-by-step](https://github.com/FrickTobias/WGH_Analysis/tree/master/step-by-step) 
-folder which describes all steps performed by WGH_automation. For examples and analysis file contents, see the [example folder](https://github.com/FrickTobias/WGH_Analysis/tree/master/example) 
+For all available options, see -h (--help) and for more consult the [step-by-step](https://github.com/FrickTobias/BLR/tree/master/step-by-step) 
+folder which describes all steps performed by BLR_automation. For examples and analysis file contents, see the [example folder](https://github.com/FrickTobias/BLR/tree/master/example) 
 where different example runs are thouroughly described.
 
 ### (1) _de novo_ Metagenomics
 
-First trim read sequences and extract barcode sequences with WGH_automation using the -e (--end) 1 option.
+First trim read sequences and extract barcode sequences with BLR_automation using the -e (--end) 1 option.
 
 ```
 bash BLR_automation.sh -e 1 -r -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
