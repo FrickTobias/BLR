@@ -31,7 +31,7 @@ Lastly to utilize all aspects of the pipeline some GNU software are also needed.
 First, download this GitHub repository by writing the cloning command in your terminal.
 
 ```
-git clone https://github.com/FrickTobias/WGH_Analysis.git
+git clone https://github.com/FrickTobias/BLR.git
 ```
 
 Then provide WGH_Analysis with the appropriate paths for Picard Tools and your Bowtie2 reference data (consult 
@@ -52,13 +52,13 @@ where different example runs are thouroughly described.
 First trim read sequences and extract barcode sequences with WGH_automation using the -e (--end) 1 option.
 
 ```
-bash WGH_automation.sh -e 1 -r -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
+bash BLR_automation.sh -e 1 -r -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
 ```
 
 Now cluster barcode sequences with the -s (--start) 3 -e (--end) 3 options.
 
 ```
-bash WGH_automation.sh -s 3 -e 3 -r -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
+bash BLR_automation.sh -s 3 -e 3 -r -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
 ```
 
 Following this, run athena_assembly.sh provided through the [WGH metagenomics](https://github.com/jennifertheland/WGH_metagenomics) 
@@ -69,7 +69,7 @@ GitHub repository.
 Start by running the complete pre-processing pipeline with the fastq generation option -f (--fastq).
 
 ```
-bash WGH_automation.sh -f -r -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
+bash BLR_automation.sh -f -r -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
 ```
 
 Continue by converting filtered fastq files to Long Ranger/Supernova input format using [wfa2tenx](https://github.com/remiolsen/wfa2tenx)
@@ -81,14 +81,14 @@ and run the appropriate pipeline.
 Run the preprocessing pipeline using default settings.
 
 ```
-bash WGH_automation.sh -r -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
+bash BLR_automation.sh -r -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
 ```
 
 ## Overview
 
 <img src="./figures/pipeline.png" alt="drawing" width="400px"/>
 
-**Figure 1:** Overview. Data analysis overview. **(a)** Reads are trimmed for their first handle using cutadapt
+**Figure 1:** BLR data analysis overview. **(a)** Reads are trimmed for their first handle using cutadapt
 followed by extraction fo the barcode sequence to a separate fasta files. Reads continue to be trimmed for 
 another handle sequence just before the insert sequences and lastly reads are stripped of any traces of 
 reverse complements of handle sequences from their 3' end. **(b)** Barcodes are split into several files files 
