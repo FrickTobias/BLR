@@ -2,7 +2,7 @@
 
 This GitHub repository describes and distributes all script used in "[Efficient whole genome haplotyping and 
 high-throughput single molecule phasing with barcode-linked reads]()", see [figure 1](https://github.com/FrickTobias/BLR/blob/master/README.md#overview) 
-for overview. This GitHub is used for pre-processing of read data and takes raw fastq files as input and outputs 
+for overview. The main repo is used for pre-processing of read data and takes raw fastq files as input and outputs 
 either (1) fastq files for metagenomic _de novo_ analysis, (2) fastq files for Human Genome haplotyping or (3) 
 bam files ready custom variant calling and phasing analysis. 
 
