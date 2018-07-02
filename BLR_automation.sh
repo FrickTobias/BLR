@@ -86,8 +86,8 @@ NB:         options must be given before arguments.
 Pipeline outline:
   0.Argparsing & options
   1.Demultiplexing
-  2.Mapping
-  3.Clustering
+  2.Clustering
+  3.Mapping
   4.Duplicate removal
 
 Positional arguments (REQUIRED)
@@ -133,7 +133,7 @@ then
 fi
 
 printf '\n0. Argparsing & options'
-printf '\nRead 1:\t\t'$ARG1'\nRead 2:\t\t'$ARG2'\nOutput:\t\t'$ARG3'\n'
+printf '\nRead 1:\t'$ARG1'\nRead 2:\t'$ARG2'\nOutput:\t'$ARG3'\n'
 printf '\nThreads:\t'$processors
 printf '\nStarts at step:\t'$start_step
 printf '\nEnd after step:\t'$end_step
@@ -324,95 +324,8 @@ then
     continue=false
 fi
 
+
 # 2. ###################################################################################
-
- #                                   #
-############# Overview ################
- #                                   #
- #   - Map & convert to bam          #
- #   - Sorting                       #
- #   - Filtering (unmap + prim map)  #
- #                                   #
-#######################################
- #                                   #
-
-# Check if this step should be run
-current_step=$((current_step+1))
-if (( "$current_step" >= "$start_step" )) && [ "$continue" == true ]
-then
-
-    if $mailing
-    then
-        echo '2_map starting '$(date) | mail -s $path $email
-    fi
-    printf '\n2. Mapping\n'
-    printf "`date`"'\tMapping\n'
-    printf '\n\n Map stats: .sort.bam\n' >> $map_logfile
-
-    # Mapping & bam conversion
-    (bowtie2 \
-        -1 $file_name".trimmed.fastq.gz" \
-        -2 $file_name2".trimmed.fastq.gz" \
-        -x $bowtie2_reference \
-        --maxins 2000 \
-        -p $processors | \
-        samtools view \
-            - \
-            -@ $processors \
-            -bh > $file_name".bam") 2>$map_logfile
-
-    printf "`date`"'\tMapping done\n'
-    printf "`date`"'\tSorting\n'
-
-    # Sorting
-    samtools sort \
-        $file_name".bam" \
-        -@ processors > $file_name".sort.bam"
-
-    if $remove
-    then
-        rm $file_name".bam"
-    fi
-
-    printf "`date`"'\tSorting done\n'
-    printf "`date`"'\t1st map stats\n'
-    printf '\n\n flagstat: .bam\n' >> $map_logfile
-    samtools flagstat \
-        $file_name".sort.bam" >> $map_logfile
-
-
-    printf "`date`"'\t1st map stats done\n'
-    printf "`date`"'\tFiltering\n'
-
-    # Filtering
-    samtools view \
-        $file_name".sort.bam" \
-        -@ $processors \
-        -bh \
-        -F 0x100 > $file_name".sort.filt.bam"
-
-    printf "`date`"'\tFiltering done\n'
-    printf "`date`"'\t2nd map stats\n'
-
-    printf '\n\n flagstat: sort.filt.bam\n' >> $map_logfile
-    samtools flagstat \
-        $file_name".sort.filt.bam" >> $map_logfile
-
-    if $mailing
-    then
-        echo '2_map finished '$(date) | mail -s $path $email
-    fi
-
-    printf "`date`"'\t2nd map stats done\n'
-
-fi
-
-if (( "$current_step" == "$end_step" ))
-then
-    continue=false
-fi
-
-# 3. ###################################################################################
 
  #                                   #
 ############# Overview ################
@@ -431,9 +344,9 @@ then
 
     if $mailing
     then
-        echo '3_clustering starting'$(date) | mail -s $path $email
+        echo '2_clustering starting'$(date) | mail -s $path $email
     fi
-    printf '\n3. Clustering\n'
+    printf '\n2. Clustering\n'
     printf "`date`"'\tBarcode fasta generation\n'
 
     # Barcode extraction
@@ -482,29 +395,91 @@ then
         rm -rf $path"/unique_bc"
     fi
 
+    if $mailing
+    then
+        echo '2_clustering finished '$(date) | mail -s $path $email
+    fi
+
     printf "`date`"'\tBarcode clustering done\n'
+
+
+fi
+
+if (( "$current_step" == "$end_step" ))
+then
+    continue=false
+fi
+
+# 3. ###################################################################################
+
+ #                                   #
+############# Overview ################
+ #                                   #
+ #   - Map & convert to bam          #
+ #   - Sorting                       #
+ #   - Filtering (unmap + prim map)  #
+ #                                   #
+#######################################
+ #                                   #
+
+# Check if this step should be run
+current_step=$((current_step+1))
+if (( "$current_step" >= "$start_step" )) && [ "$continue" == true ]
+then
+
+    if $mailing
+    then
+        echo '3_map starting '$(date) | mail -s $path $email
+    fi
+    printf '\n3. Mapping\n'
+    printf "`date`"'\tMapping\n'
+    printf '\n\n Map stats: .sort.bam\n' >> $map_logfile
+
+    # Mapping & bam conversion
+    (bowtie2 \
+        -1 $file_name".trimmed.fastq.gz" \
+        -2 $file_name2".trimmed.fastq.gz" \
+        -x $bowtie2_reference \
+        --maxins 2000 \
+        -p $processors | \
+        samtools view \
+            - \
+            -@ $processors \
+            -bh > $file_name".bam") 2>$map_logfile
+
+    printf "`date`"'\tMapping done\n'
+    printf "`date`"'\tSorting\n'
+
+    # Sorting
+    samtools sort \
+        $file_name".bam" \
+        -@ processors > $file_name".sort.bam"
+
+    if $remove
+    then
+        rm $file_name".bam"
+    fi
+
+    printf "`date`"'\tSorting done\n'
     printf "`date`"'\tBam tagging\n'
 
     # Tagging bamfile
     (python3 $wgh_path'/python scripts/tag_bam.py' \
-        $file_name".sort.filt.bam" \
+        $file_name".sort.bam" \
         $path"/"$N_string".clstr" \
-        $file_name".sort.filt.tag.bam" ) 2>$path"/tag_bam.stderr"
+        $file_name".sort.tag.bam" ) 2>$path"/tag_bam.stderr"
+
     if ! $keep_logiles
     then
         rm $path"/tag_bam.stderr"
-        rm $file_name".sort.filt.tag.log"
+        rm $file_name".sort.tag.log"
     fi
-    if $remove
-    then
-        rm $file_name".sort.filt.bam"
-    fi
-
 
     if $mailing
     then
-        echo '3_clustering finished '$(date) | mail -s $path $email
+        echo '3_map finished '$(date) | mail -s $path $email
     fi
+
     printf "`date`"'\tBam tagging done\n'
 
 fi
@@ -542,8 +517,8 @@ then
 
     # Read duplicate removal
     (java '-Xmx'$heap_space'g' -jar $picard_path MarkDuplicates \
-        I=$file_name".sort.filt.tag.bam" \
-        O=$file_name".sort.filt.tag.rmdup.bam" \
+        I=$file_name".sort.tag.bam" \
+        O=$file_name".sort.tag.rmdup.bam" \
         M=$path"/picard.log" \
         ASSUME_SORT_ORDER=coordinate \
         REMOVE_DUPLICATES=true \
@@ -554,8 +529,8 @@ then
 
     # Cluster duplicate marking
     (java '-Xmx'$heap_space'g' -jar $picard_path MarkDuplicates \
-        I=$file_name".sort.filt.tag.rmdup.bam" \
-        O=$file_name".sort.filt.tag.rmdup.mkdup.bam" \
+        I=$file_name".sort.tag.rmdup.bam" \
+        O=$file_name".sort.tag.rmdup.mkdup.bam" \
         M=$path"/mkdup.log" \
         ASSUME_SORT_ORDER=coordinate) 2>>$rmdup_logfile
     cat $path/"/mkdup.log" >> $path"/picard.log"
@@ -563,7 +538,7 @@ then
 
     if $remove
     then
-        rm $file_name".sort.filt.tag.rmdup.bam"
+        rm $file_name".sort.tag.rmdup.bam"
     fi
 
     printf "`date`"'\tBarcode duplicate marking done\n'
@@ -571,33 +546,38 @@ then
 
     # Cluster duplicate merging
     (python3 $wgh_path'/python scripts/cluster_rmdup.py' \
-        $file_name".sort.filt.tag.rmdup.mkdup.bam" \
-        $file_name".sort.filt.tag.rmdup.x2.bam") 2>>$rmdup_logfile
+        $file_name".sort.tag.rmdup.mkdup.bam" \
+        $file_name".sort.tag.rmdup.x2.bam") 2>>$rmdup_logfile
 
 
     printf "`date`"'\tCluster merging done\n'
+    printf "`date`"'\tIndexing\n'
+
+    samtools index $file_name".sort.tag.rmdup.x2.bam"
+
+    printf "`date`"'\tIndexing done\n'
     printf "`date`"'\tCluster filtering\n'
 
     mkdir -p $path"/cluster_stats"
     # Cluster filtering
     (python3 $wgh_path'/python scripts/filter_clusters.py' \
-        -f $file_name".sort.filt.tag.rmdup.x2.filt.bam" \
+        -f $file_name".sort.tag.rmdup.x2.bam" \
         -M 260 \
-        $file_name".sort.filt.tag.rmdup.x2.bam" \
-        $path"/cluster_stats/x2.filt.stats") 2>>$rmdup_logfile
+        $file_name".sort.tag.rmdup.x2.bam" \
+        $path"/cluster_stats/x2.stats") 2>>$rmdup_logfile
 
-    printf "`date`"'\tClusters filtering done\n'
+    printf "`date`"'\tCluster filtering done\n'
     printf "`date`"'\tFastq generation\n'
 
     # Fastq generation
     (java -jar $picard_path SamToFastq \
-        I=$file_name".sort.filt.tag.rmdup.x2.filt.bam" \
+        I=$file_name".sort.tag.rmdup.x2.filt.bam" \
         FASTQ=$file_name".final.fastq" \
         SECOND_END_FASTQ=$file_name2".final.fastq") 2>>$path/picard.log
 
     if ! $keep_logiles
     then
-        rm $file_name".sort.filt.tag.rmdup.x2.bam.log"
+        rm $file_name".sort.tag.rmdup.x2.bam.log"
         rm $path/picard.log
     fi
 
