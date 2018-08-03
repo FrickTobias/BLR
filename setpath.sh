@@ -20,7 +20,7 @@ while getopts "he" OPTION; do
 			echo 'Useage: bash set_path.sh <picard_path> <Bowtie2_ref> <fragScaff_path>'
 			echo ''
 			echo "Positional arguments (required)"
-			echo "  <picard_path>       Path to picard tools folder"
+			echo "  <picard_path>       Path to picard tools jar file"
 			echo "  <Bowtie2_ref>       Path to bowtie2 reference (e.g. /Bowtie2Index/genome)"
 			echo ""
 			echo "Optional arguments"

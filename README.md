@@ -38,7 +38,7 @@ Then provide BLR_Analysis with the appropriate paths for Picard Tools and your B
 [example folder](https://github.com/FrickTobias/BLR/tree/master/example) for further details).
 
 ```
-bash setpath.sh </path/to/picardtools> </path/to/bowtie2_reference>
+bash setpath.sh </path/to/picardtools/jarfile> </path/to/bowtie2_reference/fastafile>
 ```
 
 ## Useage
@@ -49,19 +49,14 @@ where different example runs are thouroughly described.
 
 ### (1) _de novo_ Metagenomics
 
-First trim read sequences and extract barcode sequences with BLR_automation using the -e (--end) 1 option.
+First trim read sequences and extract barcode sequences with BLR_automation and cluster barcode sequences (stop 
+analysis at second step using -e, --end 2).
 
 ```
-bash BLR_automation.sh -e 1 -r -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
+bash BLR_automation.sh -e 2 -r -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
 ```
 
-Now cluster barcode sequences with the -s (--start) 3 -e (--end) 3 options.
-
-```
-bash BLR_automation.sh -s 3 -e 3 -r -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
-```
-
-Following this, run athena_assembly.sh provided through the [BLR_metagenomics](https://github.com/jennifertheland/BLR_metagenomics) 
+Following this, run athena_assembly.sh provided in the [BLR_metagenomics](https://github.com/jennifertheland/BLR_metagenomics) 
 GitHub repository.
 
 ### (2) Human Haplotyping and Assembly
@@ -83,6 +78,8 @@ Run the preprocessing pipeline using default settings.
 ```
 bash BLR_automation.sh -r -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
 ```
+
+Use the .rmdup.x2.filt.bam files for further analysis.
 
 ## Overview
 
