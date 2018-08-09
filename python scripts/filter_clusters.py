@@ -146,7 +146,10 @@ def main():
         openout.close()
         openin.close()
 
-    report_progress('Reads with barcodes removed:\t' + "{:,}".format((summaryInstance.reads_with_removed_barcode)) + '\t(' + ("%.2f" % ((summaryInstance.reads_with_removed_barcode/summaryInstance.reads)*100) + ' %)'))
+    if not summaryInstance.reads == 0:
+        report_progress('Reads with barcodes removed:\t' + "{:,}".format((summaryInstance.reads_with_removed_barcode)) + '\t(' + ("%.2f" % ((summaryInstance.reads_with_removed_barcode/summaryInstance.reads)*100) + ' %)'))
+    else:
+        report_progress('No mapped reads found in file.')
 
 def direct_read_pairs_to_ref(read_start, read_stop):
     """
