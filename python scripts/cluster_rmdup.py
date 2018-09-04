@@ -336,6 +336,7 @@ def main():
 
         progressBar.update()
 
+    out.close()
     # Option: EXPLICIT MERGE - close file
     if args.explicit_merge: explicit_merge_file.close()
 
