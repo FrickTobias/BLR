@@ -43,9 +43,8 @@ bash setpath.sh </path/to/picardtools/jarfile> </path/to/bowtie2_reference/fasta
 
 ## Useage
 
-For all available options, see -h (--help) and for more consult the [step-by-step](https://github.com/FrickTobias/BLR/tree/master/step-by-step) 
-folder which describes all steps performed by BLR_automation. For examples and analysis file contents, see the [example folder](https://github.com/FrickTobias/BLR/tree/master/example) 
-where different example runs are thouroughly described.
+For all available options, see -h (--help) and for more details consult the [step-by-step](https://github.com/FrickTobias/BLR/tree/master/step-by-step) 
+folder which describes all steps performed by BLR_automation. For examples and analysis file contents, see the [example folder](https://github.com/FrickTobias/BLR/tree/master/example).
 
 ### (1) _de novo_ Metagenomics
 
