@@ -553,7 +553,7 @@ then
     printf "`date`"'\tCluster merging done\n'
     printf "`date`"'\tIndexing\n'
 
-    samtools index $file_name".sort.tag.rmdup.x2.bam" -@ $processors
+    samtools index $file_name".sort.tag.rmdup.x2.bam"
 
     printf "`date`"'\tIndexing done\n'
     printf "`date`"'\tCluster filtering\n'
