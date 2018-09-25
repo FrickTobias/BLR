@@ -164,7 +164,9 @@ class readArgs(object):
         import argparse, multiprocessing
         global args
 
-        parser = argparse.ArgumentParser(description=__doc__)
+        parser = argparse.ArgumentParser(description="Tags bam files with barcode clustering information. Looks for raw "
+                                                     "sequence in read header and puts barcode cluster ID in BC tag as "
+                                                     "well as in header.")
 
         # Arguments
         parser.add_argument("input_mapped_bam", help=".bam file with mapped reads which is to be tagged with barcode id:s.")

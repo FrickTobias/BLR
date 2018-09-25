@@ -133,7 +133,8 @@ class readArgs(object):
         import argparse, multiprocessing
         global args
 
-        parser = argparse.ArgumentParser(description=__doc__)
+        parser = argparse.ArgumentParser(description="Extracts barcode sequences by moving 20 bp from 5' end "
+                                                     "of the read to the header, separated by an underline.")
 
         # Arguments
         parser.add_argument("r1", help="Read 1 fastq file")

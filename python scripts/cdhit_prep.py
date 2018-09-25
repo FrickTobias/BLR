@@ -12,12 +12,15 @@ def main():
     #
     # Argument parsing
     #
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description="Takes trimmed read barcodes sequences from headers (@HEADER_bc-seq) "
+                                                 "and writes fasta files with unique barcodes.")
+
     # Arguments
     parser.add_argument("input_fastq",help="Read file with barcode sequences as last element of accession row, separated "
                                            "by and underline. Example: '@ACCESSION_AGGTCGTCGATC'. Also handles "
                                            "'@ACCESSSION_AGGTCGTCGATC MORE_ACCESSION'.")
     parser.add_argument("output_fasta",help="Output file name with unique barcode sequences.")
+
     # Options
     parser.add_argument("-f","--filter", type=int, default=2, help="Filter file for minimum amount of reads default=2")
     parser.add_argument("-F","--force_run", action="store_true", help="Run analysis even if not running python 3. "

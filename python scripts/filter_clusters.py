@@ -271,7 +271,9 @@ class readArgs(object):
         import argparse, multiprocessing
         global args
 
-        parser = argparse.ArgumentParser(description=__doc__)
+        parser = argparse.ArgumentParser(description="Removes barcode tags present at more than -M loci (corresponding "
+                                                     "to removing barcode tags from reads origin to droplets which had "
+                                                     "more than -M molecules).")
 
         # Arguments
         parser.add_argument("x2_bam", help=".bam file tagged with @RG tags and duplicates removed. Needs to be indexed.")

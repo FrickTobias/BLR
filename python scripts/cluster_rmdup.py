@@ -779,10 +779,12 @@ class readArgs(object):
         #
         # Imports & globals
         #
-        import argparse, multiprocessing
+        import argparse
         global args
 
-        parser = argparse.ArgumentParser(description=__doc__)
+        parser = argparse.ArgumentParser(description="Merges barcodes if they share several read duplicates in proximity "
+                                                     "to each other. These 'barcode clusters' arise from several barcodes "
+                                                     "being enveloped in the same emulsion.")
 
         # Arguments
         parser.add_argument("input_tagged_bam", help=".bam file tagged with RG tags and duplicates marked (not taking "
