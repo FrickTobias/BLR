@@ -130,7 +130,7 @@ class readArgs(object):
         #
         # Imports & globals
         #
-        import argparse, multiprocessing
+        import argparse
         global args
 
         parser = argparse.ArgumentParser(description="Extracts barcode sequences by moving 20 bp from 5' end "
