@@ -268,7 +268,7 @@ class readArgs(object):
         #
         # Imports & globals
         #
-        import argparse, multiprocessing
+        import argparse
         global args
 
         parser = argparse.ArgumentParser(description="Removes barcode tags present at more than -M loci (corresponding "

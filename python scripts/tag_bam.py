@@ -7,13 +7,12 @@ def main():
     # Imports & globals
     #
     global args, summaryInstance, output_tagged_bamfile, sys, time
-    import multiprocessing, pysam, sys, time, os
+    import pysam, sys, time, os
 
     #
     # Argument parsing
     #
     argumentsInstance = readArgs()
-    processor_count = readArgs.processors(argumentsInstance)
 
     #
     # Initials
@@ -161,7 +160,7 @@ class readArgs(object):
         #
         # Imports & globals
         #
-        import argparse, multiprocessing
+        import argparse
         global args
 
         parser = argparse.ArgumentParser(description="Tags bam files with barcode clustering information. Looks for raw "
@@ -177,9 +176,6 @@ class readArgs(object):
         parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
                                                                            "Not recommended due to different function "
                                                                            "names in python 2 and 3.")
-        parser.add_argument("-p", "--processors", type=int, default=multiprocessing.cpu_count(),
-                            help="Thread analysis in p number of processors. Example: python "
-                                 "TagGD_prep.py -p 2 insert_r1.fq unique.fa")
         parser.add_argument("-e", "--exclude_N", type=bool, default=True, help="If True (default), excludes .bam file "
                                                                                "reads with barcodes containing N.")
         parser.add_argument("-bc", "--barcode_tag", metavar="<BARCODE_TAG>", type=str, default='BC',
@@ -204,26 +200,6 @@ class readArgs(object):
                 sys.exit()
             else:
                 sys.stderr.write('\nForcing run. This might yield inaccurate results.\n')
-
-    def processors(self):
-
-        #
-        # Processors
-        #
-        import multiprocessing
-        processor_count = args.processors
-        max_processor_count = multiprocessing.cpu_count()
-        if processor_count == max_processor_count:
-            pass
-        elif processor_count > max_processor_count:
-            sys.stderr.write(
-                'Computer does not have ' + str(processor_count) + ' processors, running with default (' + str(
-                    max_processor_count) + ')\n')
-            processor_count = max_processor_count
-        else:
-            sys.stderr.write('Running with ' + str(processor_count) + ' processors.\n')
-
-        return processor_count
 
 class Summary(object):
     """ Summarizes chunks"""
