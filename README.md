@@ -53,7 +53,7 @@ First trim read sequences and extract barcode sequences with BLR_automation and 
 analysis at second step using -e, --end 2).
 
 ```
-bash BLR_automation.sh -e 2 -r -m <john.doe@myworkplace.com -p <processors> <read_1.fq> <read_2.fq> <output> 
+bash BLR_automation.sh -e 2 -r -m <john.doe@myworkplace.com> -p <processors> <read_1.fq> <read_2.fq> <output>
 ```
 
 Following this, run athena_assembly.sh provided in the [BLR_metagenomics](https://github.com/jennifertheland/BLR_metagenomics) 
