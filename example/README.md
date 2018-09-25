@@ -5,21 +5,21 @@
 List information about script and options available (plus default settings):
 
 ```
-bash WGH_automation.sh -h
+bash BLR_automation.sh -h
 ```
 
 Most basic useage, which runs the pipeline using default options and writes output to a new folder called 
 testdata_analysis_folder_output, found under example folder:
 
 ```
-bash WGH_automation.sh example/testdata_read1.fastq.gz example/testdata_read2.fastq.gz example/testdata_analysis_folder_output
+bash BLR_automation.sh example/testdata_read1.fastq.gz example/testdata_read2.fastq.gz example/testdata_analysis_folder_output
 ```
 
 Recommended options, for running on a computer with (-p) 24 processors, (-m) mailing 
 to john.doe@myworkplace.com when completing pipeline steps and (-r) removing software log files created in the pipeline:
 
 ```
-bash WGH_automation.sh -r -m john.doe@myworkplace.com -p 24 testdata_read1.fastq.gz testdata_read2.fastq.gz testdata_analysis
+bash BLR_automation.sh -r -m john.doe@myworkplace.com -p 24 testdata_read1.fastq.gz testdata_read2.fastq.gz testdata_analysis
 ```
 
 ### Advanced useage
@@ -28,13 +28,13 @@ bash WGH_automation.sh -r -m john.doe@myworkplace.com -p 24 testdata_read1.fastq
 about step numbers):
 
 ```
-bash WGH_automation.sh -s 2 -e 3 testdata_read1.fastq.gz testdata_read2.fastq.gz testdata_analysis
+bash BLR_automation.sh -s 2 -e 3 testdata_read1.fastq.gz testdata_read2.fastq.gz testdata_analysis
 ```
 
 Running with 4 barcode index nucleotides:
 
 ```
-bash WGH_automation.sh -i 4 testdata_read1.fastq.gz testdata_read2.fastq.gz testdata_analysis
+bash BLR_automation.sh -i 4 testdata_read1.fastq.gz testdata_read2.fastq.gz testdata_analysis
 ```
 
 ### Testdata output
@@ -42,7 +42,7 @@ bash WGH_automation.sh -i 4 testdata_read1.fastq.gz testdata_read2.fastq.gz test
 Command:
 
 ```
-bash WGH_automation.sh -f -r -m john.doe@myworkplace.com -p 24 testdata_read1.fastq.gz testdata_read2.fastq.gz testdata_analysis
+bash BLR_automation.sh -f -r -m john.doe@myworkplace.com -p 24 testdata_read1.fastq.gz testdata_read2.fastq.gz testdata_analysis
 ```
 
 Output:
