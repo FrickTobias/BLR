@@ -8,14 +8,15 @@ List information about script and options available (plus default settings):
 bash WGH_automation.sh -h
 ```
 
-Most basic useage:
+Most basic useage, which runs the pipeline using default options and writes output to a new folder called 
+testdata_analysis_folder_output, found under example folder:
 
 ```
-bash WGH_automation.sh testdata_read1.fastq.gz testdata_read2.fastq.gz testdata_analysis
+bash WGH_automation.sh example/testdata_read1.fastq.gz example/testdata_read2.fastq.gz example/testdata_analysis_folder_output
 ```
 
 Recommended options, for running on a computer with (-p) 24 processors, (-m) mailing 
-to john.doe@myworkplace.com and (-r) removing redundant files created in the pipeline:
+to john.doe@myworkplace.com when completing pipeline steps and (-r) removing software log files created in the pipeline:
 
 ```
 bash WGH_automation.sh -r -m john.doe@myworkplace.com -p 24 testdata_read1.fastq.gz testdata_read2.fastq.gz testdata_analysis
@@ -103,7 +104,7 @@ Fri Mar  2 11:49:16 CET 2018	Fastq generation done
 Fri Mar  2 11:49:16 CET 2018	ANALYSIS FINISHED
 ```
 
-Generated folder:
+Generated folder content:
 
 ```
 1_trim.log						
