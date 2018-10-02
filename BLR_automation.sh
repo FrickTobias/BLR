@@ -394,7 +394,7 @@ then
     # Make barcode file according BC.clstr OR BC.NNN.clstr, where N will correspond to how many index bases are used.
     if [[ $index_nucleotides == 0 ]]
     then
-        N_string='BC.'
+        N_string='BC'
     else
         N_string='BC.'; for i in $(seq 1 $index_nucleotides); do N_string=$N_string'N'; done; # Ugly solution for getting N*index length string
     fi
