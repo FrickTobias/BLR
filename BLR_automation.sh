@@ -183,8 +183,8 @@ file_name2="$path/${name_ext2%.*}"
 
 # Logfiles
 trim_logfile=$path'/1_trim.log'
-map_logfile=$path'/2_map.log'
-cluster_logfile=$path'/3_cluster.log'
+cluster_logfile=$path'/2_cluster.log'
+map_logfile=$path'/3_map.log'
 rmdup_logfile=$path'/4_rmdup.log'
 
 # Remaining options
