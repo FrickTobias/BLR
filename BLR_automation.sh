@@ -366,6 +366,14 @@ then
     printf "`date`"'\tBarcode fasta generation done\n'
     printf "`date`"'\tBarcode clustering\n'
 
+    # Non-indexing primer run fix
+    if [[ $index_nucleotides == 0 ]]
+    then
+        mv $path"/unique_bc" $path"/unique_bc.fa"
+        mkdir $path"/unique_bc"
+        mv $path"/unique_bc.fa" $path"/unique_bc/unique_bc.fa"
+    fi
+
     # Barcode clustering
     touch $path"/cdhit.log"
     for file in $path"/unique_bc"/*.fa
@@ -382,7 +390,15 @@ then
             -n 3 \
             -M 0) >> $path"/cdhit.log"
     done
-    N_string=''; for i in $(seq 1 $index_nucleotides); do N_string=$N_string'N'; done; # Ugly solution for getting N*index length string
+
+    # Make barcode file according BC.clstr OR BC.NNN.clstr, where N will correspond to how many index bases are used.
+    if [[ $index_nucleotides == 0 ]]
+    then
+        N_string='BC.'
+    else
+        N_string='BC.'; for i in $(seq 1 $index_nucleotides); do N_string=$N_string'N'; done; # Ugly solution for getting N*index length string
+    fi
+
     cat $path"/unique_bc/"*".clstr" > $path"/"$N_string".clstr"
 
     if ! $keep_logiles
