@@ -488,7 +488,6 @@ then
     if ! $keep_logiles
     then
         rm $path"/tag_bam.stderr"
-        rm $file_name".sort.tag.log"
     fi
 
     if $mailing

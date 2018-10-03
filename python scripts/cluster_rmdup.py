@@ -115,7 +115,7 @@ def main():
     seed_duplicates(duplicate_position_dict, prev_chromosome)
     duplicate_position_dict = dict()
 
-    report_progress('Total reads in file:\t' + "{:,}".format(total_read_pair_count)
+    report_progress('Total reads in file:\t' + "{:,}".format(tot_read_pair_count))
     report_progress('Total paired reads:\t' + "{:,}".format(summaryInstance.intact_read_pairs*2))
     report_progress('Reads in unmapped read pairs:\t' + "{:,}".format(summaryInstance.unmapped_read_pair*2))
     report_progress('Non-primary alignments in file:\t' + "{:,}".format(summaryInstance.non_primary_alignments))
