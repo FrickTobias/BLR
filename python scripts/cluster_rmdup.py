@@ -24,7 +24,7 @@ def main():
     # Start of script
     #
 
-    report_progress('Reading input file and building duplicate position list')
+    report_progress('Starting Analysis')
 
 
     #######
@@ -33,7 +33,6 @@ def main():
 
     duplicate_position_dict = dict()
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
-    current_read_count = 1000000
     cache_read_tracker = dict()
     cache_readpair_tracker = dict()
     singleton_duplicate_position = dict()
@@ -42,18 +41,16 @@ def main():
     window = 100000
     pos_dict = dict()
     overlapValues = OverlapValues()
+    tot_read_pair_count = int()
+    progress = ProgressReporter('Reads processed', 1000000)
     for read in infile.fetch(until_eof=True):
+
+        tot_read_pair_count += 1
+        progress.update()
 
         if first_read:
             prev_chromosome = read.reference_name
             first_read = False
-
-        # Progress
-        summaryInstance.totalReadPairsCount += 1
-        if current_read_count < summaryInstance.totalReadPairsCount:
-            report_progress("{:,}".format(current_read_count) + ' reads \t' + "{:,}".format(summaryInstance.intact_read_pairs*2) + ' paired reads')
-            current_read_count += 1000000
-
 
         # Should only use one alignments in calculations, currently assumes primary is correct
         if read.is_secondary:
@@ -117,167 +114,17 @@ def main():
     for the_only_entry in cache_readpair_tracker.values(): process_readpairs(list_of_start_stop_tuples=the_only_entry)
     seed_duplicates(duplicate_position_dict, prev_chromosome)
     duplicate_position_dict = dict()
-    cache_read_tracker = None # temp solution for -t = 0 => will remove unpaired from RAM
 
-
-    #
-    #
-    #
-
-
-    report_progress('Total reads in file:\t' + "{:,}".format(summaryInstance.totalReadPairsCount))
+    report_progress('Total reads in file:\t' + "{:,}".format(total_read_pair_count)
     report_progress('Total paired reads:\t' + "{:,}".format(summaryInstance.intact_read_pairs*2))
     report_progress('Reads in unmapped read pairs:\t' + "{:,}".format(summaryInstance.unmapped_read_pair*2))
     report_progress('Non-primary alignments in file:\t' + "{:,}".format(summaryInstance.non_primary_alignments))
-    report_progress('Duplicate positions and barcode ID:s from read pairs saved\n')
-    report_progress('Fetching unpaired read duplicate positions & barcode ID:s')
-
-
-    #######
-    ## 2 ##     For all unpaired reads, save positions for extending duplicate seeds
-    #######
-
-    unpaired_duplicate_tracker = dict()
-    # Unsorted looping over non paired reads / paired read where only read/mate is duplicate
-    #for unpaired_read in cache_read_tracker.values():
-    #
-    #    # Fetch information
-    #    chromosome = unpaired_read.reference_name
-    #    positions = unpaired_read.get_reference_positions()
-    #
-    #    # Handles unmapped unpaired reads
-    #    try: positions[0]
-    #    except IndexError:
-    #        summaryInstance.unmapped_singleton += 1
-    #        continue
-    #
-    #    start_stop = (positions[0], positions[-1])
-    #
-    #    # Add chrom to dict if not present
-    #    if not chromosome in unpaired_duplicate_tracker:
-    #        unpaired_duplicate_tracker[chromosome] = dict()
-    #
-    #    # Save all reads sharing the same position in a cache tracker system
-    #    if start_stop in unpaired_duplicate_tracker[chromosome]:
-    #        unpaired_duplicate_tracker[chromosome][start_stop].append(unpaired_read)
-    #
-    #    # Processing of reads
-    #    else:
-    #
-    #        # Saves all reads for current position if one is marked as duplicate
-    #        for the_only_entry in unpaired_duplicate_tracker[chromosome].values(): process_singleton_reads(chromosome, start_stop, list_of_singleton_reads=the_only_entry)
-    #
-    #        # Empty current list and add the current read.
-    #        unpaired_duplicate_tracker = dict()
-    #        unpaired_duplicate_tracker[chromosome] = dict()
-    #        unpaired_duplicate_tracker[chromosome][start_stop] = list()
-    #        unpaired_duplicate_tracker[chromosome][start_stop].append(unpaired_read)
-    #
-    ## Last chunk
-    #for the_only_entry in unpaired_duplicate_tracker[chromosome].values(): process_singleton_reads(chromosome, start_stop, list_of_singleton_reads=the_only_entry)
 
     # Close input file
     infile.close()
 
-    #
-    #
-    #
-
-
-    report_progress('Unpaired duplicate reads fetched\n')
-    report_progress('Non-mapped unpaired reads:\t' + str(summaryInstance.unmapped_singleton))
-    report_progress('Seeding barcode ID duplicates')
-
-
-    #######
-    ## 3 ##     Seeding and calculating values for overlaps
-    #######
-
-
-    # For all seeds
-    #for barcode_overlap in seeds
-    #
-    #    # Adding value for all unpaired read duplicates
-    #    for position_tuple in rp_position_tuple:
-    #        if chromosome in unpaired_duplicate_tracker:
-    #            if position_tuple in unpaired_duplicate_tracker[chromosome]:
-    #                unpaired_read_list = unpaired_duplicate_tracker[chromosome][position_tuple]
-    #                unpaired_bc_ID_set = set()
-    #                for unpaired_read in unpaired_read_list:
-    #                    unpaired_bc_ID_set.add(unpaired_read.get_tag(args.barcode_tag))
-    #                barcode_IDs_to_add = unpaired_read_list - barcode_IDs
-    #                overlapValues.add_bc_set(bc_set=barcode_IDs_to_add, readpair=False)
-
-    #for chromosome in duplicate_position_dict:
-    #
-    #    # Make function for this:
-    #
-    #    for duplicate_pos in sorted(duplicate_position_dict[chromosome].keys()):
-    #
-    #        # Devide into exactly matching positions (rp1_pos == rp2_pos == rp3_pos...)
-    #        possible_duplicate_seeds = dict()
-    #        for readpair in duplicate_position_dict[chromosome][duplicate_pos]:
-    #
-    #            # Fetching information from read/mate
-    #            mate = readpair[0]
-    #            read = readpair[1]
-    #            read_pos_tuple = (read.get_reference_positions()[0], read.get_reference_positions()[-1])
-    #            mate_pos_tuple = (mate.get_reference_positions()[0], mate.get_reference_positions()[-1])
-    #            readpair_pos_tuple = (mate_pos_tuple, read_pos_tuple)
-    #            barcode_ID = int(read.get_tag(args.barcode_tag))
-    #
-    #            # Add all barcodes IDs to set, check later if total > 2 at positions.
-    #            if not readpair_pos_tuple in possible_duplicate_seeds:
-    #                possible_duplicate_seeds[readpair_pos_tuple] = set()
-    #            possible_duplicate_seeds[readpair_pos_tuple].add(barcode_ID)
-    #
-    #        # When all overlaps found for current position, try finding proximal read pairs with same overlap
-    #        for possible_seed, barcode_IDs in possible_duplicate_seeds.items(): # Only one entry
-    #
-    #            # Increase value for duplicate read pair
-    #            overlapValues.add_bc_set(bc_set=barcode_IDs, readpair=True)
-    #
-    #            # Update Proximal read dict to only contain read pairs which are close by
-    #            pos_dict = update_cache_dict(pos_dict, chromosome, position=possible_seed[0], window=window)
-    #
-    #            for position in pos_dict[chromosome]:
-    #
-    #                # Check overlapping/remaining/non-added
-    #                overlapping_bc_ids = barcode_IDs & pos_dict[chromosome][position]
-    #
-    #                # Add (seed) if more than two are overlapping
-    #                if len(overlapping_bc_ids) >= 2:
-    #                    duplicates.seeds.add(tuple(sorted(overlapping_bc_ids)))
-    #
-    #            # Add current set to pos dict for next iteration
-    #            pos_dict[chromosome][readpair_pos_tuple] = barcode_IDs
-    #
-    #            # Adding value for all unpaired read duplicates
-    #            for position_tuple in rp_position_tuple:
-    #                if chromosome in unpaired_duplicate_tracker:
-    #                    if position_tuple in unpaired_duplicate_tracker[chromosome]:
-    #                        unpaired_read_list = unpaired_duplicate_tracker[chromosome][position_tuple]
-    #                        unpaired_bc_ID_set = set()
-    #                        for unpaired_read in unpaired_read_list:
-    #                            unpaired_bc_ID_set.add(unpaired_read.get_tag(args.barcode_tag))
-    #                        barcode_IDs_to_add = unpaired_read_list - barcode_IDs
-    #                        overlapValues.add_bc_set(bc_set=barcode_IDs_to_add, readpair=False)
-
-
-    #
-    #
-    #
-
-
-    report_progress('Barcodes seeded')
-    report_progress('Removing overlaps under threshold and reducing several step redundancy\n')
+    report_progress('Removing overlaps under threshold and reducing several step redundancy')
     report_progress('Barcodes seeded for removal:\t' + "{:,}".format(len(duplicates.seeds)))
-
-
-    #######
-    ## 4 ##     Fetching dictionary for overlaps over threshold and reducing redundancy
-    #######
-
 
     # Fetch all seeds which are above -t (--threshold, default=0) number of overlaps (require readpair overlap for seed)
     for bc_id_set in duplicates.seeds:
@@ -287,27 +134,16 @@ def main():
     # Remove several step redundancy (5 -> 3, 3 -> 1) => (5 -> 1, 3 -> 1)
     duplicates.reduce_several_step_redundancy()
     barcode_ID_merge_dict = duplicates.translation_dict
-    report_progress('Barcodes removed:\t\t' + "{:,}".format(len(barcode_ID_merge_dict)) + '\n')
-
-    #
-    #
-    #
-
-
-    report_progress('Merge dict finished\n')
-    progressBar = ProgressBar(name='Writing output', min=0, max=summaryInstance.totalReadPairsCount, step=1)
-
-
-    #######
-    ## 5 ##     Writing outputs
-    #######
+    report_progress('Barcodes removed:\t\t' + "{:,}".format(len(barcode_ID_merge_dict)))
+    report_progress('Barcode dict finished')
 
     # Option: EXPLICIT MERGE - Writes bc_seq + prev_bc_id + new_bc_id
     if args.explicit_merge:
         explicit_merge_file = open(args.explicit_merge, 'w')
         bc_seq_already_written = set()
 
-    # Bamfile
+    # Write output
+    progressBar = ProgressBar(name='Writing output', min=0, max=tot_read_pair_count, step=1)
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
     out = pysam.AlignmentFile(args.output_bam, 'wb', template=infile)
     for read in infile.fetch(until_eof=True):
@@ -331,21 +167,15 @@ def main():
                     bc_seq_already_written.add(barcode_seq)
                     explicit_merge_file.write(str(new_barcode_id) + '\t' + str(barcode_seq) + '\t' +str(previous_barcode_id) + '\n')
 
-        # Write read to out
+        # Write to out and update progress bar
         out.write(read)
-
         progressBar.update()
 
-    out.close()
-    # Option: EXPLICIT MERGE - close file
-    if args.explicit_merge: explicit_merge_file.close()
-
+    # Terminate progress bar and close output file
     progressBar.terminate()
-    report_progress('Analysis finished')
-
-    #
-    #
-    #
+    out.close()
+    if args.explicit_merge: explicit_merge_file.close()
+    report_progress('Finished')
 
 def update_cache_dict(pos_dict, chromosome, position, window):
     """
@@ -489,6 +319,7 @@ def seed_duplicates(duplicate_position_dict, chromosome):
         return
 
     # Function takes long time, so nice to see if something happens
+    # UPDATE
     progressBar = ProgressBar(name=str('Seeding ' + str(chromosome)), min=0, max=len(duplicate_position_dict[chromosome]), step=1)
 
     for duplicate_pos in sorted(duplicate_position_dict[chromosome].keys()):
@@ -532,9 +363,11 @@ def seed_duplicates(duplicate_position_dict, chromosome):
             pos_dict[chromosome][readpair_pos_tuple] = barcode_IDs
 
         # Update for every position parsed
+        # UPDATE
         progressBar.update()
 
     # Terminate progress bar
+    # UPDATE
     progressBar.terminate()
 
 def match_clusterid(clusterid_list_one, clusterid_list_two):
@@ -581,14 +414,6 @@ def report_matches(current_match_dict, merge_dict, chromosome):#, duplicate_posi
                     merge_dict[prev_value] = lower_cluster_id
 
     return merge_dict
-
-def report_progress(string):
-    """
-    Writes a time stamp followed by a message (=string) to standard out.
-    Input: String
-    Output: [date]  string
-    """
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
 
 class OverlapValues(object):
     """
@@ -724,6 +549,33 @@ class BarcodeDuplicates(object):
         else:
             self.translation_dict[bc_id] = min_id
 
+def report_progress(string):
+    """
+    Writes a time stamp followed by a message (=string) to standard out.
+    Input: String
+    Output: [date]  string
+    """
+    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
+
+class ProgressReporter(object):
+    """
+    Writes to out during iteration of unknown length
+    """
+
+    def __init__(self, name_of_process, report_step):
+
+        self.name = name_of_process
+        self.report_step = report_step
+        self.position = int()
+        self.next_limit = report_step
+
+    def update(self):
+
+        self.position += 1
+        if self.position >= self.next_limit:
+            report_progress(self.name + '\t' + "{:,}".format(self.position))
+            self.next_limit += self.report_step
+
 class ProgressBar(object):
     """
     Writes a progress bar to stderr
@@ -764,6 +616,113 @@ class ProgressBar(object):
 
     def terminate(self):
          sys.stderr.write('\n')
+
+class FileReader(object):
+    """
+    Reads input files, handles gzip.
+    """
+    def __init__(self, filehandle, filehandle2=None):
+
+        # Init variables setting
+        self.filehandle = filehandle
+        self.gzip = bool()
+
+        # Open files as zipped or not not (depending on if they end with .gz)
+        if self.filehandle[-3:] == '.gz':
+            report_progress('File detected as gzipped, unzipping when reading')
+            import gzip
+            self.openfile = gzip.open(self.filehandle, 'r')
+            self.gzip = True
+        else:
+            self.openfile = open(self.filehandle, 'r')
+
+        # Paired end preparation
+        self.filehandle2 = filehandle2
+        if self.filehandle2:
+
+            # Open files as zipped or not not (depending on if they end with .gz)
+            if self.filehandle2[-3:] == '.gz':
+                report_progress('File detected as gzipped, unzipping when reading')
+                import gzip
+                self.openfile2 = gzip.open(self.filehandle2, 'r')
+            else:
+                self.openfile2 = open(self.filehandle2, 'r')
+
+    def fileReader(self):
+        """
+        Reads non-specific files as generator
+        :return: lines
+        """
+        for line in self.openfile:
+            if self.gzip:
+                line = line.decode("utf-8")
+            yield line
+
+    def fastqReader(self):
+        """
+        Reads lines 4 at the time as generator
+        :return: read as fastq object
+        """
+
+        line_chunk = list()
+        for line in self.openfile:
+            if self.gzip:
+                line = line.decode("utf-8")
+            line_chunk.append(line)
+            if len(line_chunk) == 4:
+                read = FastqRead(line_chunk)
+                line_chunk = list()
+                yield read
+
+    def fastqPairedReader(self):
+        """
+        Reads two paired fastq files and returns a pair of two reads
+        :return: read1 read2 as fastq read objects
+        """
+
+        line_chunk1 = list()
+        line_chunk2 = list()
+        for line1, line2 in zip(self.openfile, self.openfile2):
+            if self.gzip:
+                line1 = line1.decode("utf-8")
+                line2 = line2.decode("utf-8")
+            line_chunk1.append(line1)
+            line_chunk2.append(line2)
+            if len(line_chunk1) == 4 and len(line_chunk2) == 4:
+                read1 = FastqRead(line_chunk1)
+                read2 = FastqRead(line_chunk2)
+
+                # Error handling
+                if not read1.header.split()[0] == read2.header.split()[0]:
+                    import sys
+                    sys.exit('INPUT ERROR: Paired reads headers does not match.\nINPUT ERROR: Read pair number:\t'+str(progress.position+1)+'\nINPUT ERROR: '+str(read1.header)+'\nINPUT ERROR: '+str(read2.header)+'\nINPUT ERROR: Exiting')
+                line_chunk1 = list()
+                line_chunk2 = list()
+                yield read1, read2
+
+    def close(self):
+        """
+        Closes files properly so they can be re-read if need be.
+        :return:
+        """
+        self.openfile.close()
+        if self.filehandle2:
+            self.openfile2.close()
+
+class FastqRead(object):
+    """
+    Stores read as object.
+    """
+
+    def __init__(self, fastq_as_line):
+
+        self.header = fastq_as_line[0].strip()
+        self.seq = fastq_as_line[1].strip()
+        self.comment = fastq_as_line[2].strip()
+        self.qual = fastq_as_line[3].strip()
+
+    def fastq_string(self):
+        return self.header + '\n' + self.seq  + '\n' + self.comment  + '\n' + self.qual + '\n'
 
 class readArgs(object):
     """ Reads arguments and handles basic error handling like python version control etc."""
