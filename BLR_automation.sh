@@ -354,7 +354,7 @@ then
     (python3 $wgh_path'/python scripts/cdhit_prep.py' \
         $file_name".trimmed.fastq" \
         $path"/unique_bc" \
-        -r $index_nucleotides\
+        -i $index_nucleotides\
         -f 0 >$path"/cdhit_prep.stdout") 2>$path"/cdhit_prep.stderr"
     if ! $keep_logiles
     then
