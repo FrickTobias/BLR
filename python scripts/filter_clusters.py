@@ -24,6 +24,8 @@ def main():
     report_progress('Running analysis with ' + "{:,}".format(args.window_size) + ' bp window size')
     report_progress('Fetching reads')
 
+    progress = ProgressReporter('Reads processed', 1000000)
+
     # Data processing
     with pysam.AlignmentFile(args.x2_bam, 'rb') as infile:
 
@@ -37,8 +39,8 @@ def main():
             # For all reads (parsed as single reads and not as read pairs)
             for read in infile.fetch(chromosome_name, 0, chromosome_length):
 
+                progress.update()
                 summaryInstance.reads += 1
-
                 if summaryInstance.reads >= current_limit:
                     report_progress("{:,}".format(summaryInstance.reads) + ' reads fetched')
                     current_limit += 1000000
@@ -100,14 +102,13 @@ def main():
     summaryInstance.writeResultFiles()
 
     # GREPFRICK: move to summary somewhere
-    sys.stderr.write('\nReads in bam:\t' + "{:,}".format(summaryInstance.reads) + '\n')
-    sys.stderr.write('Reads without barcode tag:\t' + "{:,}".format(summaryInstance.non_tagged_reads) + '\n')
-    sys.stderr.write('Overlapping reads within phase_block:\t' + "{:,}".format(summaryInstance.overlapping_reads_in_pb) + '\n')
-    sys.stderr.write('\nMolecules identified:\t' + "{:,}".format(summaryInstance.phase_block_counter) + '\n')
-    sys.stderr.write('Molecules over read threshold (' + str(args.threshold) + '):\t' + "{:,}".format(summaryInstance.phase_blocks_over_threshold) + '\n')
-    if args.filter_bam: sys.stderr.write('Molecules removed:\t' + "{:,}".format(summaryInstance.molecules_over_threshold) + '\n')
-    sys.stderr.write('Drops without more molecules than threshold (' + str(args.threshold) + '):\t' + "{:,}".format(summaryInstance.drops_without_molecules_over_threshold) + '\n\n')
-    report_progress('Statistics calculated')
+    report_progress('\nReads in bam:\t' + "{:,}".format(progress.position))
+    report_progress('Reads without barcode tag:\t' + "{:,}".format(summaryInstance.non_tagged_reads))
+    report_progress('Overlapping reads within phase_block:\t' + "{:,}".format(summaryInstance.overlapping_reads_in_pb))
+    report_progress('\nMolecules identified:\t' + "{:,}".format(summaryInstance.phase_block_counter))
+    report_progress('Molecules over read threshold (' + str(args.threshold) + '):\t' + "{:,}".format(summaryInstance.phase_blocks_over_threshold))
+    if args.filter_bam: report_progress('Molecules removed:\t' + "{:,}".format(summaryInstance.molecules_over_threshold))
+    report_progress('Drops without more molecules than threshold (' + str(args.threshold) + '):\t' + "{:,}".format(summaryInstance.drops_without_molecules_over_threshold) + '\n')
 
     with open(args.output_prefix + '.lengths_between_readpairs', 'w') as openin:
         for length, number_of_times in summaryInstance.bp_btw_reads.items():
