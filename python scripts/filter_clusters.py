@@ -101,7 +101,6 @@ def main():
 
     summaryInstance.writeResultFiles()
 
-    # GREPFRICK: move to summary somewhere
     report_progress('\nReads in bam:\t' + "{:,}".format(progress.position))
     report_progress('Reads without barcode tag:\t' + "{:,}".format(summaryInstance.non_tagged_reads))
     report_progress('Overlapping reads within phase_block:\t' + "{:,}".format(summaryInstance.overlapping_reads_in_pb))
