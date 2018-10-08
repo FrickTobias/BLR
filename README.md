@@ -10,6 +10,8 @@ To run subsequent analysis to the (1) output and get metagenomic assemblies look
 Processing from (2) for for Human Genome Haplotyping or human reference-free assembly please consider the [wfa2tenx](https://github.com/remiolsen/wfa2tenx)
 GitHub.
 
+BLR Analysis is now also available at [OMICtools](https://omictools.com/blr-tool).
+
 ## Dependencies
 
 Here follows a list with links to all bioinformats software needed to use of this part of the pipeline.
