@@ -5,26 +5,24 @@ def main():
     #
     # Imports & globals
     #
-    global args, summaryInstance, sys, time, pysam
-    import pysam, sys, time
+    global args, summaryInstance, BLR
+    import BLR_functions as BLR, sys, pysam
 
     #
     # Argument parsing
     #
     argumentsInstance = readArgs()
-
+    if not BLR.pythonVersion(args.force_run): sys.exit()
     #
     # Initials
     #
     summaryInstance = Summary()
     window = args.window_size
     currentPhaseBlocks = CurrentPhaseBlocks()
-    current_limit = 1000000
 
-    report_progress('Running analysis with ' + "{:,}".format(args.window_size) + ' bp window size')
-    report_progress('Fetching reads')
-
-    progress = ProgressReporter('Reads processed', 1000000)
+    BLR.report_progress('Running analysis with ' + "{:,}".format(args.window_size) + ' bp window size')
+    BLR.report_progress('Fetching reads')
+    progress = BLR.ProgressReporter('Reads processed', 1000000)
 
     # Data processing
     with pysam.AlignmentFile(args.x2_bam, 'rb') as infile:
@@ -41,9 +39,6 @@ def main():
 
                 progress.update()
                 summaryInstance.reads += 1
-                if summaryInstance.reads >= current_limit:
-                    report_progress("{:,}".format(summaryInstance.reads) + ' reads fetched')
-                    current_limit += 1000000
 
                 # Fetches barcode and skips read removed read pair from stats if not present.
                 try: barcode_id = read.get_tag(args.barcode_tag)
@@ -97,17 +92,17 @@ def main():
             # Report phase blocks when switching to new chromosome, as not to confuse positions
             currentPhaseBlocks.commitAndRemoveAll()
 
-    report_progress('Phase blocks analysed')
+    BLR.report_progress('Phase blocks analysed')
 
     summaryInstance.writeResultFiles()
 
-    report_progress('\nReads in bam:\t' + "{:,}".format(progress.position))
-    report_progress('Reads without barcode tag:\t' + "{:,}".format(summaryInstance.non_tagged_reads))
-    report_progress('Overlapping reads within phase_block:\t' + "{:,}".format(summaryInstance.overlapping_reads_in_pb))
-    report_progress('\nMolecules identified:\t' + "{:,}".format(summaryInstance.phase_block_counter))
-    report_progress('Molecules over read threshold (' + str(args.threshold) + '):\t' + "{:,}".format(summaryInstance.phase_blocks_over_threshold))
-    if args.filter_bam: report_progress('Molecules removed:\t' + "{:,}".format(summaryInstance.molecules_over_threshold))
-    report_progress('Drops without more molecules than threshold (' + str(args.threshold) + '):\t' + "{:,}".format(summaryInstance.drops_without_molecules_over_threshold) + '\n')
+    BLR.report_progress('\nReads in bam:\t' + "{:,}".format(progress.position))
+    BLR.report_progress('Reads without barcode tag:\t' + "{:,}".format(summaryInstance.non_tagged_reads))
+    BLR.report_progress('Overlapping reads within phase_block:\t' + "{:,}".format(summaryInstance.overlapping_reads_in_pb))
+    BLR.report_progress('\nMolecules identified:\t' + "{:,}".format(summaryInstance.phase_block_counter))
+    BLR.report_progress('Molecules over read threshold (' + str(args.threshold) + '):\t' + "{:,}".format(summaryInstance.phase_blocks_over_threshold))
+    if args.filter_bam: BLR.report_progress('Molecules removed:\t' + "{:,}".format(summaryInstance.molecules_over_threshold))
+    BLR.report_progress('Drops without more molecules than threshold (' + str(args.threshold) + '):\t' + "{:,}".format(summaryInstance.drops_without_molecules_over_threshold) + '\n')
 
     with open(args.output_prefix + '.lengths_between_readpairs', 'w') as openin:
         for length, number_of_times in summaryInstance.bp_btw_reads.items():
@@ -117,7 +112,7 @@ def main():
     # Writes output bam file if wanted
     if args.filter_bam:
 
-        progressBar_writeBam = ProgressBar(name='Writing filtered bam file', min=0, max=summaryInstance.reads, step=1)
+        progressBar_writeBam = BLR.ProgressBar(name='Writing filtered bam file', min=0, max=summaryInstance.reads, step=1)
 
         openin = pysam.AlignmentFile(args.x2_bam, 'rb')
         openout = pysam.AlignmentFile(args.filter_bam, 'wb', template=openin)
@@ -147,9 +142,9 @@ def main():
         openin.close()
 
     if not summaryInstance.reads == 0:
-        report_progress('Reads with barcodes removed:\t' + "{:,}".format((summaryInstance.reads_with_removed_barcode)) + '\t(' + ("%.2f" % ((summaryInstance.reads_with_removed_barcode/summaryInstance.reads)*100) + ' %)'))
+        BLR.report_progress('Reads with barcodes removed:\t' + "{:,}".format((summaryInstance.reads_with_removed_barcode)) + '\t(' + ("%.2f" % ((summaryInstance.reads_with_removed_barcode/summaryInstance.reads)*100) + ' %)'))
     else:
-        report_progress('No mapped reads found in file.')
+        BLR.report_progress('No mapped reads found in file.')
 
 def direct_read_pairs_to_ref(read_start, read_stop):
     """
@@ -211,181 +206,6 @@ class CurrentPhaseBlocks(object):
         for phase_block in self.dictionary.copy().keys():
             summaryInstance.reportPhaseBlock(self.dictionary[phase_block], phase_block)
             del self.dictionary[phase_block]
-
-def report_progress(string):
-    """
-    Writes a time stamp followed by a message (=string) to standard out.
-    Input: String
-    Output: [date]  string
-    """
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
-
-class ProgressReporter(object):
-    """
-    Writes to out during iteration of unknown length
-    """
-
-    def __init__(self, name_of_process, report_step):
-
-        self.name = name_of_process
-        self.report_step = report_step
-        self.position = int()
-        self.next_limit = report_step
-
-    def update(self):
-
-        self.position += 1
-        if self.position >= self.next_limit:
-            report_progress(self.name + '\t' + "{:,}".format(self.position))
-            self.next_limit += self.report_step
-
-class ProgressBar(object):
-    """
-    Writes a progress bar to stderr
-    """
-
-    def __init__(self, name, min, max, step):
-        # Variables
-        self.min = min
-        self.max = max
-        self.current_position = min
-        self.step = step
-
-        # Metadata
-        self.two_percent = (self.max-self.min)/50
-        self.current_percentage = self.two_percent
-
-        # If two percent, equivalent of one '#', is less than one step length increase the number of # written each step
-        if self.two_percent < self.step and not self.max==2:
-            self.progress_length = int(50/(self.max-2))
-            self.progress_string = '#' * self.progress_length
-        elif self.max == 2:
-            self.progress_string = '#' * 25
-        else:
-            self.progress_string = '#'
-
-        # Printing
-        report_progress(str(name))
-        sys.stderr.write('\n|------------------------------------------------|\n')
-
-    def update(self):
-        # If progress is over 2%, write '#' to stdout
-        self.current_position += self.step
-        if self.current_percentage < self.current_position:
-            sys.stderr.write(self.progress_string)
-            sys.stderr.flush()
-            time.sleep(0.001)
-            self.current_percentage += self.two_percent
-
-    def terminate(self):
-         sys.stderr.write('\n')
-
-class FileReader(object):
-    """
-    Reads input files, handles gzip.
-    """
-    def __init__(self, filehandle, filehandle2=None):
-
-        # Init variables setting
-        self.filehandle = filehandle
-        self.gzip = bool()
-
-        # Open files as zipped or not not (depending on if they end with .gz)
-        if self.filehandle[-3:] == '.gz':
-            report_progress('File detected as gzipped, unzipping when reading')
-            import gzip
-            self.openfile = gzip.open(self.filehandle, 'r')
-            self.gzip = True
-        else:
-            self.openfile = open(self.filehandle, 'r')
-
-        # Paired end preparation
-        self.filehandle2 = filehandle2
-        if self.filehandle2:
-
-            # Open files as zipped or not not (depending on if they end with .gz)
-            if self.filehandle2[-3:] == '.gz':
-                report_progress('File detected as gzipped, unzipping when reading')
-                import gzip
-                self.openfile2 = gzip.open(self.filehandle2, 'r')
-            else:
-                self.openfile2 = open(self.filehandle2, 'r')
-
-    def fileReader(self):
-        """
-        Reads non-specific files as generator
-        :return: lines
-        """
-        for line in self.openfile:
-            if self.gzip:
-                line = line.decode("utf-8")
-            yield line
-
-    def fastqReader(self):
-        """
-        Reads lines 4 at the time as generator
-        :return: read as fastq object
-        """
-
-        line_chunk = list()
-        for line in self.openfile:
-            if self.gzip:
-                line = line.decode("utf-8")
-            line_chunk.append(line)
-            if len(line_chunk) == 4:
-                read = FastqRead(line_chunk)
-                line_chunk = list()
-                yield read
-
-    def fastqPairedReader(self):
-        """
-        Reads two paired fastq files and returns a pair of two reads
-        :return: read1 read2 as fastq read objects
-        """
-
-        line_chunk1 = list()
-        line_chunk2 = list()
-        for line1, line2 in zip(self.openfile, self.openfile2):
-            if self.gzip:
-                line1 = line1.decode("utf-8")
-                line2 = line2.decode("utf-8")
-            line_chunk1.append(line1)
-            line_chunk2.append(line2)
-            if len(line_chunk1) == 4 and len(line_chunk2) == 4:
-                read1 = FastqRead(line_chunk1)
-                read2 = FastqRead(line_chunk2)
-
-                # Error handling
-                if not read1.header.split()[0] == read2.header.split()[0]:
-                    import sys
-                    sys.exit('INPUT ERROR: Paired reads headers does not match.\nINPUT ERROR: Read pair number:\t'+str(progress.position+1)+'\nINPUT ERROR: '+str(read1.header)+'\nINPUT ERROR: '+str(read2.header)+'\nINPUT ERROR: Exiting')
-                line_chunk1 = list()
-                line_chunk2 = list()
-                yield read1, read2
-
-    def close(self):
-        """
-        Closes files properly so they can be re-read if need be.
-        :return:
-        """
-        self.openfile.close()
-        if self.filehandle2:
-            self.openfile2.close()
-
-class FastqRead(object):
-    """
-    Stores read as object.
-    """
-
-    def __init__(self, fastq_as_line):
-
-        self.header = fastq_as_line[0].strip()
-        self.seq = fastq_as_line[1].strip()
-        self.comment = fastq_as_line[2].strip()
-        self.qual = fastq_as_line[3].strip()
-
-    def fastq_string(self):
-        return self.header + '\n' + self.seq  + '\n' + self.comment  + '\n' + self.qual + '\n'
 
 class readArgs(object):
     """
@@ -510,7 +330,7 @@ class Summary(object):
         phase_block_len_out = open((args.output_prefix + '.phase_block_lengths'), 'w')
         everything = open((args.output_prefix + '.everything'), 'w')
         #everything.write('read_per_pb\tpb_len\tpb_cov\tave_rp_cov\tmol_per_bc')
-        progressBar = ProgressBar(name='Writing stats files', min=0, max = summaryInstance.phase_block_counter, step = 1)
+        progressBar = BLR.ProgressBar(name='Writing stats files', min=0, max = summaryInstance.phase_block_counter, step = 1)
 
 
         # Writing outputs

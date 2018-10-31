@@ -2,13 +2,18 @@
 
 def main():
 
-
     #
     # Imports & globals
     #
+    global args, summaryInstance, duplicate_position_dict, overlapValues, window, duplicates, pos_dict, singleton_duplicate_position, BLR
+    import BLR_functions as BLR, sys, pysam
 
-    global args, summaryInstance, output_tagged_bamfile, sys, time, duplicate_position_dict, singleton_duplicate_position, overlapValues, window, duplicates, pos_dict
-    import pysam, sys, time
+
+    #
+    # Argument parsing
+    #
+    argumentsInstance = readArgs()
+    if not BLR.pythonVersion(args.force_run): sys.exit()
 
     #
     # Argument parsing
@@ -24,7 +29,7 @@ def main():
     # Start of script
     #
 
-    report_progress('Starting Analysis')
+    BLR.report_progress('Starting Analysis')
 
 
     #######
@@ -42,7 +47,7 @@ def main():
     pos_dict = dict()
     overlapValues = OverlapValues()
     tot_read_pair_count = int()
-    progress = ProgressReporter('Reads processed', 1000000)
+    progress = BLR.ProgressReporter('Reads processed', 1000000)
     for read in infile.fetch(until_eof=True):
 
         tot_read_pair_count += 1
@@ -115,27 +120,27 @@ def main():
     seed_duplicates(duplicate_position_dict, prev_chromosome)
     duplicate_position_dict = dict()
 
-    report_progress('Total reads in file:\t' + "{:,}".format(tot_read_pair_count))
-    report_progress('Total paired reads:\t' + "{:,}".format(summaryInstance.intact_read_pairs*2))
-    report_progress('Reads in unmapped read pairs:\t' + "{:,}".format(summaryInstance.unmapped_read_pair*2))
-    report_progress('Non-primary alignments in file:\t' + "{:,}".format(summaryInstance.non_primary_alignments))
+    BLR.report_progress('Total reads in file:\t' + "{:,}".format(tot_read_pair_count))
+    BLR.report_progress('Total paired reads:\t' + "{:,}".format(summaryInstance.intact_read_pairs*2))
+    BLR.report_progress('Reads in unmapped read pairs:\t' + "{:,}".format(summaryInstance.unmapped_read_pair*2))
+    BLR.report_progress('Non-primary alignments in file:\t' + "{:,}".format(summaryInstance.non_primary_alignments))
 
     # Close input file
     infile.close()
 
-    report_progress('Removing overlaps under threshold and reducing several step redundancy')
-    report_progress('Barcodes seeded for removal:\t' + "{:,}".format(len(duplicates.seeds)))
+    BLR.report_progress('Removing overlaps under threshold and reducing several step redundancy')
+    BLR.report_progress('Barcodes seeded for removal:\t' + "{:,}".format(len(duplicates.seeds)))
 
     # Fetch all seeds which are above -t (--threshold, default=0) number of overlaps (require readpair overlap for seed)
     for bc_id_set in duplicates.seeds:
         duplicates.reduce_to_significant_overlaps(bc_id_set)
-    report_progress('Barcodes over threshold (' + str(args.threshold) +'):\t' + "{:,}".format(len(duplicates.translation_dict.keys())))
+    BLR.report_progress('Barcodes over threshold (' + str(args.threshold) +'):\t' + "{:,}".format(len(duplicates.translation_dict.keys())))
 
     # Remove several step redundancy (5 -> 3, 3 -> 1) => (5 -> 1, 3 -> 1)
     duplicates.reduce_several_step_redundancy()
     barcode_ID_merge_dict = duplicates.translation_dict
-    report_progress('Barcodes removed:\t\t' + "{:,}".format(len(barcode_ID_merge_dict)))
-    report_progress('Barcode dict finished')
+    BLR.report_progress('Barcodes removed:\t\t' + "{:,}".format(len(barcode_ID_merge_dict)))
+    BLR.report_progress('Barcode dict finished')
 
     # Option: EXPLICIT MERGE - Writes bc_seq + prev_bc_id + new_bc_id
     if args.explicit_merge:
@@ -143,7 +148,7 @@ def main():
         bc_seq_already_written = set()
 
     # Write output
-    progressBar = ProgressBar(name='Writing output', min=0, max=tot_read_pair_count, step=1)
+    progressBar = BLR.ProgressBar(name='Writing output', min=0, max=tot_read_pair_count, step=1)
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
     out = pysam.AlignmentFile(args.output_bam, 'wb', template=infile)
     for read in infile.fetch(until_eof=True):
@@ -175,7 +180,7 @@ def main():
     progressBar.terminate()
     out.close()
     if args.explicit_merge: explicit_merge_file.close()
-    report_progress('Finished')
+    BLR.report_progress('Finished')
 
 def update_cache_dict(pos_dict, chromosome, position, window):
     """
@@ -276,36 +281,6 @@ def process_readpairs(list_of_start_stop_tuples):
                 # Add read to dictionary
                 singleton_duplicate_position[chromosome][positions].append(int(single_read.get_tag(args.barcode_tag)))
 
-def process_singleton_reads(chromosome, start_stop, list_of_singleton_reads):
-    """
-    Saves all reads if one is marked as duplicate since 'original' read will not be marked.
-    """
-
-    duplicate = bool()
-
-    # Loop through all reads at current position and look for duplicates
-    for read in list_of_singleton_reads:
-        if read.is_duplicate:
-            duplicate = True
-            break
-
-    # If one of the reads were marked as duplicates, save all reads at current position
-    if duplicate == True:
-        for read in list_of_singleton_reads:
-
-            barcode_ID = int(read.get_tag(args.barcode_tag))
-
-            # If chr not in dict, add it
-            if not chromosome in singleton_duplicate_position:
-                singleton_duplicate_position[chromosome] = dict()
-
-            # If this position has no reads yet, add position as key giving empty list as value
-            if not start_stop in singleton_duplicate_position[chromosome]:
-                singleton_duplicate_position[chromosome][start_stop] = set()
-
-            # Add read to dictionary
-            singleton_duplicate_position[chromosome][start_stop].add(barcode_ID)
-
 def seed_duplicates(duplicate_position_dict, chromosome):
     """
     Seeds duplicates for read pairs
@@ -320,7 +295,7 @@ def seed_duplicates(duplicate_position_dict, chromosome):
 
     # Function takes long time, so nice to see if something happens
     # UPDATE
-    progressBar = ProgressBar(name=str('Seeding ' + str(chromosome)), min=0, max=len(duplicate_position_dict[chromosome]), step=1)
+    progressBar = BLR.ProgressBar(name=str('Seeding ' + str(chromosome)), min=0, max=len(duplicate_position_dict[chromosome]), step=1)
 
     for duplicate_pos in sorted(duplicate_position_dict[chromosome].keys()):
 
@@ -548,181 +523,6 @@ class BarcodeDuplicates(object):
         # If not present, just add to dictionary
         else:
             self.translation_dict[bc_id] = min_id
-
-def report_progress(string):
-    """
-    Writes a time stamp followed by a message (=string) to standard out.
-    Input: String
-    Output: [date]  string
-    """
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
-
-class ProgressReporter(object):
-    """
-    Writes to out during iteration of unknown length
-    """
-
-    def __init__(self, name_of_process, report_step):
-
-        self.name = name_of_process
-        self.report_step = report_step
-        self.position = int()
-        self.next_limit = report_step
-
-    def update(self):
-
-        self.position += 1
-        if self.position >= self.next_limit:
-            report_progress(self.name + '\t' + "{:,}".format(self.position))
-            self.next_limit += self.report_step
-
-class ProgressBar(object):
-    """
-    Writes a progress bar to stderr
-    """
-
-    def __init__(self, name, min, max, step):
-        # Variables
-        self.min = min
-        self.max = max
-        self.current_position = min
-        self.step = step
-
-        # Metadata
-        self.two_percent = (self.max-self.min)/50
-        self.current_percentage = self.two_percent
-
-        # If two percent, equivalent of one '#', is less than one step length increase the number of # written each step
-        if self.two_percent < self.step and not self.max==2:
-            self.progress_length = int(50/(self.max-2))
-            self.progress_string = '#' * self.progress_length
-        elif self.max == 2:
-            self.progress_string = '#' * 25
-        else:
-            self.progress_string = '#'
-
-        # Printing
-        report_progress(str(name))
-        sys.stderr.write('\n|------------------------------------------------|\n')
-
-    def update(self):
-        # If progress is over 2%, write '#' to stdout
-        self.current_position += self.step
-        if self.current_percentage < self.current_position:
-            sys.stderr.write(self.progress_string)
-            sys.stderr.flush()
-            time.sleep(0.001)
-            self.current_percentage += self.two_percent
-
-    def terminate(self):
-         sys.stderr.write('\n')
-
-class FileReader(object):
-    """
-    Reads input files, handles gzip.
-    """
-    def __init__(self, filehandle, filehandle2=None):
-
-        # Init variables setting
-        self.filehandle = filehandle
-        self.gzip = bool()
-
-        # Open files as zipped or not not (depending on if they end with .gz)
-        if self.filehandle[-3:] == '.gz':
-            report_progress('File detected as gzipped, unzipping when reading')
-            import gzip
-            self.openfile = gzip.open(self.filehandle, 'r')
-            self.gzip = True
-        else:
-            self.openfile = open(self.filehandle, 'r')
-
-        # Paired end preparation
-        self.filehandle2 = filehandle2
-        if self.filehandle2:
-
-            # Open files as zipped or not not (depending on if they end with .gz)
-            if self.filehandle2[-3:] == '.gz':
-                report_progress('File detected as gzipped, unzipping when reading')
-                import gzip
-                self.openfile2 = gzip.open(self.filehandle2, 'r')
-            else:
-                self.openfile2 = open(self.filehandle2, 'r')
-
-    def fileReader(self):
-        """
-        Reads non-specific files as generator
-        :return: lines
-        """
-        for line in self.openfile:
-            if self.gzip:
-                line = line.decode("utf-8")
-            yield line
-
-    def fastqReader(self):
-        """
-        Reads lines 4 at the time as generator
-        :return: read as fastq object
-        """
-
-        line_chunk = list()
-        for line in self.openfile:
-            if self.gzip:
-                line = line.decode("utf-8")
-            line_chunk.append(line)
-            if len(line_chunk) == 4:
-                read = FastqRead(line_chunk)
-                line_chunk = list()
-                yield read
-
-    def fastqPairedReader(self):
-        """
-        Reads two paired fastq files and returns a pair of two reads
-        :return: read1 read2 as fastq read objects
-        """
-
-        line_chunk1 = list()
-        line_chunk2 = list()
-        for line1, line2 in zip(self.openfile, self.openfile2):
-            if self.gzip:
-                line1 = line1.decode("utf-8")
-                line2 = line2.decode("utf-8")
-            line_chunk1.append(line1)
-            line_chunk2.append(line2)
-            if len(line_chunk1) == 4 and len(line_chunk2) == 4:
-                read1 = FastqRead(line_chunk1)
-                read2 = FastqRead(line_chunk2)
-
-                # Error handling
-                if not read1.header.split()[0] == read2.header.split()[0]:
-                    import sys
-                    sys.exit('INPUT ERROR: Paired reads headers does not match.\nINPUT ERROR: Read pair number:\t'+str(progress.position+1)+'\nINPUT ERROR: '+str(read1.header)+'\nINPUT ERROR: '+str(read2.header)+'\nINPUT ERROR: Exiting')
-                line_chunk1 = list()
-                line_chunk2 = list()
-                yield read1, read2
-
-    def close(self):
-        """
-        Closes files properly so they can be re-read if need be.
-        :return:
-        """
-        self.openfile.close()
-        if self.filehandle2:
-            self.openfile2.close()
-
-class FastqRead(object):
-    """
-    Stores read as object.
-    """
-
-    def __init__(self, fastq_as_line):
-
-        self.header = fastq_as_line[0].strip()
-        self.seq = fastq_as_line[1].strip()
-        self.comment = fastq_as_line[2].strip()
-        self.qual = fastq_as_line[3].strip()
-
-    def fastq_string(self):
-        return self.header + '\n' + self.seq  + '\n' + self.comment  + '\n' + self.qual + '\n'
 
 class readArgs(object):
     """ Reads arguments and handles basic error handling like python version control etc."""
