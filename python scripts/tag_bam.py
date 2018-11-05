@@ -48,7 +48,7 @@ def main():
 
     infile.close()
     out.close()
-    report_progress('Finished')
+    BLR.report_progress('Finished')
 
 def readAndProcessClusters(openInfile):
     """
