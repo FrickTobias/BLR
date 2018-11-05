@@ -12,6 +12,8 @@ def main():
     # Argument parsing
     #
     argumentsInstance = readArgs()
+
+    # Check python3 is being run
     if not BLR.pythonVersion(args.force_run): sys.exit()
     #
     # Initials
