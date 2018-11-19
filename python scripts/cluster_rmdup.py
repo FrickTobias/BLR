@@ -313,10 +313,11 @@ def seed_duplicates(duplicate_position_dict, chromosome):
             readpair_pos_tuple = (mate_pos_tuple, read_pos_tuple)
             try:barcode_ID = int(read.get_tag(args.barcode_tag))
             except KeyError:
-                sys.exit('\nERROR: No BC tag for read ' + str(read.query_name) + '\nPlease double check BC '
-                                 'clustering & tagging has run correctly.\n\nIf BC indexing nucleotides contain N, '
-                                 'either remove all affected reads or cluster these sequences separately and append '
-                                 'to the end of your BC.N.clstr file.\nEXITING')
+                if not args.force_run:
+                    sys.exit('\nERROR: No BC tag for read ' + str(read.query_name) + '\nPlease double check BC '
+                             'clustering & tagging has run correctly.\n\nIf BC indexing nucleotides contain N, '
+                             'either remove all affected reads or cluster these sequences separately and append '
+                             'to the end of your BC.N.clstr file.\nEXITING')
 
             # Add all barcodes IDs to set, check later if total > 2 at positions.
             if not readpair_pos_tuple in possible_duplicate_seeds:
