@@ -2,8 +2,19 @@
 
 import sys, time, gzip
 
+#
+## These are the global functions used in the BLR pipeline.
+#
+
+# All functions are described in detail in the function specific documentation with examples given in the main function,
+# including how to use the arguments.
+
 def pythonVersion(force_run):
-    """ Makes sure the user is running python 3."""
+    """
+    Error handling - Checks if python 3 is being run and returns bool (True/False)
+    :param force_run: bool (True/False). Override python 3 requirement
+    :return: bool (True/False)
+    """
 
     #
     # Version control
@@ -24,18 +35,29 @@ def pythonVersion(force_run):
 
 def report_progress(string):
     """
-    Writes a time stamp followed by a message (=string) to standard out.
-    Input: String
-    Output: [date]  string
+    Progress report function, writes string (<time_stamp> <tab> <string> <newline>) to std err.
+    :param string: String to be written to terminal
+    :return: None
     """
     sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
 
 class ProgressReporter(object):
     """
-    Writes to out during iteration of unknown length
+    Progress reporter object, writes updates to std err for every <report_step> iteration. Used for iterations of unknown
+    lengths.
+
+    It is setup by first creating an instance of the object (progress = ProgressReporter(name_of_process='file_reading',
+    report_step=1000)) and then using updating the progress every iteration (progress.update()). In the example given
+    this would print <time_stamp> <tab> <'file_reading'> <tab> <iterations_made> every 1000th iteration.
     """
 
     def __init__(self, name_of_process, report_step):
+        """
+        Setup function for iterations of unknown lengths. Typically initial file readings.
+        :param name_of_process: string. Name of the iterations being made
+        :param report_step: integer. Will write update to terminal every <integer> interations.
+        :return: None
+        """
 
         self.name = name_of_process
         self.report_step = report_step
@@ -43,7 +65,10 @@ class ProgressReporter(object):
         self.next_limit = report_step
 
     def update(self):
-
+        """
+        Update function for object. Run once every iteration, does not require arguments.
+        :return: None
+        """
         self.position += 1
         if self.position >= self.next_limit:
             report_progress(self.name + '\t' + "{:,}".format(self.position))
@@ -51,11 +76,21 @@ class ProgressReporter(object):
 
 class ProgressBar(object):
     """
-    Writes a progress bar to stderr
+    Progress reporter object, writes updates to std err in for of a progress bar. Used for iterations of known lenghts.
+
+    It is setup by first creating an instance of the object (progressBar = ProgressBar(name='processing', min=0,
+    max=100000, step=1)) and then using the updating function every iteration (progressBar.update()). This creates a
+    progress bar in the terminal which updates for every 2% reached of the process.
     """
-
-
     def __init__(self, name, min, max, step):
+        """
+        Setup function for iterations of known lengths. Typically used for processing after having read a file.
+        :param name: string. Name printed above progress bar
+        :param min: integer. Starting point of process, most often 0.
+        :param max: integer. Last iteration of process.
+        :param step: integer. How many iterations have been made for every time the update() function is called.
+        :return: None
+        """
 
         # Variables
         self.min = min
@@ -76,11 +111,15 @@ class ProgressBar(object):
         else:
             self.progress_string = '#'
 
-        # Printing
+        # Printing progress bar tot length
         report_progress(str(name))
         sys.stderr.write('\n|------------------------------------------------|\n')
 
     def update(self):
+        """
+        Update function for object. Run once every <step> iteration, does not require arguments.
+        :return: None
+        """
         # If progress is over 2%, write '#' to stdout
         self.current_position += self.step
         if self.current_percentage < self.current_position:
@@ -90,14 +129,24 @@ class ProgressBar(object):
             self.current_percentage += self.two_percent
 
     def terminate(self):
+        """
+        Termination function. Writes newline to std err, typically used directly after iteration loop is complete.
+        :return: None
+        """
          sys.stderr.write('\n')
 
 class FileReader(object):
     """
-    Reads input files, handles gzip.
+    Reads input files as generator, handles gzip.
     """
     def __init__(self, filehandle, filehandle2=None):
 
+        """
+        Setup function, detects if files are gzipped and saves file handles (generator =
+        FileReader(filehandle=args.input_file)). If only one file is to be read, only use first the first argument.
+        :param filehandle: string. File handle name. Typically args.input_file.
+        :param filehandle2: string OR None. Second file handle name, if only one file should be read leave blank.
+        """
         # Init variables setting
         self.filehandle = filehandle
         self.gzip = bool()
@@ -124,8 +173,8 @@ class FileReader(object):
 
     def fileReader(self):
         """
-        Reads non-specific files as generator
-        :return: lines
+        Reads non-specific (non-structured) files as generator.
+        :return: strin. Yields one line for every iteration.
         """
         for line in self.openfile:
             if self.gzip:
@@ -134,8 +183,8 @@ class FileReader(object):
 
     def fastqReader(self):
         """
-        Reads lines 4 at the time as generator
-        :return: read as fastq object
+        Reads fastq format files as generator, reads 4 lines at the time (=one read).
+        :return: instance. Fastq reads as instances (see BLR FastqRead object function).
         """
 
         line_chunk = list()
@@ -150,8 +199,8 @@ class FileReader(object):
 
     def fastqPairedReader(self):
         """
-        Reads two paired fastq files and returns a pair of two reads
-        :return: read1 read2 as fastq read objects
+        Reads two paired fastq files as generator and yields a pair of two reads.
+        :return: instance, instance. read1 and read2 as instances (see BLR FastqRead object function).
         """
 
         line_chunk1 = list()
@@ -176,7 +225,7 @@ class FileReader(object):
     def close(self):
         """
         Closes files properly so they can be re-read if need be.
-        :return:
+        :return: None
         """
         self.openfile.close()
         if self.filehandle2:
@@ -184,15 +233,24 @@ class FileReader(object):
 
 class FastqRead(object):
     """
-    Stores read as object.
+    Stores read as instance.
     """
 
     def __init__(self, fastq_as_line):
-
+        """
+        Setup function, creates read objects from lines (read = FastqRead(four_lines)), will have variables .header,
+        .seq, .comment and .qual.
+        :param fastq_as_line: string. Four lines (separated by newline) in fastq format.
+        :return: instance. Fastq read instance.
+        """
         self.header = fastq_as_line[0].strip()
         self.seq = fastq_as_line[1].strip()
         self.comment = fastq_as_line[2].strip()
         self.qual = fastq_as_line[3].strip()
 
     def fastq_string(self):
+        """
+        Makes a ready-printable string from a fastq read instance.
+        :return: string.
+        """
         return self.header + '\n' + self.seq  + '\n' + self.comment  + '\n' + self.qual + '\n'
