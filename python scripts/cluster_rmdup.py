@@ -314,6 +314,7 @@ def seed_duplicates(duplicate_position_dict, chromosome):
             try:barcode_ID = int(read.get_tag(args.barcode_tag))
             except KeyError:
                 if not args.force_run:
+                    import sys
                     sys.exit('\nERROR: No BC tag for read ' + str(read.query_name) + '\nPlease double check BC '
                              'clustering & tagging has run correctly.\n\nIf BC indexing nucleotides contain N, '
                              'either remove all affected reads or cluster these sequences separately and append '
