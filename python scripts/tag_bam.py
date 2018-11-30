@@ -6,145 +6,79 @@ def main():
     #
     # Imports & globals
     #
-    global args, summaryInstance, output_tagged_bamfile, sys, time
-    import pysam, sys, time, os
+    global args, summaryInstance, output_tagged_bamfile
+    import BLR_functions as BLR, sys, pysam
 
     #
     # Argument parsing
     #
     argumentsInstance = readArgs()
 
-    #
-    # Initials
-    #
-    summaryInstance = Summary()
+    # Check python3 is being run
+    if not BLR.pythonVersion(args.force_run): sys.exit()
 
     #
     # Data processing & writing output
     #
 
-    # Generate read:cluster dictionary from concatenated .clstr file (stores in Summary instance)
-    with open(args.input_clstr, 'r') as openInfile:
-        readAndProcessClusters(openInfile)
+    # Generate dict with bc => bc_cluster consensus sequence
+    BLR.report_progress("Starting analysis")
+    clstr_generator = BLR.FileReader(args.input_clstr)
+    cluster_dict = readAndProcessClusters(clstr_generator.fileReader())
+    clstr_generator.close()
 
-    add_to_RG_headers = list()
-    # Tagging bam mapping entries with RG:Z:clusterid
+    # Read bam files and translate bc seq to BC cluster ID + write to out
+    progress = BLR.ProgressReporter('Reads processed', 1000000)
     infile = pysam.AlignmentFile(args.input_mapped_bam, 'rb')
-    out = pysam.AlignmentFile(args.output_tagged_bam+'.tmp.bam', 'wb', template=infile)
-
+    out = pysam.AlignmentFile(args.output_tagged_bam, 'wb', template=infile)
+    reads_with_non_clustered_bc = int()
     for read in infile.fetch(until_eof=True):
         read_bc = read.query_name.split()[0].split('_')[-1]
 
-        # Won't write read to out if read=>bc dict gets KeyError (only happens when N is in first three bases.)
-        if args.exclude_N:
-            try: bc_id = summaryInstance.read_to_barcode_dict[read_bc]
-            except KeyError:
-                Summary.writeLog(summaryInstance, ('KeyError, removed: ' + str(read_bc)))
-                continue
-
-            # Set tag to bc_id
-            read.set_tag(args.barcode_tag, str(bc_id), value_type='Z')  # Stores as string, makes duplicate removal possible. Can do it as integer as well.
-            read.query_name = (read.query_name + '_@' + args.barcode_tag + ':Z:' + str(bc_id))
-            out.write(read)
-
-        # Includes barcodes with N first three bases (but they won't be clustered, RG=bc_seq)
+        # Fetch barcode cluster ID based on barcode sequence
+        if not read_bc in cluster_dict:
+            reads_with_non_clustered_bc += 1
         else:
-            try:
-                bc_id = summaryInstance.read_to_barcode_dict[read_bc]
-            except KeyError:
-                Summary.writeLog(summaryInstance, ('KeyError: ' + str(read_bc)))
-                bc_id = read_bc
-                add_to_RG_headers.append(bc_id)  # For RG headers later
+            bc_id = cluster_dict[read_bc]
+            read.set_tag('BC', str(bc_id), value_type='Z')  # Stores as string, makes duplicate removal possible. Can do it as integer as well.
+            read.query_name = (read.query_name + '_BC:Z:' + str(bc_id))
 
-            # Set tag to bc_id
-            read.set_tag(args.barcode_tag, str(bc_id),value_type='Z')  # Stores as string, makes duplicate removal possible. Can do it as integer as well.
-            read.query_name = (read.query_name + '_@' + args.barcode_tag + ':Z:' + str(bc_id))
-            out.write(read)
-
-    not_atgc_dict = dict()
-
-    infile.close()
-    out.close()
-    infile = pysam.AlignmentFile(args.output_tagged_bam+'.tmp.bam', 'rb')
-
-    # If barcode_tag == RG all reads groups must be found in header as well.
-    if args.barcode_tag == 'RG':
-
-        header_dict = infile.header.copy()
-        header_dict['RG'] = list()
-
-        for clusterId in summaryInstance.read_to_barcode_dict.values():
-            try:
-                not_atgc_dict[clusterId] += 1
-            except KeyError:
-                not_atgc_dict[clusterId] = 1
-                header_dict['RG'].append({'ID':str(clusterId), 'SM':'1'})
-
-        for clusterId in add_to_RG_headers:
-            try:
-                not_atgc_dict[clusterId] += 1
-            except KeyError:
-                not_atgc_dict[clusterId] = 1
-                header_dict['RG'].append({'ID':str(clusterId), 'SM':'1'})
-
-        out = pysam.AlignmentFile(args.output_tagged_bam, 'wb', header=header_dict)
-
-    # If barcode_tag != RG, then just use infile for header template
-    else:
-        out = pysam.AlignmentFile(args.output_tagged_bam, 'wb', template=infile)
-
-    for read in infile.fetch(until_eof=True):
         out.write(read)
+        progress.update()
 
     infile.close()
     out.close()
-
-    # Removes tmp-file
-    os.remove(args.output_tagged_bam+'.tmp.bam')
+    BLR.report_progress('Finished')
 
 def readAndProcessClusters(openInfile):
-    """ Reads clstr file and builds read:clusterId dict in Summary instance."""
+    """
+    Reads clstr file and builds bc => bc_cluster dict (bc_cluster is given as the consensus sequence).
+    """
 
-    # Set clusterInstance for first loop
-    report_progress('Reading cluster file.')
-    for first_line in openInfile:
-        clusterInstance = ClusterObject(clusterId=first_line)
-        break
+    # For first loop
+    if args.skip_nonclust: seqs_in_cluster = 2
 
+    # Reads cluster file and saves as dict
+    cluster_dict = dict()
+    cluster_ID = int()
     for line in openInfile:
 
         # Reports cluster to master dict and start new cluster instance
         if line.startswith('>'):
-            summaryInstance.updateReadToClusterDict(clusterInstance.barcode_to_bc_dict)
-            clusterInstance = ClusterObject(clusterId=line)
-        # Add accession entry for current cluster id
+
+            # If non-clustered sequences are to be omitted, removes if only one sequence makes out the cluster
+            if args.skip_nonclust and seqs_in_cluster < 2:
+                del cluster_dict[current_key]
+            seqs_in_cluster = 0
+
+            cluster_ID += 1
+            current_value = cluster_ID
         else:
-            clusterInstance.addRead(line)
+            current_key = line.split()[2].lstrip('>').rstrip('...').split(':')[2]
+            cluster_dict[current_key] = current_value
+            seqs_in_cluster +=1
 
-    # Add last cluster to master dict
-    summaryInstance.updateReadToClusterDict(clusterInstance.barcode_to_bc_dict)
-
-def report_progress(string):
-    """
-    Writes a time stamp followed by a message (=string) to standard out.
-    Input: String
-    Output: [date]  string
-    """
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
-
-class ClusterObject(object):
-    """ Cluster object"""
-
-    def __init__(self, clusterId):
-
-        self.barcode_to_bc_dict = dict()
-        self.Id = int(clusterId.split()[1]) # Remove 'Cluster' string and \n from end
-
-    def addRead(self, line):
-
-        accession = line.split()[2].rstrip('.')
-        barcode = accession.split(':')[-1]
-        self.barcode_to_bc_dict[barcode] = self.Id # Extract header and remove '...'
+    return(cluster_dict)
 
 class readArgs(object):
     """ Reads arguments and handles basic error handling like python version control etc."""
@@ -176,10 +110,8 @@ class readArgs(object):
         parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
                                                                            "Not recommended due to different function "
                                                                            "names in python 2 and 3.")
-        parser.add_argument("-e", "--exclude_N", type=bool, default=True, help="If True (default), excludes .bam file "
-                                                                               "reads with barcodes containing N.")
-        parser.add_argument("-bc", "--barcode_tag", metavar="<BARCODE_TAG>", type=str, default='BC',
-                            help="Bamfile tag in which the barcode is specified in. DEFAULT: BC")
+        parser.add_argument("-s", "--skip_nonclust", action="store_true", help="Does not give cluster ID:s to clusters "
+                                                                               "made out by only one sequence.")
 
         args = parser.parse_args()
 
@@ -200,31 +132,5 @@ class readArgs(object):
                 sys.exit()
             else:
                 sys.stderr.write('\nForcing run. This might yield inaccurate results.\n')
-
-class Summary(object):
-    """ Summarizes chunks"""
-
-    def __init__(self):
-        self.read_to_barcode_dict = dict()
-        self.CurrentClusterId = 0
-        self.barcodeLength = int()
-        log = args.output_tagged_bam.split('.')[:-1]
-        self.log = '.'.join(log) + '.log'
-        with open(self.log, 'w') as openout:
-            pass
-
-    def updateReadToClusterDict(self, input_dict):
-        """ Merges cluster specific dictionaries to a master dictionary."""
-
-        self.CurrentClusterId += 1
-        for barcode in input_dict.keys():
-            self.read_to_barcode_dict[barcode] = self.CurrentClusterId
-
-    def writeLog(self, line):
-
-        import time
-        with open(self.log, 'a') as openout:
-            openout.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\n')
-            openout.write(line + '\n')
 
 if __name__=="__main__": main()

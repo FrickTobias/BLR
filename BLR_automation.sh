@@ -200,6 +200,18 @@ then
     exit 0
 fi
 
+# Make barcode file according BC.clstr OR BC.NNN.clstr, where N will correspond to how many index bases are used.
+    if [[ $index_nucleotides == 0 ]]
+    then
+        N_string='BC'
+    else
+        N_string='BC.' &&
+        for i in $(seq 1 $index_nucleotides)
+        do
+            N_string=$N_string'N'
+        done
+    fi &&
+
 # Mailing
 if $mailing
 then
@@ -222,7 +234,7 @@ printf '\n\n'"`date`"'\tANALYSIS STARTING\n'
  #                                   #
 
 # Check if this step should be run
-current_step=$((current_step+1))
+current_step=$((current_step+1)) &&
 if (( "$current_step" >= "$start_step" )) && [ "$continue" == true ]
 then
 
@@ -230,9 +242,9 @@ then
     if $mailing
     then
         echo '1_trim starting '$(date) | mail -s $path $email
-    fi
-    printf '\n1. Demultiplexing\n'
-    printf "`date`"'\t1st adaptor removal\n'
+    fi &&
+    printf '\n1. Demultiplexing\n' &&
+    printf "`date`"'\t1st adaptor removal\n' &&
 
     # Trim away E handle on R1 5'. Also removes reads shorter than 85 bp.
     cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
@@ -241,34 +253,34 @@ then
         -p $file_name2".h1.fastq" \
         $ARG1 \
         $ARG2 \
-        --discard-untrimmed -e 0.2 -m 65 > $trim_logfile # Tosses reads shorter than len(e+bc+handle+TES)
+        --discard-untrimmed -e 0.2 -m 65 > $trim_logfile && # Tosses reads shorter than len(e+bc+handle+TES)
 
-    printf "`date`"'\t1st adaptor removal done\n'
-    printf "`date`"'\tBarcode extraction\n'
+    printf "`date`"'\t1st adaptor removal done\n' &&
+    printf "`date`"'\tBarcode extraction\n' &&
 
     ## Get DBS using UMI-Tools -> _BDHVBDVHBDVHBDVH in header.
     (python3 $wgh_path'/python scripts/bc_extract.py' \
         $file_name".h1.fastq" \
         $file_name2".h1.fastq" \
         $file_name".h1.bc.fastq" \
-        $file_name2".h1.bc.fastq") 2>$path"/bc_extract.stderr"
+        $file_name2".h1.bc.fastq") 2>$path"/bc_extract.stderr" &&
     if ! $keep_logiles
     then
         rm $path"/bc_extract.stderr"
-    fi
+    fi &&
     if $remove
     then
-        rm $file_name".h1.fastq"
+        rm $file_name".h1.fastq" &&
         rm $file_name2".h1.fastq"
     else
-        pigz $file_name".h1.fastq"
+        pigz $file_name".h1.fastq" &&
         pigz $file_name2".h1.fastq"
-    fi
-    pigz $file_name".h1.bc.fastq"
-    pigz $file_name2".h1.bc.fastq"
+    fi &&
+    pigz $file_name".h1.bc.fastq" &&
+    pigz $file_name2".h1.bc.fastq" &&
 
-    printf "`date`"'\tBarcode extraction done\n'
-    printf "`date`"'\t2nd adaptor removal\n'
+    printf "`date`"'\tBarcode extraction done\n' &&
+    printf "`date`"'\t2nd adaptor removal\n' &&
 
     #Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed.
     cutadapt -g AGATGTGTATAAGAGACAG \
@@ -277,17 +289,17 @@ then
         -p $file_name2".h1.bc.h2.fastq" \
         $file_name".h1.bc.fastq.gz" \
         $file_name2".h1.bc.fastq.gz" \
-        --discard-untrimmed -e 0.2  >> $trim_logfile
+        --discard-untrimmed -e 0.2  >> $trim_logfile &&
     if $remove
     then
-        rm $file_name".h1.bc.fastq.gz"
+        rm $file_name".h1.bc.fastq.gz" &&
         rm $file_name2".h1.bc.fastq.gz"
-    fi
-    pigz $file_name".h1.bc.h2.fastq"
-    pigz $file_name2".h1.bc.h2.fastq"
+    fi &&
+    pigz $file_name".h1.bc.h2.fastq" &&
+    pigz $file_name2".h1.bc.h2.fastq" &&
 
-    printf "`date`"'\t2nd adaptor removal done\n'
-    printf "`date`""\t3' trimming\n"
+    printf "`date`"'\t2nd adaptor removal done\n' &&
+    printf "`date`""\t3' trimming\n" &&
 
     #Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT
     cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
@@ -297,32 +309,32 @@ then
         -m 25 \
         $file_name".h1.bc.h2.fastq.gz" \
         $file_name2".h1.bc.h2.fastq.gz" \
-        -e 0.2  >> $trim_logfile
+        -e 0.2  >> $trim_logfile &&
     if $remove
     then
-        rm $file_name".h1.bc.h2.fastq.gz"
+        rm $file_name".h1.bc.h2.fastq.gz" &&
         rm $file_name2".h1.bc.h2.fastq.gz"
-    fi
-    pigz $file_name".trimmed.fastq"
-    pigz $file_name2".trimmed.fastq"
+    fi &&
+    pigz $file_name".trimmed.fastq" &&
+    pigz $file_name2".trimmed.fastq" &&
 
     if $mailing
-        then
+    then
         echo '1_trim finished '$(date) | mail -s $path $email
-    fi
-    printf "`date`""\t3' trimming done\n"
+    fi &&
+    printf "`date`""\t3' trimming done\n" &&
 
     # Ugly solution to calculate % construOK
-    var1=$( cat $trim_logfile | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 1 )
-    var2=$( cat $trim_logfile | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 2 )
+    var1=$( cat $trim_logfile | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 1 ) &&
+    var2=$( cat $trim_logfile | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 2 ) &&
     printf "`date`""\t"; awk '{print "Intact reads: "$1*$2*0.0001" %"}' <<< "$var1 $var2"
 
-fi
+fi &&
 
 if (( "$current_step" == "$end_step" ))
 then
     continue=false
-fi
+fi &&
 
 
 # 2. ###################################################################################
@@ -338,48 +350,48 @@ fi
  #                                   #
 
 # Check if this step should be run
-current_step=$((current_step+1))
+current_step=$((current_step+1)) &&
 if (( "$current_step" >= "$start_step" )) && [ "$continue" == true ]
 then
 
     if $mailing
     then
         echo '2_clustering starting'$(date) | mail -s $path $email
-    fi
-    printf '\n2. Clustering\n'
-    printf "`date`"'\tBarcode fasta generation\n'
+    fi &&
+    printf '\n2. Clustering\n' &&
+    printf "`date`"'\tBarcode fasta generation\n' &&
 
     # Barcode extraction
-    pigz -d $file_name".trimmed.fastq.gz"
+    pigz -d $file_name".trimmed.fastq.gz" &&
     (python3 $wgh_path'/python scripts/cdhit_prep.py' \
         $file_name".trimmed.fastq" \
         $path"/unique_bc" \
-        -r $index_nucleotides\
-        -f 0 >$path"/cdhit_prep.stdout") 2>$path"/cdhit_prep.stderr"
+        -i $index_nucleotides\
+        -f 0 >$path"/cdhit_prep.stdout") 2>$path"/cdhit_prep.stderr" &&
     if ! $keep_logiles
     then
-        rm $path"/cdhit_prep.stdout"
+        rm $path"/cdhit_prep.stdout" &&
         rm $path"/cdhit_prep.stderr"
-    fi
-    pigz $file_name".trimmed.fastq"
+    fi &&
+    pigz $file_name".trimmed.fastq" &&
 
-    printf "`date`"'\tBarcode fasta generation done\n'
-    printf "`date`"'\tBarcode clustering\n'
+    printf "`date`"'\tBarcode fasta generation done\n' &&
+    printf "`date`"'\tBarcode clustering\n' &&
 
     # Non-indexing primer run fix
     if [[ $index_nucleotides == 0 ]]
     then
-        mv $path"/unique_bc" $path"/unique_bc.fa"
-        mkdir $path"/unique_bc"
+        mv $path"/unique_bc" $path"/unique_bc.fa" &&
+        mkdir $path"/unique_bc" &&
         mv $path"/unique_bc.fa" $path"/unique_bc/unique_bc.fa"
-    fi
+    fi &&
 
     # Barcode clustering
-    touch $path"/cdhit.log"
+    touch $path"/cdhit.log" &&
     for file in $path"/unique_bc"/*.fa
     do
-        printf '\n' >> $cluster_logfile
-        wc -l $file >> $cluster_logfile
+        printf '\n' >> $cluster_logfile &&
+        wc -l $file >> $cluster_logfile &&
         (cd-hit-454 \
             -i $file \
             -o $file'.clustered' \
@@ -389,42 +401,33 @@ then
             -g 1 \
             -n 3 \
             -M 0) >> $path"/cdhit.log"
-    done
+    done &&
 
-    # Make barcode file according BC.clstr OR BC.NNN.clstr, where N will correspond to how many index bases are used.
-    if [[ $index_nucleotides == 0 ]]
-    then
-        N_string='BC.'
-    else
-        N_string='BC.'; for i in $(seq 1 $index_nucleotides); do N_string=$N_string'N'; done; # Ugly solution for getting N*index length string
-    fi
-
-    cat $path"/unique_bc/"*".clstr" > $path"/"$N_string".clstr"
+    cat $path"/unique_bc/"*".clstr" > $path"/"$N_string".clstr" &&
 
     if ! $keep_logiles
     then
         rm $path"/cdhit.log"
-    fi
+    fi &&
 
     if $remove
     then
         rm -rf $path"/unique_bc"
-    fi
+    fi &&
 
     if $mailing
     then
         echo '2_clustering finished '$(date) | mail -s $path $email
-    fi
+    fi &&
 
     printf "`date`"'\tBarcode clustering done\n'
 
-
-fi
+fi &&
 
 if (( "$current_step" == "$end_step" ))
 then
     continue=false
-fi
+fi &&
 
 # 3. ###################################################################################
 
@@ -439,17 +442,17 @@ fi
  #                                   #
 
 # Check if this step should be run
-current_step=$((current_step+1))
+current_step=$((current_step+1)) &&
 if (( "$current_step" >= "$start_step" )) && [ "$continue" == true ]
 then
 
     if $mailing
     then
         echo '3_map starting '$(date) | mail -s $path $email
-    fi
-    printf '\n3. Mapping\n'
-    printf "`date`"'\tMapping\n'
-    printf '\n\n Map stats: .sort.bam\n' >> $map_logfile
+    fi &&
+    printf '\n3. Mapping\n' &&
+    printf "`date`"'\tMapping\n' &&
+    printf '\n\n Map stats: .sort.bam\n' >> $map_logfile &&
 
     # Mapping & bam conversion
     (bowtie2 \
@@ -461,49 +464,48 @@ then
         samtools view \
             - \
             -@ $processors \
-            -bh > $file_name".bam") 2>$map_logfile
+            -bh > $file_name".bam") 2>$map_logfile &&
 
-    printf "`date`"'\tMapping done\n'
-    printf "`date`"'\tSorting\n'
+    printf "`date`"'\tMapping done\n' &&
+    printf "`date`"'\tSorting\n' &&
 
     # Sorting
     samtools sort \
         $file_name".bam" \
-        -@ processors > $file_name".sort.bam"
+        -@ processors > $file_name".sort.bam" &&
 
     if $remove
     then
         rm $file_name".bam"
-    fi
+    fi &&
 
-    printf "`date`"'\tSorting done\n'
-    printf "`date`"'\tBam tagging\n'
+    printf "`date`"'\tSorting done\n' &&
+    printf "`date`"'\tBam tagging\n' &&
 
     # Tagging bamfile
     (python3 $wgh_path'/python scripts/tag_bam.py' \
         $file_name".sort.bam" \
         $path"/"$N_string".clstr" \
-        $file_name".sort.tag.bam" ) 2>$path"/tag_bam.stderr"
+        $file_name".sort.tag.bam" ) 2>$path"/tag_bam.stderr" &&
 
     if ! $keep_logiles
     then
         rm $path"/tag_bam.stderr"
-        rm $file_name".sort.tag.log"
-    fi
+    fi &&
 
     if $mailing
     then
         echo '3_map finished '$(date) | mail -s $path $email
-    fi
+    fi &&
 
     printf "`date`"'\tBam tagging done\n'
 
-fi
+fi &&
 
 if (( "$current_step" == "$end_step" ))
 then
     continue=false
-fi
+fi &&
 
 # 4. ###################################################################################
 
@@ -520,16 +522,16 @@ fi
  #                                   #
 
 # Check if this step should be run
-current_step=$((current_step+1))
+current_step=$((current_step+1)) &&
 if (( "$current_step" >= "$start_step" )) && [ "$continue" == true ]
 then
 
     if $mailing
     then
         echo '4_rmdup starting '$(date) | mail -s $path $email
-    fi
-    printf '\n4. Duplicate removal\n'
-    printf "`date`"'\tDuplicate removal\n'
+    fi &&
+    printf '\n4. Duplicate removal\n' &&
+    printf "`date`"'\tDuplicate removal\n' &&
 
     # Read duplicate removal
     (java '-Xmx'$heap_space'g' -jar $picard_path MarkDuplicates \
@@ -538,77 +540,77 @@ then
         M=$path"/picard.log" \
         ASSUME_SORT_ORDER=coordinate \
         REMOVE_DUPLICATES=true \
-        BARCODE_TAG=BC) 2>$rmdup_logfile
+        BARCODE_TAG=BC) 2>$rmdup_logfile &&
 
-    printf "`date`"'\tDuplicate removal done\n'
-    printf "`date`"'\tBarcode duplicate marking\n'
+    printf "`date`"'\tDuplicate removal done\n' &&
+    printf "`date`"'\tBarcode duplicate marking\n' &&
 
     # Cluster duplicate marking
     (java '-Xmx'$heap_space'g' -jar $picard_path MarkDuplicates \
         I=$file_name".sort.tag.rmdup.bam" \
         O=$file_name".sort.tag.rmdup.mkdup.bam" \
         M=$path"/mkdup.log" \
-        ASSUME_SORT_ORDER=coordinate) 2>>$rmdup_logfile
-    cat $path/"/mkdup.log" >> $path"/picard.log"
-    rm $path"/mkdup.log"
+        ASSUME_SORT_ORDER=coordinate) 2>>$rmdup_logfile &&
+    cat $path/"/mkdup.log" >> $path"/picard.log" &&
+    rm $path"/mkdup.log" &&
 
     if $remove
     then
         rm $file_name".sort.tag.rmdup.bam"
-    fi
+    fi &&
 
-    printf "`date`"'\tBarcode duplicate marking done\n'
-    printf "`date`"'\tCluster merging\n'
+    printf "`date`"'\tBarcode duplicate marking done\n' &&
+    printf "`date`"'\tCluster merging\n' &&
 
     # Cluster duplicate merging
     (python3 $wgh_path'/python scripts/cluster_rmdup.py' \
         $file_name".sort.tag.rmdup.mkdup.bam" \
-        $file_name".sort.tag.rmdup.x2.bam") 2>>$rmdup_logfile
+        $file_name".sort.tag.rmdup.x2.bam") 2>>$rmdup_logfile &&
 
 
-    printf "`date`"'\tCluster merging done\n'
-    printf "`date`"'\tIndexing\n'
+    printf "`date`"'\tCluster merging done\n' &&
+    printf "`date`"'\tIndexing\n' &&
 
-    samtools index $file_name".sort.tag.rmdup.x2.bam"
+    samtools index $file_name".sort.tag.rmdup.x2.bam" &&
 
-    printf "`date`"'\tIndexing done\n'
-    printf "`date`"'\tCluster filtering\n'
+    printf "`date`"'\tIndexing done\n' &&
+    printf "`date`"'\tCluster filtering\n' &&
 
-    mkdir -p $path"/cluster_stats"
+    mkdir -p $path"/cluster_stats" &&
     # Cluster filtering
     (python3 $wgh_path'/python scripts/filter_clusters.py' \
         -f $file_name".sort.tag.rmdup.x2.filt.bam" \
         -M 260 \
         $file_name".sort.tag.rmdup.x2.bam" \
-        $path"/cluster_stats/x2.stats") 2>>$rmdup_logfile
+        $path"/cluster_stats/x2.stats") 2>>$rmdup_logfile &&
 
-    printf "`date`"'\tCluster filtering done\n'
-    printf "`date`"'\tFastq generation\n'
+    printf "`date`"'\tCluster filtering done\n' &&
+    printf "`date`"'\tFastq generation\n' &&
 
     # Fastq generation
     (java -jar $picard_path SamToFastq \
         I=$file_name".sort.tag.rmdup.x2.filt.bam" \
         FASTQ=$file_name".final.fastq" \
-        SECOND_END_FASTQ=$file_name2".final.fastq") 2>>$path/picard.log
+        SECOND_END_FASTQ=$file_name2".final.fastq") 2>>$path/picard.log &&
 
     if ! $keep_logiles
     then
-        rm $file_name".sort.tag.rmdup.x2.bam.log"
+        rm $file_name".sort.tag.rmdup.x2.bam.log" &&
         rm $path/picard.log
-    fi
+    fi &&
 
-    pigz $file_name".final.fastq"
-    pigz $file_name2".final.fastq"
+    pigz $file_name".final.fastq" &&
+    pigz $file_name2".final.fastq" &&
 
     if $mailing
     then
         echo '4_rmdup finished '$(date) | mail -s $path $email
-    fi
+    fi &&
     printf "`date`"'\tFastq generation done\n'
 
-fi
+fi &&
 
-printf '\n'"`date`"'\tANALYSIS FINISHED\n'
+printf '\n'"`date`"'\tANALYSIS FINISHED\n' &&
 
 if $mailing
 then

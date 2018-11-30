@@ -5,24 +5,26 @@ def main():
     #
     # Imports & globals
     #
-    global args, summaryInstance, sys, time, pysam
-    import pysam, sys, time
+    global args, summaryInstance, BLR
+    import BLR_functions as BLR, sys, pysam
 
     #
     # Argument parsing
     #
     argumentsInstance = readArgs()
 
+    # Check python3 is being run
+    if not BLR.pythonVersion(args.force_run): sys.exit()
     #
     # Initials
     #
     summaryInstance = Summary()
     window = args.window_size
     currentPhaseBlocks = CurrentPhaseBlocks()
-    current_limit = 1000000
 
-    report_progress('Running analysis with ' + "{:,}".format(args.window_size) + ' bp window size')
-    report_progress('Fetching reads')
+    BLR.report_progress('Running analysis with ' + "{:,}".format(args.window_size) + ' bp window size')
+    BLR.report_progress('Fetching reads')
+    progress = BLR.ProgressReporter('Reads processed', 1000000)
 
     # Data processing
     with pysam.AlignmentFile(args.x2_bam, 'rb') as infile:
@@ -37,11 +39,8 @@ def main():
             # For all reads (parsed as single reads and not as read pairs)
             for read in infile.fetch(chromosome_name, 0, chromosome_length):
 
+                progress.update()
                 summaryInstance.reads += 1
-
-                if summaryInstance.reads >= current_limit:
-                    report_progress("{:,}".format(summaryInstance.reads) + ' reads fetched')
-                    current_limit += 1000000
 
                 # Fetches barcode and skips read removed read pair from stats if not present.
                 try: barcode_id = read.get_tag(args.barcode_tag)
@@ -95,19 +94,17 @@ def main():
             # Report phase blocks when switching to new chromosome, as not to confuse positions
             currentPhaseBlocks.commitAndRemoveAll()
 
-    report_progress('Phase blocks analysed')
+    BLR.report_progress('Phase blocks analysed')
 
     summaryInstance.writeResultFiles()
 
-    # GREPFRICK: move to summary somewhere
-    sys.stderr.write('\nReads in bam:\t' + "{:,}".format(summaryInstance.reads) + '\n')
-    sys.stderr.write('Reads without barcode tag:\t' + "{:,}".format(summaryInstance.non_tagged_reads) + '\n')
-    sys.stderr.write('Overlapping reads within phase_block:\t' + "{:,}".format(summaryInstance.overlapping_reads_in_pb) + '\n')
-    sys.stderr.write('\nMolecules identified:\t' + "{:,}".format(summaryInstance.phase_block_counter) + '\n')
-    sys.stderr.write('Molecules over read threshold (' + str(args.threshold) + '):\t' + "{:,}".format(summaryInstance.phase_blocks_over_threshold) + '\n')
-    if args.filter_bam: sys.stderr.write('Molecules removed:\t' + "{:,}".format(summaryInstance.molecules_over_threshold) + '\n')
-    sys.stderr.write('Drops without more molecules than threshold (' + str(args.threshold) + '):\t' + "{:,}".format(summaryInstance.drops_without_molecules_over_threshold) + '\n\n')
-    report_progress('Statistics calculated')
+    BLR.report_progress('\nReads in bam:\t' + "{:,}".format(progress.position))
+    BLR.report_progress('Reads without barcode tag:\t' + "{:,}".format(summaryInstance.non_tagged_reads))
+    BLR.report_progress('Overlapping reads within phase_block:\t' + "{:,}".format(summaryInstance.overlapping_reads_in_pb))
+    BLR.report_progress('\nMolecules identified:\t' + "{:,}".format(summaryInstance.phase_block_counter))
+    BLR.report_progress('Molecules over read threshold (' + str(args.threshold) + '):\t' + "{:,}".format(summaryInstance.phase_blocks_over_threshold))
+    if args.filter_bam: BLR.report_progress('Molecules removed:\t' + "{:,}".format(summaryInstance.molecules_over_threshold))
+    BLR.report_progress('Drops without more molecules than threshold (' + str(args.threshold) + '):\t' + "{:,}".format(summaryInstance.drops_without_molecules_over_threshold) + '\n')
 
     with open(args.output_prefix + '.lengths_between_readpairs', 'w') as openin:
         for length, number_of_times in summaryInstance.bp_btw_reads.items():
@@ -117,7 +114,7 @@ def main():
     # Writes output bam file if wanted
     if args.filter_bam:
 
-        progressBar_writeBam = ProgressBar(name='Writing filtered bam file', min=0, max=summaryInstance.reads, step=1)
+        progressBar_writeBam = BLR.ProgressBar(name='Writing filtered bam file', min=0, max=summaryInstance.reads, step=1)
 
         openin = pysam.AlignmentFile(args.x2_bam, 'rb')
         openout = pysam.AlignmentFile(args.filter_bam, 'wb', template=openin)
@@ -147,9 +144,9 @@ def main():
         openin.close()
 
     if not summaryInstance.reads == 0:
-        report_progress('Reads with barcodes removed:\t' + "{:,}".format((summaryInstance.reads_with_removed_barcode)) + '\t(' + ("%.2f" % ((summaryInstance.reads_with_removed_barcode/summaryInstance.reads)*100) + ' %)'))
+        BLR.report_progress('Reads with barcodes removed:\t' + "{:,}".format((summaryInstance.reads_with_removed_barcode)) + '\t(' + ("%.2f" % ((summaryInstance.reads_with_removed_barcode/summaryInstance.reads)*100) + ' %)'))
     else:
-        report_progress('No mapped reads found in file.')
+        BLR.report_progress('No mapped reads found in file.')
 
 def direct_read_pairs_to_ref(read_start, read_stop):
     """
@@ -162,14 +159,6 @@ def direct_read_pairs_to_ref(read_start, read_stop):
     # Otherwise, return it as is
     else:
         return read_start, read_stop
-
-def report_progress(string):
-    """
-    Writes a time stamp followed by a message (=string) to standard out.
-    Input: String
-    Output: [date]  string
-    """
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
 
 class CurrentPhaseBlocks(object):
     """
@@ -219,39 +208,6 @@ class CurrentPhaseBlocks(object):
         for phase_block in self.dictionary.copy().keys():
             summaryInstance.reportPhaseBlock(self.dictionary[phase_block], phase_block)
             del self.dictionary[phase_block]
-
-class ProgressBar(object):
-    """
-    Writes a progress bar to stderr
-    """
-
-    def __init__(self, name, min, max, step):
-        # Variables
-        self.min = min
-        self.max = max
-        self.current_position = min
-        self.step = step
-
-        # Metadata
-        self.two_percent = (self.max-self.min)/50
-        self.current_percentage = self.two_percent
-
-        # Printing
-        report_progress(name)
-        sys.stderr.write('\n' + str(name))
-        sys.stderr.write('\n|------------------------------------------------|\n')
-
-    def update(self):
-        # If progress is over 2%, write '#' to stdout
-        self.current_position += self.step
-        if self.current_percentage < self.current_position:
-            sys.stderr.write('#')
-            sys.stderr.flush()
-            time.sleep(0.001)
-            self.current_percentage += self.two_percent
-
-    def terminate(self):
-         sys.stderr.write('\n')
 
 class readArgs(object):
     """
@@ -376,7 +332,7 @@ class Summary(object):
         phase_block_len_out = open((args.output_prefix + '.phase_block_lengths'), 'w')
         everything = open((args.output_prefix + '.everything'), 'w')
         #everything.write('read_per_pb\tpb_len\tpb_cov\tave_rp_cov\tmol_per_bc')
-        progressBar = ProgressBar(name='Writing stats files', min=0, max = summaryInstance.phase_block_counter, step = 1)
+        progressBar = BLR.ProgressBar(name='Writing stats files', min=0, max = summaryInstance.phase_block_counter, step = 1)
 
 
         # Writing outputs
