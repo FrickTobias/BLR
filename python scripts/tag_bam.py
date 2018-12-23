@@ -24,7 +24,7 @@ def main():
     # Generate dict with bc => bc_cluster consensus sequence
     BLR.report_progress("Starting analysis")
     clstr_generator = BLR.FileReader(args.input_clstr)
-    cluster_dict = readAndProcessClusters(clstr_generator.fileReader())
+    cluster_dict = ProcessClusters(clstr_generator.fileReader())
     clstr_generator.close()
 
     # Read bam files and translate bc seq to BC cluster ID + write to out
@@ -50,9 +50,9 @@ def main():
     out.close()
     BLR.report_progress('Finished')
 
-def readAndProcessClusters(openInfile):
+def ProcessClusters(openInfile):
     """
-    Reads clstr file and builds bc => bc_cluster dict (bc_cluster is given as the consensus sequence).
+    Builds bc => bc_cluster dict (bc_cluster is given as the consensus sequence).
     """
 
     # For first loop
