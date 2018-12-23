@@ -133,7 +133,7 @@ class ProgressBar(object):
         Termination function. Writes newline to std err, typically used directly after iteration loop is complete.
         :return: None
         """
-         sys.stderr.write('\n')
+        sys.stderr.write('\n')
 
 class FileReader(object):
     """
