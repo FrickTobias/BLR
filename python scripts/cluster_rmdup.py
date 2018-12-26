@@ -154,25 +154,25 @@ def main():
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
     out = pysam.AlignmentFile(args.output_bam, 'wb', template=infile)
     for read in infile.fetch(until_eof=True):
-        previous_barcode_id = int(read.get_tag(args.barcode_tag))
+        try:previous_barcode_id = int(read.get_tag(args.barcode_tag))
+        except KeyError:
+            # If read barcode in merge dict, change tag and header to compensate.
+            if not previous_barcode_id in barcode_ID_merge_dict:
+                pass
+            else:
+                new_barcode_id = str(barcode_ID_merge_dict[previous_barcode_id])
+                read.set_tag(args.barcode_tag, new_barcode_id, value_type='Z')
+                read.query_name = '_'.join(read.query_name.split('_')[:-1]) + '_@' + args.barcode_tag + ':Z:' + new_barcode_id
 
-        # If read barcode in merge dict, change tag and header to compensate.
-        if not previous_barcode_id in barcode_ID_merge_dict:
-            pass
-        else:
-            new_barcode_id = str(barcode_ID_merge_dict[previous_barcode_id])
-            read.set_tag(args.barcode_tag, new_barcode_id, value_type='Z')
-            read.query_name = '_'.join(read.query_name.split('_')[:-1]) + '_@' + args.barcode_tag + ':Z:' + new_barcode_id
-
-            # Option: EXPLICIT MERGE - Write bc seq and new + prev bc ID
-            if args.explicit_merge:
-                barcode_seq = read.query_name.split()[0].split('_')[-2]
-                # Only write unique entries.
-                if barcode_seq in bc_seq_already_written:
-                    pass
-                else:
-                    bc_seq_already_written.add(barcode_seq)
-                    explicit_merge_file.write(str(new_barcode_id) + '\t' + str(barcode_seq) + '\t' +str(previous_barcode_id) + '\n')
+                # Option: EXPLICIT MERGE - Write bc seq and new + prev bc ID
+                if args.explicit_merge:
+                    barcode_seq = read.query_name.split()[0].split('_')[-2]
+                    # Only write unique entries.
+                    if barcode_seq in bc_seq_already_written:
+                        pass
+                    else:
+                        bc_seq_already_written.add(barcode_seq)
+                        explicit_merge_file.write(str(new_barcode_id) + '\t' + str(barcode_seq) + '\t' +str(previous_barcode_id) + '\n')
 
         # Write to out and update progress bar
         out.write(read)
