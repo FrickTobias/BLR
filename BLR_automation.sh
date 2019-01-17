@@ -610,7 +610,7 @@ then
 
 fi &&
 
-printf '\n'"`date`"'\tANALYSIS FINISHED\n' &&
+printf '\n'"`date`"'\tANALYSIS FINISHED\n'
 
 if $mailing
 then
