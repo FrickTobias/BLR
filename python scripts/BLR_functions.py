@@ -151,8 +151,11 @@ class FileReader(object):
         self.filehandle = filehandle
         self.gzip = bool()
 
+        if self.filehandle == "stdin"
+            import sys
+            self.openfile = sys.stdin
         # Open files as zipped or not not (depending on if they end with .gz)
-        if self.filehandle[-3:] == '.gz':
+        elif self.filehandle[-3:] == '.gz':
             report_progress('File detected as gzipped, unzipping when reading')
             self.openfile = gzip.open(self.filehandle, 'r')
             self.gzip = True
