@@ -249,8 +249,8 @@ then
     # Trim away E handle on R1 5'. Also removes reads shorter than 85 bp.
     cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
         -j $processors \
-        -o $file_name".h1.fastq" \
-        -p $file_name2".h1.fastq" \
+        -o $file_name".h1.fastq.gz" \
+        -p $file_name2".h1.fastq.gz" \
         $ARG1 \
         $ARG2 \
         --discard-untrimmed -e 0.2 -m 65 > $trim_logfile && # Tosses reads shorter than len(e+bc+handle+TES)
@@ -260,8 +260,8 @@ then
 
     ## Get DBS using UMI-Tools -> _BDHVBDVHBDVHBDVH in header.
     (python3 $wgh_path'/python scripts/bc_extract.py' \
-        $file_name".h1.fastq" \
-        $file_name2".h1.fastq" \
+        $file_name".h1.fastq.gz" \
+        $file_name2".h1.fastq.gz" \
         $file_name".h1.bc.fastq" \
         $file_name2".h1.bc.fastq") 2>$path"/bc_extract.stderr" &&
     if ! $keep_logiles
@@ -270,11 +270,8 @@ then
     fi &&
     if $remove
     then
-        rm $file_name".h1.fastq" &&
-        rm $file_name2".h1.fastq"
-    else
-        pigz $file_name".h1.fastq" &&
-        pigz $file_name2".h1.fastq"
+        rm $file_name".h1.fastq.gz" &&
+        rm $file_name2".h1.fastq.gz"
     fi &&
     pigz $file_name".h1.bc.fastq" &&
     pigz $file_name2".h1.bc.fastq" &&
@@ -284,9 +281,9 @@ then
 
     #Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed.
     cutadapt -g AGATGTGTATAAGAGACAG \
-        -o $file_name".h1.bc.h2.fastq" \
+        -o $file_name".h1.bc.h2.fastq.gz" \
         -j $processors \
-        -p $file_name2".h1.bc.h2.fastq" \
+        -p $file_name2".h1.bc.h2.fastq.gz" \
         $file_name".h1.bc.fastq.gz" \
         $file_name2".h1.bc.fastq.gz" \
         --discard-untrimmed -e 0.2  >> $trim_logfile &&
@@ -295,8 +292,6 @@ then
         rm $file_name".h1.bc.fastq.gz" &&
         rm $file_name2".h1.bc.fastq.gz"
     fi &&
-    pigz $file_name".h1.bc.h2.fastq" &&
-    pigz $file_name2".h1.bc.h2.fastq" &&
 
     printf "`date`"'\t2nd adaptor removal done\n' &&
     printf "`date`""\t3' trimming\n" &&
@@ -304,8 +299,8 @@ then
     #Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT
     cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
         -j $processors \
-        -o $file_name".trimmed.fastq" \
-        -p $file_name2".trimmed.fastq" \
+        -o $file_name".trimmed.fastq.gz" \
+        -p $file_name2".trimmed.fastq.gz" \
         -m 25 \
         $file_name".h1.bc.h2.fastq.gz" \
         $file_name2".h1.bc.h2.fastq.gz" \
@@ -315,8 +310,6 @@ then
         rm $file_name".h1.bc.h2.fastq.gz" &&
         rm $file_name2".h1.bc.h2.fastq.gz"
     fi &&
-    pigz $file_name".trimmed.fastq" &&
-    pigz $file_name2".trimmed.fastq" &&
 
     if $mailing
     then
@@ -591,7 +584,7 @@ then
     (java -jar $picard_path SamToFastq \
         I=$file_name".sort.tag.rmdup.x2.filt.bam" \
         FASTQ=$file_name".final.fastq" \
-        SECOND_END_FASTQ=$file_name2".final.fastq") 2>>$path/picard.log &&
+        SECOND_END_FASTQ=$file_name2".final.fastq") 2>>$path/cpicard.log &&
 
     if ! $keep_logiles
     then
@@ -610,7 +603,7 @@ then
 
 fi &&
 
-printf '\n'"`date`"'\tANALYSIS FINISHED\n' &&
+printf '\n'"`date`"'\tANALYSIS FINISHED\n'
 
 if $mailing
 then
