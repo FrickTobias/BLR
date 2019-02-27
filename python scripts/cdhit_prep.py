@@ -57,6 +57,7 @@ def main():
                     bc_id += 1
                     openout.write('>' + str(bc_id) + ':' + str(read_count) + ':' + str(barcode) + '\n' + str(barcode) + '\n')
                     bc_written += 1
+
     # Non-indexing mode output writing
     else:
         bc_id = int()
