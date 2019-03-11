@@ -20,7 +20,8 @@ def main():
     #
     summaryInstance = Summary()
     window = args.window_size
-    currentPhaseBlocks = CurrentPhaseBlocks()
+    phaseBlocks = CurrentPhaseBlocks()
+    prev_chrom = 'chr1'
 
     BLR.report_progress('Running analysis with ' + "{:,}".format(args.window_size) + ' bp window size')
     BLR.report_progress('Fetching reads')
@@ -30,69 +31,79 @@ def main():
     with pysam.AlignmentFile(args.x2_bam, 'rb') as infile:
 
         # Loop over chromosomes
-        for chromosome_header in infile.header['SQ']:
+        for read in infile.fetch(until_eof=True):
 
-            # Necessary for this way of fetching reads
-            chromosome_name = chromosome_header['SN']
-            chromosome_length = chromosome_header['LN']
+            if not prev_chrom == read.reference_name:
+                phaseBlocks.commitAndRemoveAll()
+                prev_chrom = read.reference_name
 
-            # For all reads (parsed as single reads and not as read pairs)
-            for read in infile.fetch(chromosome_name, 0, chromosome_length):
+            ### START CHANGE
 
-                progress.update()
-                summaryInstance.reads += 1
+            # Fetches barcode and genomic position. Position will be formatted so start < stop.
+            # BC_id, pos = fetch_and_format(read)
 
-                # Fetches barcode and skips read removed read pair from stats if not present.
-                try: barcode_id = read.get_tag(args.barcode_tag)
-                except KeyError:
-                    summaryInstance.non_tagged_reads += 1
-                    continue
+            # If read is unmapped or does not have barcode, skip
+            # if BC_id = None or pos = None: continue
 
-                # Unmapped reads won't affect analysis
-                if read.is_unmapped:
-                    summaryInstance.unmapped_reads += 1
-                    continue
+            ### REMOVE BELOW AND ADD ABOVE INSTEAD
 
-                # Fetch positions
-                read_start, read_stop = read.get_reference_positions()[0], read.get_reference_positions()[-1]
+            # Fetches barcode and skips read removed read pair from stats if not present.
+            try: barcode_id = read.get_tag(args.barcode_tag)
+            except KeyError:
+                summaryInstance.non_tagged_reads += 1
+                continue
 
-                # Standardise read positions according to refernce instead of read direction.
-                read_start, read_stop = direct_read_pairs_to_ref(read_stop, read_start)
+            # Unmapped reads won't affect analysis
+            if read.is_unmapped:
+                summaryInstance.unmapped_reads += 1
+                continue
 
-                # Intitates phase blocks with name = barcode_ID, if not that phase block exist, then fetches last pos(phase block)
-                if barcode_id in currentPhaseBlocks.dictionary:
-                    last_pos_of_phase_block = currentPhaseBlocks.dictionary[barcode_id]['stop']
+            # Fetch positions
+            read_start, read_stop = read.get_reference_positions()[0], read.get_reference_positions()[-1]
 
-                    # If last position of phase block is withing window (100 kb) distance of current read, then add this read to phase block.
-                    if (last_pos_of_phase_block+window) >= read_start and last_pos_of_phase_block < read_start:
-                        currentPhaseBlocks.addReadPairToPhaseBlock(phase_block=barcode_id, rp_start=read_start, rp_stop=read_stop, query_name=read.query_name)
+            # Standardise read positions according to refernce instead of read direction.
+            read_start, read_stop = direct_read_pairs_to_ref(read_stop, read_start)
 
-                    # If reads are overlapping...
-                    elif last_pos_of_phase_block >= read_start:
+            ### STOP CHANGE
 
-                        # ... add it if it is the mate to a previous read in phaseblock
-                        if read.query_name in currentPhaseBlocks.dictionary[barcode_id]['reads']:
-                            currentPhaseBlocks.addReadPairToPhaseBlock(phase_block=barcode_id, rp_start=read_start, rp_stop=read_stop, query_name=read.query_name)
 
-                        # ... don't count it if it's just overlapping.
-                        else:
-                            summaryInstance.overlapping_reads_in_pb += 1
 
-                    # If read is outside range of window from last position, then report the old phase block and initate a new one.
+            # Intitates phase blocks with name = barcode_ID, if not that phase block exist, then fetches last pos(phase block)
+            if barcode_id in phaseBlocks.dictionary:
+                last_pos_of_phase_block = phaseBlocks.dictionary[barcode_id]['stop']
+
+                # If last position of phase block is withing window (100 kb) distance of current read, then add this read to phase block.
+                if (last_pos_of_phase_block+window) >= read_start and last_pos_of_phase_block < read_start:
+                    phaseBlocks.addReadPairToPhaseBlock(phase_block=barcode_id, rp_start=read_start, rp_stop=read_stop, query_name=read.query_name)
+
+                # If reads are overlapping...
+                elif last_pos_of_phase_block >= read_start:
+
+                    # ... add it if it is the mate to a previous read in phaseblock
+                    if read.query_name in phaseBlocks.dictionary[barcode_id]['reads']:
+                        phaseBlocks.addReadPairToPhaseBlock(phase_block=barcode_id, rp_start=read_start, rp_stop=read_stop, query_name=read.query_name)
+
+                    # ... don't count it if it's just overlapping.
                     else:
-                        summaryInstance.reportPhaseBlock(currentPhaseBlocks.dictionary[barcode_id], barcode_id)
-                        currentPhaseBlocks.terminatePhaseBlock(phase_block=barcode_id)
+                        summaryInstance.overlapping_reads_in_pb += 1
 
-                        # Initiate new entry with (start, stop, # reads)
-                        currentPhaseBlocks.initiatePhaseBlock(name=barcode_id, start=read_start, stop=read_stop, query_name=read.query_name)
-
-                # Add new phase block if bc_id not in dict yet
+                # If read is outside range of window from last position, then report the old phase block and initate a new one.
                 else:
-                    currentPhaseBlocks.initiatePhaseBlock(name=barcode_id, start=read_start, stop=read_stop,
-                                                          query_name=read.query_name)
+                    summaryInstance.reportPhaseBlock(phaseBlocks.dictionary[barcode_id], barcode_id)
+                    phaseBlocks.terminatePhaseBlock(phase_block=barcode_id)
 
-            # Report phase blocks when switching to new chromosome, as not to confuse positions
-            currentPhaseBlocks.commitAndRemoveAll()
+                    # Initiate new entry with (start, stop, # reads)
+                    phaseBlocks.initiatePhaseBlock(name=barcode_id, start=read_start, stop=read_stop, query_name=read.query_name)
+
+            # Add new phase block if bc_id not in dict yet
+            else:
+                phaseBlocks.initiatePhaseBlock(name=barcode_id, start=read_start, stop=read_stop,
+                                                      query_name=read.query_name)
+            progress.update()
+            summaryInstance.reads += 1
+
+        # Report phase blocks when switching to new chromosome, as not to confuse positions
+        phaseBlocks.commitAndRemoveAll()
 
     BLR.report_progress('Phase blocks analysed')
 
