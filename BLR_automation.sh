@@ -560,7 +560,6 @@ then
         $file_name".sort.tag.rmdup.mkdup.bam" \
         $file_name".sort.tag.rmdup.x2.bam") 2>>$rmdup_logfile &&
 
-
     printf "`date`"'\tCluster merging done\n' &&
     printf "`date`"'\tIndexing\n' &&
 
