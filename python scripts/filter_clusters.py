@@ -78,42 +78,31 @@ def main():
     summary.writeResultFiles()
     summary.printStats()
 
-    with open(args.output_prefix + '.lengths_between_readpairs', 'w') as openout:
-        for length, number_of_times in summary.bp_btw_reads.items():
-            for i in range(number_of_times):
-                openout.write(str(length) + '\n')
-
     # Writes output bam file if wanted
     if args.filter_bam:
 
-        progressBar_writeBam = BLR.ProgressBar(name='Writing filtered bam file', min=0, max=summary.reads, step=1)
+        progressBar = BLR.ProgressBar(name='Writing filtered bam file', min=0, max=summary.reads, step=1)
+        with pysam.AlignmentFile(args.x2_bam, 'rb') as openin, pysam.AlignmentFile(args.filter_bam, 'wb', template=openin) as openout:
+            for read in openin.fetch(until_eof=True):
 
-        openin = pysam.AlignmentFile(args.x2_bam, 'rb')
-        openout = pysam.AlignmentFile(args.filter_bam, 'wb', template=openin)
-        for read in openin.fetch(until_eof=True):
+                # If no bc_id, just write it to out
+                try: BC_id = read.get_tag(args.barcode_tag)
+                except KeyError:
+                    BC_id = False
 
-            # If no bc_id, just write it to out
-            try: BC_id = read.get_tag('RG')
-            except KeyError:
-                barcode_id = False
+                # If too many molecules in cluster, change tag and header of read
+                if BC_id in summary.barcode_removal_set:
+                    tmp_header_list = read.query_name.split('_')
+                    read.query_name = str(tmp_header_list[0]) + '_' + str(tmp_header_list[1])
+                    read.set_tag(args.barcode_tag, 'FILTERED', value_type='Z')
+                    summary.reads_with_removed_barcode += 1
 
-            # If too many molecules in cluster, change tag and header of read
-            if barcode_id in summary.barcode_removal_set:
-                tmp_header_list = read.query_name.split('_')
-                read.query_name = str(tmp_header_list[0]) + '_' + str(tmp_header_list[1]) + '_RG:Z:NNNNN'
-                read.set_tag('RG', 'NNNNN', value_type='Z')
-                summary.reads_with_removed_barcode += 1
-
-            # Writ to out & update progress bar
-            openout.write(read)
-            progressBar_writeBam.update()
+                # Writ to out & update progress bar
+                openout.write(read)
+                progressBar.update()
 
         # End progress bar
-        progressBar_writeBam.terminate()
-
-        # Close output
-        openout.close()
-        openin.close()
+        progressBar.terminate()
 
     try: BLR.report_progress('Reads with barcodes removed:\t' + "{:,}".format((summary.reads_with_removed_barcode)) + '\t(' + ("%.2f" % ((summary.reads_with_removed_barcode/summary.reads)*100) + ' %)'))
     except ZeroDivisionError: BLR.report_progress('No mapped reads found in file.')
@@ -291,13 +280,13 @@ class Summary(object):
     def printStats(self):
 
         # Read stats
-        BLR.report_progress('\nReads total:\t' + "{:,}".format(self.reads))
+        BLR.report_progress('Reads total:\t' + "{:,}".format(self.reads))
         BLR.report_progress('Unmapped reads:\t' + "{:,}".format(self.unmapped_reads))
         BLR.report_progress('Reads without ' + args.barcode_tag + ' tag:\t' + "{:,}".format(self.non_tagged_reads))
-        BLR.report_progress('Reads overlapping within phase_block:\t' + "{:,}".format(self.overlapping_reads_in_pb))
+        BLR.report_progress('Reads overlapping within phase_block:\t' + "{:,}".format(self.overlapping_reads_in_pb) + '\n')
 
         # Molecule stats
-        BLR.report_progress('\nMolecules total:\t' + "{:,}".format(self.molecules))
+        BLR.report_progress('Molecules total:\t' + "{:,}".format(self.molecules))
         BLR.report_progress('Molecules kept for stats (min read: ' + str(args.threshold) + '):\t' + "{:,}".format(
             self.phase_blocks_over_threshold))
         BLR.report_progress(
@@ -305,8 +294,8 @@ class Summary(object):
 
         # Filtering stats
         if args.filter_bam:
-            BLR.report_progress('\nMolecules in output bam:\t' + "{:,}".format(self.molecules_in_outbam))
-            BLR.report_progress('BC in output bam:\t' + "{:,}".format(self.bc_in_outbam))
+            BLR.report_progress('Molecules in output bam:\t' + "{:,}".format(self.molecules_in_outbam))
+            BLR.report_progress('BC in output bam:\t' + "{:,}".format(self.bc_in_outbam) + '\n')
 
     def writeResultFiles(self):
 
@@ -318,7 +307,7 @@ class Summary(object):
         everything = open((args.output_prefix + '.everything'), 'w')
         progressBar = BLR.ProgressBar(name='Writing stats files', min=0, max = summary.molecules, step = 1)
 
-        # Writing outputs
+        # Writing molecule-dependant stats
         for barcode_id in self.phase_block_result_dict.keys():
 
             molecules_in_cluster = 0
@@ -356,6 +345,12 @@ class Summary(object):
         # Close files
         for output_file in (molecules_per_bc_out, percent_bases_read, reads_per_phase_block_out, phase_block_len_out):
             output_file.close()
+
+        # Distance between reads
+        with open(args.output_prefix + '.lengths_between_readpairs', 'w') as openout:
+            for length, number_of_times in self.bp_btw_reads.items():
+                for i in range(number_of_times):
+                    openout.write(str(length) + '\n')
 
         progressBar.terminate()
 
