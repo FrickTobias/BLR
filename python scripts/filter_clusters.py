@@ -5,7 +5,7 @@ def main():
     #
     # Imports & globals
     #
-    global args, summaryInstance, BLR
+    global args, summary, BLR
     import BLR_functions as BLR, sys, pysam
 
     #
@@ -15,95 +15,78 @@ def main():
 
     # Check python3 is being run
     if not BLR.pythonVersion(args.force_run): sys.exit()
+
     #
     # Initials
     #
-    summaryInstance = Summary()
-    window = args.window_size
-    phaseBlocks = CurrentPhaseBlocks()
+    summary = Summary()
+    phaseBlocks = PhaseBlocks()
     prev_chrom = 'chr1'
 
-    BLR.report_progress('Running analysis with ' + "{:,}".format(args.window_size) + ' bp window size')
+    # Open file, loop over all reads
+    BLR.report_progress('Running analysis with ' + "{:,}".format(args.window) + ' bp window size')
     BLR.report_progress('Fetching reads')
     progress = BLR.ProgressReporter('Reads processed', 1000000)
-
-    # Data processing
     with pysam.AlignmentFile(args.x2_bam, 'rb') as infile:
-
-        # Loop over chromosomes
         for read in infile.fetch(until_eof=True):
 
+            # Commit phaseBlocks between chromosomes
             if not prev_chrom == read.reference_name:
-                phaseBlocks.commitAndRemoveAll()
+                phaseBlocks.reportAndRemoveAll()
                 prev_chrom = read.reference_name
 
             # Fetches barcode and genomic position. Position will be formatted so start < stop.
             BC_id, read_start, read_stop = fetch_and_format(read)
-
             # If read is unmapped or does not have barcode, skip
             if BC_id == None or read_start == 'unmapped': continue
 
-
-
-
-            # Intitates phase blocks with name = barcode_ID, if not that phase block exist, then fetches last pos(phase block)
+            # If BC_id already has seen prior reads
             if BC_id in phaseBlocks.dictionary:
-                last_pos_of_phase_block = phaseBlocks.dictionary[BC_id]['stop']
+                phase_block_stop = phaseBlocks.dictionary[BC_id]['stop']
 
-                # If last position of phase block is withing window (100 kb) distance of current read, then add this read to phase block.
-                if (last_pos_of_phase_block+window) >= read_start and last_pos_of_phase_block < read_start:
-                    phaseBlocks.addReadPairToPhaseBlock(phase_block=BC_id, rp_start=read_start, rp_stop=read_stop, query_name=read.query_name)
+                # Read is within window => add read to phase block.
+                if (phase_block_stop+args.window) >= read_start and phase_block_stop < read_start:
+                    phaseBlocks.addRead(name=BC_id, read_start=read_start, read_stop=read_stop, read_name=read.query_name)
 
-                # If reads are overlapping...
-                elif last_pos_of_phase_block >= read_start:
-
-                    # ... add it if it is the mate to a previous read in phaseblock
+                # Overlapping reads => If not overlapping to it's mate, discard read.
+                elif phase_block_stop >= read_start:
                     if read.query_name in phaseBlocks.dictionary[BC_id]['reads']:
-                        phaseBlocks.addReadPairToPhaseBlock(phase_block=BC_id, rp_start=read_start, rp_stop=read_stop, query_name=read.query_name)
-
-                    # ... don't count it if it's just overlapping.
+                        phaseBlocks.addRead(name=BC_id, read_start=read_start, read_stop=read_stop, read_name=read.query_name)
                     else:
-                        summaryInstance.overlapping_reads_in_pb += 1
+                        summary.overlapping_reads_in_pb += 1
 
-                # If read is outside range of window from last position, then report the old phase block and initate a new one.
+                # Read is not within window => report old and initate new phase block.
                 else:
-                    summaryInstance.reportPhaseBlock(phaseBlocks.dictionary[BC_id], BC_id)
-                    phaseBlocks.terminatePhaseBlock(phase_block=BC_id)
+                    summary.reportPhaseBlock(name=BC_id, phase_block=phaseBlocks.dictionary[BC_id])
+                    phaseBlocks.terminate(name=BC_id)
+                    phaseBlocks.initiate(name=BC_id, start=read_start, stop=read_stop, read_name=read.query_name)
 
-                    # Initiate new entry with (start, stop, # reads)
-                    phaseBlocks.initiatePhaseBlock(name=BC_id, start=read_start, stop=read_stop, query_name=read.query_name)
-
-            # Add new phase block if bc_id not in dict yet
+            # No previous reads for this bc has been discovered
             else:
-                phaseBlocks.initiatePhaseBlock(name=BC_id, start=read_start, stop=read_stop,
-                                                      query_name=read.query_name)
+                phaseBlocks.initiate(name=BC_id, start=read_start, stop=read_stop, read_name=read.query_name)
+
+            # Progress reporting
             progress.update()
-            summaryInstance.reads += 1
+            summary.reads += 1
 
-        # Report phase blocks when switching to new chromosome, as not to confuse positions
-        phaseBlocks.commitAndRemoveAll()
-
+    # Commit last chr phaseBlocks and log stats
+    phaseBlocks.reportAndRemoveAll()
+    summary.reads = progress.position
     BLR.report_progress('Phase blocks analysed')
 
-    summaryInstance.writeResultFiles()
+    # Stats to output files and stdout
+    summary.writeResultFiles()
+    summary.printStats()
 
-    BLR.report_progress('\nReads in bam:\t' + "{:,}".format(progress.position))
-    BLR.report_progress('Reads without barcode tag:\t' + "{:,}".format(summaryInstance.non_tagged_reads))
-    BLR.report_progress('Overlapping reads within phase_block:\t' + "{:,}".format(summaryInstance.overlapping_reads_in_pb))
-    BLR.report_progress('\nMolecules identified:\t' + "{:,}".format(summaryInstance.phase_block_counter))
-    BLR.report_progress('Molecules over read threshold (' + str(args.threshold) + '):\t' + "{:,}".format(summaryInstance.phase_blocks_over_threshold))
-    if args.filter_bam: BLR.report_progress('Molecules removed:\t' + "{:,}".format(summaryInstance.molecules_over_threshold))
-    BLR.report_progress('Drops without more molecules than threshold (' + str(args.threshold) + '):\t' + "{:,}".format(summaryInstance.drops_without_molecules_over_threshold) + '\n')
-
-    with open(args.output_prefix + '.lengths_between_readpairs', 'w') as openin:
-        for length, number_of_times in summaryInstance.bp_btw_reads.items():
+    with open(args.output_prefix + '.lengths_between_readpairs', 'w') as openout:
+        for length, number_of_times in summary.bp_btw_reads.items():
             for i in range(number_of_times):
-                openin.write(str(length) + '\n')
+                openout.write(str(length) + '\n')
 
     # Writes output bam file if wanted
     if args.filter_bam:
 
-        progressBar_writeBam = BLR.ProgressBar(name='Writing filtered bam file', min=0, max=summaryInstance.reads, step=1)
+        progressBar_writeBam = BLR.ProgressBar(name='Writing filtered bam file', min=0, max=summary.reads, step=1)
 
         openin = pysam.AlignmentFile(args.x2_bam, 'rb')
         openout = pysam.AlignmentFile(args.filter_bam, 'wb', template=openin)
@@ -115,11 +98,11 @@ def main():
                 barcode_id = False
 
             # If too many molecules in cluster, change tag and header of read
-            if barcode_id in summaryInstance.barcode_removal_set:
+            if barcode_id in summary.barcode_removal_set:
                 tmp_header_list = read.query_name.split('_')
                 read.query_name = str(tmp_header_list[0]) + '_' + str(tmp_header_list[1]) + '_RG:Z:NNNNN'
                 read.set_tag('RG', 'NNNNN', value_type='Z')
-                summaryInstance.reads_with_removed_barcode += 1
+                summary.reads_with_removed_barcode += 1
 
             # Writ to out & update progress bar
             openout.write(read)
@@ -132,10 +115,8 @@ def main():
         openout.close()
         openin.close()
 
-    if not summaryInstance.reads == 0:
-        BLR.report_progress('Reads with barcodes removed:\t' + "{:,}".format((summaryInstance.reads_with_removed_barcode)) + '\t(' + ("%.2f" % ((summaryInstance.reads_with_removed_barcode/summaryInstance.reads)*100) + ' %)'))
-    else:
-        BLR.report_progress('No mapped reads found in file.')
+    try: BLR.report_progress('Reads with barcodes removed:\t' + "{:,}".format((summary.reads_with_removed_barcode)) + '\t(' + ("%.2f" % ((summary.reads_with_removed_barcode/summary.reads)*100) + ' %)'))
+    except ZeroDivisionError: BLR.report_progress('No mapped reads found in file.')
 
 def fetch_and_format(read):
     """
@@ -146,7 +127,7 @@ def fetch_and_format(read):
 
     try: BC_id = read.get_tag(args.barcode_tag)
     except KeyError:
-        summaryInstance.non_tagged_reads += 1
+        summary.non_tagged_reads += 1
         BC_id = None
 
     if not read.is_unmapped:
@@ -155,11 +136,11 @@ def fetch_and_format(read):
         read_stop = max(pos)
     else:
         read_start, read_stop = 'unmapped', 'unmapped'
-        summaryInstance.unmapped_reads += 1
+        summary.unmapped_reads += 1
 
     return BC_id, read_start, read_stop
 
-class CurrentPhaseBlocks(object):
+class PhaseBlocks(object):
     """
     Tmp storage for phase blocks which might still get more reads assigned to them. Basically a dict with customised functions.
     """
@@ -167,46 +148,46 @@ class CurrentPhaseBlocks(object):
     def __init__(self):
         self.dictionary = dict()
 
-    def initiatePhaseBlock(self, name, start, stop, query_name):
+    def initiate(self, name, start, stop, read_name):
 
-        summaryInstance.phase_block_counter += 1
+        summary.molecules += 1
 
         self.dictionary[name] = dict()
         self.dictionary[name]['start'] = start
         self.dictionary[name]['stop'] = stop
         self.dictionary[name]['number_of_reads'] = 1
         self.dictionary[name]['bases_btw_inserts'] = 0
-        self.dictionary[name]['read_bases'] = stop - start
+        self.dictionary[name]['bases_read'] = stop - start
         self.dictionary[name]['reads'] = set()
-        self.dictionary[name]['reads'].add(query_name)
+        self.dictionary[name]['reads'].add(read_name)
 
-    def addReadPairToPhaseBlock(self, phase_block, rp_start, rp_stop, query_name):
+    def addRead(self, name, read_start, read_stop, read_name):
 
         # Tracks distances between read pairs, won't add value if it is mate to read
-        if not query_name in self.dictionary[phase_block]['reads']:
-            bp_btw_reads = rp_start - self.dictionary[phase_block]['stop']
+        if not read_name in self.dictionary[name]['reads']:
+            bp_btw_reads = read_start - self.dictionary[name]['stop']
 
             # Tracking the different lengths
-            if not bp_btw_reads in summaryInstance.bp_btw_reads:
-                summaryInstance.bp_btw_reads[bp_btw_reads] = int()
-            summaryInstance.bp_btw_reads[bp_btw_reads] += 1
+            if not bp_btw_reads in summary.bp_btw_reads:
+                summary.bp_btw_reads[bp_btw_reads] = int()
+            summary.bp_btw_reads[bp_btw_reads] += 1
 
         # Builds new object
-        self.dictionary[phase_block]['read_bases'] += rp_stop - rp_start
-        self.dictionary[phase_block]['bases_btw_inserts'] += rp_start - self.dictionary[phase_block]['stop']
-        self.dictionary[phase_block]['stop'] = rp_stop
-        self.dictionary[phase_block]['number_of_reads'] += 1
-        self.dictionary[phase_block]['reads'].add(query_name)
+        self.dictionary[name]['bases_read'] += read_stop - read_start
+        self.dictionary[name]['bases_btw_inserts'] += read_start - self.dictionary[name]['stop']
+        self.dictionary[name]['stop'] = read_stop
+        self.dictionary[name]['number_of_reads'] += 1
+        self.dictionary[name]['reads'].add(read_name)
 
-    def terminatePhaseBlock(self, phase_block):
+    def terminate(self, name):
 
-        del self.dictionary[phase_block]
+        del self.dictionary[name]
 
-    def commitAndRemoveAll(self):
+    def reportAndRemoveAll(self):
 
-        for phase_block in self.dictionary.copy().keys():
-            summaryInstance.reportPhaseBlock(self.dictionary[phase_block], phase_block)
-            del self.dictionary[phase_block]
+        for BC_id in self.dictionary.copy().keys():
+            summary.reportPhaseBlock(name=BC_id, phase_block=self.dictionary[BC_id])
+            del self.dictionary[BC_id]
 
 class readArgs(object):
     """
@@ -242,7 +223,7 @@ class readArgs(object):
                                                                            "Not recommended due to different function "
                                                                            "names in python 2 and 3. DEFAULT: False")
         parser.add_argument("-t","--threshold", metavar='<INTEGER>', type=int, default=4, help="Threshold for how many reads are required for including given phase block in statistics (except_reads_per_molecule). DEFAULT: 4")
-        parser.add_argument("-w", "--window_size", metavar='<INTEGER>', type=int, default=30000, help="Window size cutoff for maximum distance "
+        parser.add_argument("-w", "--window", metavar='<INTEGER>', type=int, default=30000, help="Window size cutoff for maximum distance "
                                                                                   "in between two reads in one phase block. "
                                                                                   "DEFAULT: 30000")
         parser.add_argument("-bc", "--barcode_tag", metavar='<STRING>', type=str, default='BC', help="Bam file tag where barcode is stored. DEFAULT: BC")
@@ -273,66 +254,69 @@ class Summary(object):
 
     def __init__(self):
 
-        # Just defining numbers which will be assigned later
+        # Stats
         self.reads = int()
         self.phase_blocks = int()
-        self.bc_clusters = int()
-
-        self.phase_block_lengths = dict()
-        self.phase_blocks_per_cluster = dict()
-        self.reads_per_phase_block = dict()
-
-        self.ave_coverage_phase_block = int()
-        self.ave_bases_read_in_read_pair = int()
-
-        self.phase_block_result_dict = dict()
-
-        self.unpaired_reads = int()
-        self.unpaired_reads_in_same_chr = int()
-
         self.phase_blocks_over_threshold = int()
-        self.phase_block_counter = int()
-
+        self.phase_block_result_dict = dict()
+        self.molecules = int()
         self.non_tagged_reads = int()
         self.drops_without_molecules_over_threshold = int()
-
         self.overlapping_reads_in_pb = int()
-
         self.barcode_removal_set = set()
         self.reads_with_removed_barcode = int()
-
-        self.molecules_over_threshold = int()
         self.unmapped_reads = int()
-
         self.bp_btw_reads = dict()
 
-    def reportPhaseBlock(self, phase_block, barcode_id):
+        # Filter bam file
+        self.molecules_in_outbam = int()
+        self.bc_in_outbam = int()
+
+    def reportPhaseBlock(self, name, phase_block):
 
         start = phase_block['start']
         stop = phase_block['stop']
         length = stop-start
         num_reads = phase_block['number_of_reads']
-        percent_read_bases = phase_block['read_bases']/(phase_block['bases_btw_inserts'] + phase_block['read_bases'])
+        percent_bases_read = phase_block['bases_read']/(phase_block['bases_btw_inserts'] + phase_block['bases_read'])
 
         # Tries to append to list of tuples, otherwise creates a tuple list as value for given barcode id
-        try: self.phase_block_result_dict[barcode_id]
+        try: self.phase_block_result_dict[name]
         except KeyError:
-            self.phase_block_result_dict[barcode_id] = list()
+            self.phase_block_result_dict[name] = list()
 
         # Save in summary dictionary
-        self.phase_block_result_dict[barcode_id].append((start, stop, length, num_reads, percent_read_bases))
+        self.phase_block_result_dict[name].append((start, stop, length, num_reads, percent_bases_read))
+
+    def printStats(self):
+
+        # Read stats
+        BLR.report_progress('\nReads total:\t' + "{:,}".format(self.reads))
+        BLR.report_progress('Unmapped reads:\t' + "{:,}".format(self.unmapped_reads))
+        BLR.report_progress('Reads without ' + args.barcode_tag + ' tag:\t' + "{:,}".format(self.non_tagged_reads))
+        BLR.report_progress('Reads overlapping within phase_block:\t' + "{:,}".format(self.overlapping_reads_in_pb))
+
+        # Molecule stats
+        BLR.report_progress('\nMolecules total:\t' + "{:,}".format(self.molecules))
+        BLR.report_progress('Molecules kept for stats (min read: ' + str(args.threshold) + '):\t' + "{:,}".format(
+            self.phase_blocks_over_threshold))
+        BLR.report_progress(
+            'BC consequently removed:\t' + "{:,}".format(self.drops_without_molecules_over_threshold) + '\n')
+
+        # Filtering stats
+        if args.filter_bam:
+            BLR.report_progress('\nMolecules in output bam:\t' + "{:,}".format(self.molecules_in_outbam))
+            BLR.report_progress('BC in output bam:\t' + "{:,}".format(self.bc_in_outbam))
 
     def writeResultFiles(self):
 
         # Opening all files
         molecules_per_bc_out = open((args.output_prefix + '.molecules_per_bc'), 'w')
-        percent_read_bases = open((args.output_prefix + '.percent_read_bases'), 'w')
+        percent_bases_read = open((args.output_prefix + '.percent_bases_read'), 'w')
         reads_per_phase_block_out = open((args.output_prefix + '.reads_per_molecule'), 'w')
         phase_block_len_out = open((args.output_prefix + '.phase_block_lengths'), 'w')
         everything = open((args.output_prefix + '.everything'), 'w')
-        #everything.write('read_per_pb\tpb_len\tpb_cov\tave_rp_cov\tmol_per_bc')
-        progressBar = BLR.ProgressBar(name='Writing stats files', min=0, max = summaryInstance.phase_block_counter, step = 1)
-
+        progressBar = BLR.ProgressBar(name='Writing stats files', min=0, max = summary.molecules, step = 1)
 
         # Writing outputs
         for barcode_id in self.phase_block_result_dict.keys():
@@ -343,11 +327,11 @@ class Summary(object):
 
                 reads_per_phase_block_out.write(str(phase_block[3]) + '\n')
 
-                # Not interesting if number of reads found are 1
+                # Filter molecules with less than N reads (--threshold)
                 if phase_block[3] >= args.threshold:
                     molecules_in_cluster += 1
-                    percent_read_bases.write(str(phase_block[4]))
-                    summaryInstance.phase_blocks_over_threshold += 1
+                    percent_bases_read.write(str(phase_block[4]))
+                    summary.phase_blocks_over_threshold += 1
                     phase_block_len_out.write(str(phase_block[2]) + '\n')
                     everything_cache_row.append((str(phase_block[3]) + '\t' + str(phase_block[2]) + '\t' + str(phase_block[4]) + '\t' + str(phase_block[4]) + '\t'  + str(barcode_id) + '\t'))
 
@@ -361,7 +345,8 @@ class Summary(object):
 
                 if args.filter_bam:
                     if molecules_in_cluster > args.Max_molecules:
-                        summaryInstance.molecules_over_threshold += molecules_in_cluster
+                        summary.bc_in_outbam += 1
+                        summary.molecules_in_outbam += molecules_in_cluster
                         self.barcode_removal_set.add(barcode_id)
 
                 # Writes everything file afterwards in chunks (since it needs molecule per droplet)
@@ -369,7 +354,7 @@ class Summary(object):
                     everything.write(row + '\t' + str(molecules_in_cluster) + '\n')
 
         # Close files
-        for output_file in (molecules_per_bc_out, percent_read_bases, reads_per_phase_block_out, phase_block_len_out):
+        for output_file in (molecules_per_bc_out, percent_bases_read, reads_per_phase_block_out, phase_block_len_out):
             output_file.close()
 
         progressBar.terminate()

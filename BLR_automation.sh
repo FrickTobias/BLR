@@ -305,6 +305,8 @@ then
         $file_name".h1.bc.h2.fastq.gz" \
         $file_name2".h1.bc.h2.fastq.gz" \
         -e 0.2  >> $trim_logfile &&
+
+
     if $remove
     then
         rm $file_name".h1.bc.h2.fastq.gz" &&
