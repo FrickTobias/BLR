@@ -305,6 +305,8 @@ then
         $file_name".h1.bc.h2.fastq.gz" \
         $file_name2".h1.bc.h2.fastq.gz" \
         -e 0.2  >> $trim_logfile &&
+
+
     if $remove
     then
         rm $file_name".h1.bc.h2.fastq.gz" &&
@@ -559,7 +561,6 @@ then
     (python3 $wgh_path'/python scripts/cluster_rmdup.py' \
         $file_name".sort.tag.rmdup.mkdup.bam" \
         $file_name".sort.tag.rmdup.x2.bam") 2>>$rmdup_logfile &&
-
 
     printf "`date`"'\tCluster merging done\n' &&
     printf "`date`"'\tIndexing\n' &&

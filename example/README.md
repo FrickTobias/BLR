@@ -98,6 +98,10 @@ Fri Mar  2 11:48:57 CET 2018	Barcode duplicate marking
 Fri Mar  2 11:49:15 CET 2018	Barcode duplicate marking done
 Fri Mar  2 11:49:15 CET 2018	Cluster merging
 Fri Mar  2 11:49:15 CET 2018	Cluster merging done
+Fri Mar  2 11:49:15 CET 2018	Indexing
+Fri Mar  2 11:49:15 CET 2018	Indexing done
+Fri Mar  2 11:49:15 CET 2018	Cluster filtering
+Fri Mar  2 11:49:15 CET 2018	Cluster filtering done
 Fri Mar  2 11:49:15 CET 2018	Fastq generation
 Fri Mar  2 11:49:16 CET 2018	Fastq generation done
  
@@ -119,6 +123,7 @@ testdata_read1.fastq.sort.filt.tag.bam
 testdata_read1.fastq.sort.filt.tag.rmdup.mkdup.bam
 testdata_read1.fastq.sort.filt.tag.rmdup.x2.bam
 testdata_read1.fastq.sort.filt.tag.rmdup.x2.bam.log
+testdata_read1.fastq.sort.filt.tag.rmdup.x2.filt.bam
 testdata_read1.fastq.final.fastq.gz	
 testdata_read2.fastq.final.fastq.gz
 
@@ -152,6 +157,7 @@ R2.final.fastq.gz                   Final filtered reads
 .sort.filt.tag.bam                  -..-, filtered for unmapped reads, non-primary alignments, tagged with barcode sequences
 .sort.filt.tag.rmdup.mkdup.bam      -..-, with read duplicates removed and cluster duplicates marked
 .sort.filt.tag.rmdup.x2.bam         -..-, with cluster duplicates merged
+.sort.filt.tag.rmdup.x2.filt.bam    -..-, filtered for large barcode clusters
 
 ```
 Barcode files

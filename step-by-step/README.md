@@ -159,9 +159,9 @@ Now the file is ready for removing read duplicates and cluster duplicates. First
 they have different barcodes) followed by marking remaining duplicates (not taking barcode into account), yielding a 
 file with only read duplicates with different barcodes marked. These reads are then used to find pairs of phased reads
 within the same clusters which have another pair of phased reads at the same position with another barcode (pairs of 
-phased reads are defined as two proximal read pairs). If this is
-identified this is interpreted as the barcodes either originating from the same emulsion or not being missed in the 
-clustering step.
+phased reads are defined as two proximal read pairs). If this is identified this is interpreted as the barcodes either 
+originating from the same emulsion or not being missed in the clustering step. Following this step the file can have 
+its barcodes stripped for reads in droplets with more than -M molecules. 
 
 ```
 # Removing duplicates, keeping reads if they have different barcodes
@@ -183,6 +183,13 @@ java -jar picard.jar MarkDuplicates
 python cluster_rmdup.py \
     <mapped.sort.filt.tag.rmdup.mkdup.bam> \
     <mapped.sort.filt.tag.rmdup.x2.bam>
+
+# Filter big clusters
+python filter_clusters.py \
+    <mapped.sort.filt.tag.rmdup.x2.bam> \
+    <stats_prefix> \
+    -f <mapped.sort.filt.tag.rmdup.x2.filt.bam> \
+    -M 260
 ```
 Options used:
 
@@ -190,6 +197,9 @@ Options used:
    OPTION           FUNCTION
    ASO=coordinate   Assume file is sorted based on mapping positions
    BARCODE_TAG=BC   Bamfile tag used for storing barcoding information
+   -f <file>        Write an output bam file with big droplets filtered (barcodes with many molecules)
+   -M 260           Maximum amount of molecules allowed per barcode
+   
 ```
 
 By now you will have an analysis-ready file.
