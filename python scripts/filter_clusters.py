@@ -263,6 +263,7 @@ class Summary(object):
 
     def reportMolecule(self, name, molecule):
 
+        # Fetching and formatting information
         start = molecule['start']
         stop = molecule['stop']
         length = stop-start
@@ -272,10 +273,10 @@ class Summary(object):
         # Tries to append to list of tuples, otherwise creates a tuple list as value for given barcode id
         try: self.molecules_result_dict[name]
         except KeyError:
-            self.molecules_result_dict[name] = list()
+            self.molecules_result_dict[name] = set()
 
         # Save in summary dictionary
-        self.molecules_result_dict[name].append((start, stop, length, num_reads, percent_bases_read))
+        self.molecules_result_dict[name].add((start, stop, length, num_reads, percent_bases_read))
 
     def printStats(self):
 
