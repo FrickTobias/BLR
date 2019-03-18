@@ -33,15 +33,15 @@ def main():
             # Progress reporting. Upmost because of continue-statement in loop
             progress.update()
 
-            # Commit molecules between chromosomes
-            if not prev_chrom == read.reference_name:
-                molecules.reportAndRemoveAll()
-                prev_chrom = read.reference_name
-
             # Fetches barcode and genomic position. Position will be formatted so start < stop.
             BC_id, read_start, read_stop = fetch_and_format(read)
             # If read is unmapped or does not have barcode, skip
             if BC_id == None or read_start == 'unmapped': continue
+
+            # Commit molecules between chromosomes
+            if not prev_chrom == read.reference_name:
+                molecules.reportAndRemoveAll()
+                prev_chrom = read.reference_name
 
             # If BC_id already has seen prior reads
             if BC_id in molecules.dictionary:
