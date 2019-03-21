@@ -258,8 +258,8 @@ class Summary(object):
         self.non_analyzed_reads = int()
 
         # Filter bam file
-        self.molecules_in_outbam = int()
-        self.bc_in_outbam = int()
+        self.mol_rmvd_outbam = int()
+        self.bc_rmvd_outbam = int()
 
     def reportMolecule(self, name, molecule):
 
@@ -301,8 +301,8 @@ class Summary(object):
         # Filtering stats
         if args.filter_bam:
             BLR.report_progress('- Bam output stats -')
-            BLR.report_progress('Molecules in output:\t' + "{:,}".format(self.molecules_in_outbam))
-            BLR.report_progress('BC in output:\t' + "{:,}".format(self.bc_in_outbam) + '\n')
+            BLR.report_progress('Molecules removed in output:\t' + "{:,}".format(self.mol_rmvd_outbam))
+            BLR.report_progress('BC removed in output:\t' + "{:,}".format(self.bc_rmvd_outbam) + '\n')
 
     def writeResultFiles(self):
 
@@ -341,8 +341,8 @@ class Summary(object):
 
                 if args.filter_bam:
                     if molecules_in_cluster > args.Max_molecules:
-                        summary.bc_in_outbam += 1
-                        summary.molecules_in_outbam += molecules_in_cluster
+                        summary.bc_rmvd_outbam += 1
+                        summary.mol_rmvd_outbam += molecules_in_cluster
                         self.barcode_removal_set.add(barcode_id)
 
                 # Writes everything file afterwards in chunks (since it needs molecule per droplet)
