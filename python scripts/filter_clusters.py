@@ -86,16 +86,13 @@ def main():
 
             # OPEN FILES
             openfiles = dict()
-
             # IF SPLITTING INTO SEVERAL OUTPUTS
             if args.split:
                 openfiles['no_bc'] = pysam.AlignmentFile(args.filter_bam + '.no_bc.bam', 'wb', template=openin)
                 openfiles['not_phased'] = pysam.AlignmentFile(args.filter_bam + '.not_phased.bam', 'wb', template=openin)
-                for reads_per_mol in range(args.Max_molecules):
-                    pysam.AlignmentFile(args.filter_bam, 'wb', template=openin)
+                for reads_per_mol in range(1, args.Max_molecules+1):
                     openfiles[reads_per_mol] = pysam.AlignmentFile(
                         args.filter_bam + '.' + str(reads_per_mol) + '_rpm.bam', 'wb', template=openin)
-
             # NORMAL FILTERED FILE
             else:
                 open_file_key = 'all_reads'
@@ -127,7 +124,6 @@ def main():
                 # IF SPLITTING INTO SEVERAL OUTPUTS
                 elif args.split and BC_id:
                     if not BC_id in summary.bc_to_numberMolOverReadThreshold:
-                        # CHECK  SO IT ACTUALLY IS REMOVED BC TOO FEW READS!
                         openout = openfiles['not_phased']
                     else:
                         mol_per_barcode = summary.bc_to_numberMolOverReadThreshold[BC_id]
@@ -143,7 +139,6 @@ def main():
 
         # End progress bar
         progressBar.terminate()
-
 
     try: BLR.report_progress('Reads with barcodes removed:\t' + "{:,}".format((summary.reads_with_removed_barcode)) + '\t(' + ("%.2f" % ((summary.reads_with_removed_barcode/summary.reads)*100) + ' %)'))
     except ZeroDivisionError: BLR.report_progress('No reads passing filters found in file.')
@@ -382,13 +377,15 @@ class Summary(object):
 
                 progressBar.update()
 
-            # Stats tracker needed to split bam files into separate according barcode per molecule
-            if not barcode_id in self.bc_to_numberMolOverReadThreshold: self.bc_to_numberMolOverReadThreshold[barcode_id] = molecules_in_cluster
-
             # Skips clusters which as a result of -t does not have any molecules left.
             if molecules_in_cluster == 0:
                 self.drops_without_molecules_over_threshold += 1
             else:
+
+                # Stats tracker needed to split bam files into separate according barcode per molecule
+                if not barcode_id in self.bc_to_numberMolOverReadThreshold: self.bc_to_numberMolOverReadThreshold[
+                    barcode_id] = molecules_in_cluster
+
                 molecules_per_bc_out.write(str(molecules_in_cluster) + '\t')
                 if args.filter_bam:
                     if molecules_in_cluster > args.Max_molecules:
