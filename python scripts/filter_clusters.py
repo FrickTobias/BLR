@@ -108,7 +108,7 @@ def main():
 
                     # IF SPLITTING INTO SEVERAL OUTPUTS
                     if args.split:
-                        openout = 'no_bc'
+                        openout = openfiles['no_bc']
 
                 # If too many molecules in cluster, change tag and header of read
                 if BC_id in summary.barcode_removal_set:
