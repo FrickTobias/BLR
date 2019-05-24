@@ -82,13 +82,33 @@ def main():
     if args.filter_bam:
 
         progressBar = BLR.ProgressBar(name='Writing filtered bam file', min=0, max=summary.reads, step=1)
-        with pysam.AlignmentFile(args.x2_bam, 'rb') as openin, pysam.AlignmentFile(args.filter_bam, 'wb', template=openin) as openout:
+        with pysam.AlignmentFile(args.x2_bam, 'rb') as openin:
+
+            # OPEN FILES
+            openfiles = dict()
+            # IF SPLITTING INTO SEVERAL OUTPUTS
+            if args.split:
+                openfiles['no_bc'] = pysam.AlignmentFile(args.filter_bam + '.no_bc.bam', 'wb', template=openin)
+                openfiles['not_phased'] = pysam.AlignmentFile(args.filter_bam + '.not_phased.bam', 'wb', template=openin)
+                for reads_per_mol in range(1, args.Max_molecules+1):
+                    openfiles[reads_per_mol] = pysam.AlignmentFile(
+                        args.filter_bam + '.' + str(reads_per_mol) + '_rpm.bam', 'wb', template=openin)
+            # NORMAL FILTERED FILE
+            else:
+                open_file_key = 'all_reads'
+                openfiles[open_file_key] = pysam.AlignmentFile(args.filter_bam, 'wb', template=openin)
+                openout = openfiles[open_file_key]
+
             for read in openin.fetch(until_eof=True):
 
                 # If no bc_id, just write it to out
                 try: BC_id = read.get_tag(args.barcode_tag)
                 except KeyError:
                     BC_id = False
+
+                    # IF SPLITTING INTO SEVERAL OUTPUTS
+                    if args.split:
+                        openout = openfiles['no_bc']
 
                 # If too many molecules in cluster, change tag and header of read
                 if BC_id in summary.barcode_removal_set:
@@ -97,9 +117,25 @@ def main():
                     read.set_tag(args.barcode_tag, 'FILTERED', value_type='Z')
                     summary.reads_with_removed_barcode += 1
 
+                    # IF SPLITTING INTO SEVERAL OUTPUTS
+                    if args.split:
+                        openout = openfiles['no_bc']
+
+                # IF SPLITTING INTO SEVERAL OUTPUTS
+                elif args.split and BC_id:
+                    if not BC_id in summary.bc_to_numberMolOverReadThreshold:
+                        openout = openfiles['not_phased']
+                    else:
+                        mol_per_barcode = summary.bc_to_numberMolOverReadThreshold[BC_id]
+                        openout = openfiles[mol_per_barcode]
+
                 # Writ to out & update progress bar
                 openout.write(read)
                 progressBar.update()
+
+            # CLOSE FILES
+            for openout in openfiles.values():
+                openout.close()
 
         # End progress bar
         progressBar.terminate()
@@ -219,6 +255,11 @@ class readArgs(object):
         parser.add_argument("-f", "--filter_bam", metavar='<OUTPUT>', type=str, default=False, help="Write an output bam file where reads have their barcode tag removed if it is "
                                                                                 "from a cluster with more molecules than -M (--Max_molecules) molecules. DEFAULT: False")
         parser.add_argument("-M", "--Max_molecules", metavar='<INTEGER>', type=int, default=500, help="When using -f (--filter) this will remove barcode tags for those clusters which have more than -M molecules. DEFAULT: 500")
+        parser.add_argument("-s", "--split", action="store_true", help="Will intead of writing one output filtered file "
+                                                                       "split output into separate files based on "
+                                                                       "#mol/bc. The -f (--filter) output file name will instead be "
+                                                                       "used as prefix for the output. -f option "
+                                                                       "required. DEFAULT: None")
         args = parser.parse_args()
 
     def pythonVersion(self):
@@ -258,8 +299,11 @@ class Summary(object):
         self.non_analyzed_reads = int()
 
         # Filter bam file
-        self.molecules_in_outbam = int()
-        self.bc_in_outbam = int()
+        self.mol_rmvd_outbam = int()
+        self.bc_rmvd_outbam = int()
+
+        # Stats tracker needed to split bam files into separate according barcode per molecule
+        self.bc_to_numberMolOverReadThreshold = dict()
 
     def reportMolecule(self, name, molecule):
 
@@ -301,8 +345,8 @@ class Summary(object):
         # Filtering stats
         if args.filter_bam:
             BLR.report_progress('- Bam output stats -')
-            BLR.report_progress('Molecules in output:\t' + "{:,}".format(self.molecules_in_outbam))
-            BLR.report_progress('BC in output:\t' + "{:,}".format(self.bc_in_outbam) + '\n')
+            BLR.report_progress('Molecules removed in output:\t' + "{:,}".format(self.mol_rmvd_outbam))
+            BLR.report_progress('BC removed in output:\t' + "{:,}".format(self.bc_rmvd_outbam) + '\n')
 
     def writeResultFiles(self):
 
@@ -337,12 +381,16 @@ class Summary(object):
             if molecules_in_cluster == 0:
                 self.drops_without_molecules_over_threshold += 1
             else:
-                molecules_per_bc_out.write(str(molecules_in_cluster) + '\t')
 
+                # Stats tracker needed to split bam files into separate according barcode per molecule
+                if not barcode_id in self.bc_to_numberMolOverReadThreshold: self.bc_to_numberMolOverReadThreshold[
+                    barcode_id] = molecules_in_cluster
+
+                molecules_per_bc_out.write(str(molecules_in_cluster) + '\t')
                 if args.filter_bam:
                     if molecules_in_cluster > args.Max_molecules:
-                        summary.bc_in_outbam += 1
-                        summary.molecules_in_outbam += molecules_in_cluster
+                        summary.bc_rmvd_outbam += 1
+                        summary.mol_rmvd_outbam += molecules_in_cluster
                         self.barcode_removal_set.add(barcode_id)
 
                 # Writes everything file afterwards in chunks (since it needs molecule per droplet)

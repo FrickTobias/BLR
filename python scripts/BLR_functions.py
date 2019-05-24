@@ -1,6 +1,9 @@
 #! /usr/bin python3
 
-import sys, time, gzip
+import sys, time, gzip, os
+global sys, time, gzip, os, scrip_name
+
+script_name = sys.argv[0].split('/')[-1].split('.')[0]
 
 #
 ## These are the global functions used in the BLR pipeline.
@@ -39,7 +42,7 @@ def report_progress(string):
     :param string: String to be written to terminal
     :return: None
     """
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
+    sys.stderr.write(script_name.upper() + ':\t' + time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
 
 class ProgressReporter(object):
     """
