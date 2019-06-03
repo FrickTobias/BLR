@@ -37,7 +37,6 @@ processors=1
 mailing=false
 remove=false
 duplicate_rmdup=false
-keep_logiles=false
 heap_space=90
 index_nucleotides=3
 threshold=0
@@ -45,7 +44,7 @@ start_step=1
 end_step=4
 
 # Argparsing
-while getopts "hrkh:m:p:i:H:s:e:t:" OPTION
+while getopts "hrh:m:p:i:H:s:e:t:" OPTION
 do
     case ${OPTION} in
 
@@ -58,9 +57,6 @@ do
             ;;
         r)
             remove=true
-            ;;
-        k)
-            keep_logfiles=true
             ;;
         i)
             index_nucleotides=${OPTARG}
@@ -105,7 +101,6 @@ Global optional arguments
 Advanced options: globals
   -s  start at this step number (see Pipeline outline)                                  DEFAULT: 1
   -e  end after this step number (see Pipeline outline)                                 DEFAULT: 4
-  -k  keep all logfiles generated during analysis instead of keeping only specifics     DEFAULT: false
 
 Advanced options: software settings
   -i  indexing nucletide number used for clustering (cdhit_prep.py)                     DEFAULT: 3
@@ -269,10 +264,6 @@ then
         $file_name2".h1.fastq.gz" \
         $file_name".h1.bc.fastq" \
         $file_name2".h1.bc.fastq") 2>$path"/bc_extract.stderr"
-    if ! $keep_logiles
-    then
-        rm $path"/bc_extract.stderr"
-    fi
     if $remove
     then
         rm $file_name".h1.fastq.gz"
@@ -368,11 +359,6 @@ then
         $path"/unique_bc" \
         -i $index_nucleotides\
         -f 0 >$path"/cdhit_prep.stdout") 2>$path"/cdhit_prep.stderr"
-    if ! $keep_logiles
-    then
-        rm $path"/cdhit_prep.stdout"
-        rm $path"/cdhit_prep.stderr"
-    fi
     pigz $file_name".trimmed.fastq"
 
     printf "`date`"'\tBarcode fasta generation done\n'
@@ -404,11 +390,6 @@ then
     done
 
     cat $path"/unique_bc/"*".clstr" > $path"/"$N_string".clstr"
-
-    if ! $keep_logiles
-    then
-        rm $path"/cdhit.log"
-    fi
 
     if $remove
     then
@@ -487,11 +468,6 @@ then
         $file_name".sort.bam" \
         $path"/"$N_string".clstr" \
         $file_name".sort.tag.bam" ) 2>$path"/tag_bam.stderr"
-
-    if ! $keep_logiles
-    then
-        rm $path"/tag_bam.stderr"
-    fi
 
     if $mailing
     then
@@ -591,12 +567,6 @@ then
         I=$file_name".sort.tag.rmdup.x2.filt.bam" \
         FASTQ=$file_name".final.fastq" \
         SECOND_END_FASTQ=$file_name2".final.fastq") 2>>$path/cpicard.log
-
-    if ! $keep_logiles
-    then
-        rm $file_name".sort.tag.rmdup.x2.bam.log"
-        rm $path/picard.log
-    fi
 
     pigz $file_name".final.fastq"
     pigz $file_name2".final.fastq"
