@@ -1,0 +1,31 @@
+language: python
+
+dist: xenial
+
+cache:
+  directories:
+    - $HOME/.cache/pip
+
+python:
+  - "3.6"
+
+before_install:
+  - wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - source $HOME/miniconda/etc/profile.d/conda.sh
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  - conda config --add channels bioconda --add channels conda-forge
+  - conda info -a
+  - wget https://export.uppmax.uu.se/uppstore2018173/blr-testdata-0.1.tar.gz
+  - tar xf blr-testdata-0.1.tar.gz
+  - ln -s blr-testdata-0.1 testdata
+  - printf "bowtie2_reference=%s\npicard_command=picard%s\n" "$PWD/testdata/chr1mini" > paths.txt
+
+install:
+  - conda env create -n testenv -f environment.yml
+  - conda activate testenv
+
+script:
+  - ( cd testdata && bowtie2-build chr1mini.fasta chr1mini > /dev/null )
+  - bash BLR_automation.sh testdata/reads.1.fastq.gz testdata/reads.2.fastq.gz outdir
