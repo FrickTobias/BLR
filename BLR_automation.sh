@@ -166,6 +166,10 @@ wgh_path=$(dirname "$0")
 #   - Picard tools:         $picard_path
 . $wgh_path'/paths.txt'
 
+if [ -z ${picard_command+x} ]; then
+    picard_command="java -Xmx${heap_space}g -jar $picard_path"
+fi
+
 # output folder
 path=$ARG3
 mkdir -p $path
@@ -530,7 +534,7 @@ then
     printf "`date`"'\tDuplicate removal\n'
 
     # Read duplicate removal
-    (java '-Xmx'$heap_space'g' -jar $picard_path MarkDuplicates \
+    ($picard_command MarkDuplicates \
         I=$file_name".sort.tag.bam" \
         O=$file_name".sort.tag.rmdup.bam" \
         M=$path"/picard.log" \
@@ -542,7 +546,7 @@ then
     printf "`date`"'\tBarcode duplicate marking\n'
 
     # Cluster duplicate marking
-    (java '-Xmx'$heap_space'g' -jar $picard_path MarkDuplicates \
+    ($picard_command MarkDuplicates \
         I=$file_name".sort.tag.rmdup.bam" \
         O=$file_name".sort.tag.rmdup.mkdup.bam" \
         M=$path"/mkdup.log" \
@@ -583,7 +587,7 @@ then
     printf "`date`"'\tFastq generation\n'
 
     # Fastq generation
-    (java -jar $picard_path SamToFastq \
+    ($picard_command SamToFastq \
         I=$file_name".sort.tag.rmdup.x2.filt.bam" \
         FASTQ=$file_name".final.fastq" \
         SECOND_END_FASTQ=$file_name2".final.fastq") 2>>$path/cpicard.log
