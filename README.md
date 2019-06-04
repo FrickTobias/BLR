@@ -101,3 +101,28 @@ optical duplicates and is then used again to mark duplicate positions where read
 The marked bam file is filtered for barcode duplicates using cluster_rmdup.py and subsequently filtered for 
 clusters with large amounts of molecules by filter_clusters.py. This bam file has its reads converted to fastq
 files and converted according to input format specifications of Long Ranger and Supernova by wfa2tenx.py.
+
+
+## Development
+
+One-time installation:
+
+- [Install miniconda](https://docs.conda.io/en/latest/miniconda.html)
+- Enable the [bioconda channel](http://bioconda.github.io/)
+- Create a new Conda environment with the dependencies:
+
+      conda env create -n blr -f environment.yml
+
+- Install blr into the environment in "editable install" mode:
+
+      conda activate blr
+      pip install -e .
+
+This will install blr in such a way that you can still modify the source code
+and get any changes immediately without re-installing.
+
+To run the program, run `blr`.
+
+Subsequently, you will only need to activate the environment with
+
+    conda activate blr
