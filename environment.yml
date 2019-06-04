@@ -1,0 +1,46 @@
+# Dependencies: python=3.6 cutadapt bowtie2 pysam picard=2.10 cd-hit
+channels:
+  - defaults
+  - bioconda
+  - conda-forge
+dependencies:
+  - bcftools=1.9=ha228f0b_4
+  - bowtie2=2.3.5=py36he860b03_0
+  - bz2file=0.98=py36_1
+  - bzip2=1.0.6=h14c3975_5
+  - ca-certificates=2019.1.23=0
+  - cd-hit=4.8.1=hdbcaa40_2
+  - certifi=2019.3.9=py36_0
+  - curl=7.64.1=hbc83047_0
+  - cutadapt=2.3=py36h14c3975_0
+  - dnaio=0.3=py36h14c3975_1
+  - htslib=1.9=ha228f0b_7
+  - krb5=1.16.1=h173b8e3_7
+  - libcurl=7.64.1=h20c2e04_0
+  - libdeflate=1.0=h14c3975_1
+  - libedit=3.1.20181209=hc058e9b_0
+  - libffi=3.2.1=hd88cf55_4
+  - libgcc-ng=8.2.0=hdf63c60_1
+  - libssh2=1.8.2=h1ba5d50_0
+  - libstdcxx-ng=8.2.0=hdf63c60_1
+  - llvm-openmp=8.0.0=hc9558a2_0
+  - ncurses=6.1=he6710b0_1
+  - openjdk=8.0.152=h46b5887_1
+  - openmp=8.0.0=0
+  - openssl=1.1.1c=h7b6447c_1
+  - perl=5.26.2=h14c3975_0
+  - picard=2.10.6=py36_0
+  - pigz=2.4=h84994c4_0
+  - pip=19.1.1=py36_0
+  - pysam=0.15.2=py36h4b7d16d_3
+  - python=3.6.8=h0371630_0
+  - readline=7.0=h7b6447c_5
+  - samtools=1.9=h8571acd_11
+  - setuptools=41.0.1=py36_0
+  - sqlite=3.28.0=h7b6447c_0
+  - tbb=2019.7=hc9558a2_0
+  - tk=8.6.8=hbc83047_0
+  - wheel=0.33.4=py36_0
+  - xopen=0.6.0=py_0
+  - xz=5.2.4=h14c3975_4
+  - zlib=1.2.11=h7b6447c_3
