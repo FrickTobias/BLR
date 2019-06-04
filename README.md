@@ -1,3 +1,5 @@
+![Travis CI badge](https://api.travis-ci.org/FrickTobias/BLR.svg)
+
 # Barcode-Linked Reads Analysis
 
 This GitHub repository describes and distributes all script used in "[Efficient whole genome haplotyping and 
