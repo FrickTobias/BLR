@@ -566,6 +566,7 @@ then
     ($picard_command SamToFastq \
         I=$file_name".sort.tag.rmdup.x2.filt.bam" \
         FASTQ=$file_name".final.fastq" \
+        VALIDATION_STRINGENCY=SILENT \
         SECOND_END_FASTQ=$file_name2".final.fastq") 2>>$path/cpicard.log
 
     pigz $file_name".final.fastq"
