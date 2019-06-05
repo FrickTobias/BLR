@@ -1,5 +1,4 @@
-import sys
-from setuptools import setup, find_packages
+from setuptools import setup, find_namespace_packages
 
 with open("README.md") as f:
     long_description = f.read()
@@ -14,7 +13,7 @@ setup(
     license="MIT",
     python_requires=">=3.6",
     package_dir={"": "src"},
-    packages=find_packages("src"),
+    packages=find_namespace_packages("src"),
     entry_points={"console_scripts": ["blr = blr.__main__:main"]},
     classifiers=[
         "Development Status :: 4 - Beta",
