@@ -34,7 +34,6 @@ set -euo pipefail
 
 # Initials
 processors=1
-mailing=false
 remove=false
 duplicate_rmdup=false
 heap_space=90
@@ -50,10 +49,6 @@ do
 
         p)
             processors=${OPTARG}
-            ;;
-        m)
-            email=${OPTARG}
-            mailing=true
             ;;
         r)
             remove=true
@@ -93,7 +88,6 @@ Positional arguments (REQUIRED)
   <output_dir>  Output directory for analysis results
 
 Global optional arguments
-  -m  mails the supplied email when analysis is finished                                DEFAULT: None
   -p  processors for threading                                                          DEFAULT: 1
   -r  removes files generated during analysis instead of just compressing them          DEFAULT: false
   -h  help (this output)                                                                DEFAULT: N/A
@@ -134,22 +128,6 @@ printf '\nThreads:\t'$processors
 printf '\nStarts at step:\t'$start_step
 printf '\nEnd after step:\t'$end_step
 
-
-# Mailing option
-if $mailing
-then
-    if [[ $email == *"@"* ]]
-    then
-        printf '\nMail:\t\t'$email
-    else
-        echo ''
-        echo 'OPTION ERROR: -m '
-        echo ''
-        echo 'Please supply email on format john.doe@domain.org'
-        echo '(got "'$email'" instead)'
-        exit 0
-    fi
-fi
 
 # Fetching paths to external programs (from paths.txt)
 
@@ -212,12 +190,6 @@ fi
         done
     fi
 
-# Mailing
-if $mailing
-then
-    echo 'ANALYSIS STARTING '$(date) | mail -s $path $email
-fi
-
 printf '\n\n'"`date`"'\tANALYSIS STARTING\n'
 
 # 1. ###################################################################################
@@ -238,11 +210,6 @@ current_step=$((current_step+1))
 if (( "$current_step" >= "$start_step" )) && [ "$continue" == true ]
 then
 
-    # Mailing
-    if $mailing
-    then
-        echo '1_trim starting '$(date) | mail -s $path $email
-    fi
     printf '\n1. Demultiplexing\n'
     printf "`date`"'\t1st adaptor removal\n'
 
@@ -309,10 +276,6 @@ then
         rm $file_name2".h1.bc.h2.fastq.gz"
     fi
 
-    if $mailing
-    then
-        echo '1_trim finished '$(date) | mail -s $path $email
-    fi
     printf "`date`""\t3' trimming done\n"
 
     # Ugly solution to calculate % construOK
@@ -345,10 +308,6 @@ current_step=$((current_step+1))
 if (( "$current_step" >= "$start_step" )) && [ "$continue" == true ]
 then
 
-    if $mailing
-    then
-        echo '2_clustering starting'$(date) | mail -s $path $email
-    fi
     printf '\n2. Clustering\n'
     printf "`date`"'\tBarcode fasta generation\n'
 
@@ -396,11 +355,6 @@ then
         rm -rf $path"/unique_bc"
     fi
 
-    if $mailing
-    then
-        echo '2_clustering finished '$(date) | mail -s $path $email
-    fi
-
     printf "`date`"'\tBarcode clustering done\n'
 
 fi
@@ -427,10 +381,6 @@ current_step=$((current_step+1))
 if (( "$current_step" >= "$start_step" )) && [ "$continue" == true ]
 then
 
-    if $mailing
-    then
-        echo '3_map starting '$(date) | mail -s $path $email
-    fi
     printf '\n3. Mapping\n'
     printf "`date`"'\tMapping\n'
     printf '\n\n Map stats: .sort.bam\n' >> $map_logfile
@@ -469,11 +419,6 @@ then
         $path"/"$N_string".clstr" \
         $file_name".sort.tag.bam" ) 2>$path"/tag_bam.stderr"
 
-    if $mailing
-    then
-        echo '3_map finished '$(date) | mail -s $path $email
-    fi
-
     printf "`date`"'\tBam tagging done\n'
 
 fi
@@ -502,10 +447,6 @@ current_step=$((current_step+1))
 if (( "$current_step" >= "$start_step" )) && [ "$continue" == true ]
 then
 
-    if $mailing
-    then
-        echo '4_rmdup starting '$(date) | mail -s $path $email
-    fi
     printf '\n4. Duplicate removal\n'
     printf "`date`"'\tDuplicate removal\n'
 
@@ -572,17 +513,8 @@ then
     pigz $file_name".final.fastq"
     pigz $file_name2".final.fastq"
 
-    if $mailing
-    then
-        echo '4_rmdup finished '$(date) | mail -s $path $email
-    fi
     printf "`date`"'\tFastq generation done\n'
 
 fi
 
 printf '\n'"`date`"'\tANALYSIS FINISHED\n'
-
-if $mailing
-then
-    echo 'ANALYSIS FINISHED '$(date) | mail -s $path $email
-fi
