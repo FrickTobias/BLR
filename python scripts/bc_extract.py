@@ -47,6 +47,7 @@ def main():
     generator.close()
     BLR.report_progress('Finished')
 
+
 class readArgs:
     """
     Reads arguments and handles basic error handling like python version control etc.
@@ -97,5 +98,6 @@ class readArgs:
                 sys.exit()
             else:
                 sys.stderr.write('\nForcing run. This might yield inaccurate results.\n')
+
 
 if __name__=="__main__": main()
