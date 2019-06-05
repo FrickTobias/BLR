@@ -1,5 +1,4 @@
 #! /usr/bin python3
-import sys
 import argparse
 
 import blr.utils as BLR
@@ -11,9 +10,6 @@ def main():
     # Argument parsing
     #
     args = readArgs().parse()
-
-    # Check python3 is being run
-    if not BLR.pythonVersion(args.force_run): sys.exit()
 
     #
     # Process data
@@ -53,13 +49,12 @@ def main():
 
 class readArgs:
     """
-    Reads arguments and handles basic error handling like python version control etc.
+    Reads arguments
     """
 
     def __init__(self):
 
         args = readArgs.parse(self)
-        readArgs.pythonVersion(self, args)
 
     def parse(self):
 
@@ -72,29 +67,7 @@ class readArgs:
         parser.add_argument("out_r1", help="Read 1 output")
         parser.add_argument("out_r2", help="Read 2 output")
 
-        # Options
-        parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
-                                                                           "Not recommended due to different function "
-                                                                           "names in python 2 and 3.")
-
         return parser.parse_args()
-
-    def pythonVersion(self, args):
-        """ Makes sure the user is running python 3."""
-
-        #
-        # Version control
-        #
-        if sys.version_info.major == 3:
-            pass
-        else:
-            sys.stderr.write('\nWARNING: you are running python ' + str(
-                sys.version_info.major) + ', this script is written for python 3.')
-            if not args.force_run:
-                sys.stderr.write('\nAborting analysis. Use -F (--Force) to run anyway.\n')
-                sys.exit()
-            else:
-                sys.stderr.write('\nForcing run. This might yield inaccurate results.\n')
 
 
 if __name__=="__main__": main()
