@@ -6,10 +6,7 @@ import blr.utils as BLR
 
 def main():
 
-    #
-    # Argument parsing
-    #
-    args = readArgs().parse()
+    args = parse_arguments()
 
     #
     # Process data
@@ -47,27 +44,17 @@ def main():
     BLR.report_progress('Finished')
 
 
-class readArgs:
-    """
-    Reads arguments
-    """
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Extracts barcode sequences by moving 20 bp from 5' end "
+                                                 "of the read to the header, separated by an underline.")
 
-    def __init__(self):
+    # Arguments
+    parser.add_argument("r1", help="Read 1 fastq file")
+    parser.add_argument("r2", help="Read 2 fastq file")
+    parser.add_argument("out_r1", help="Read 1 output")
+    parser.add_argument("out_r2", help="Read 2 output")
 
-        args = readArgs.parse(self)
-
-    def parse(self):
-
-        parser = argparse.ArgumentParser(description="Extracts barcode sequences by moving 20 bp from 5' end "
-                                                     "of the read to the header, separated by an underline.")
-
-        # Arguments
-        parser.add_argument("r1", help="Read 1 fastq file")
-        parser.add_argument("r2", help="Read 2 fastq file")
-        parser.add_argument("out_r1", help="Read 1 output")
-        parser.add_argument("out_r2", help="Read 2 output")
-
-        return parser.parse_args()
+    return parser.parse_args()
 
 
 if __name__=="__main__": main()
