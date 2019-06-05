@@ -28,10 +28,8 @@ def main():
             read1.qual = read1.qual[20:]
 
             # Header parsing
-            name_and_pos_r1 = read1.header.split()[0]
-            read_and_index_r1 = read1.header.split()[1]
-            name_and_pos_r2 = read2.header.split()[0]
-            read_and_index_r2 = read2.header.split()[1]
+            name_and_pos_r1, read_and_index_r1 = read1.header.split(maxsplit=1)
+            name_and_pos_r2, read_and_index_r2 = read2.header.split(maxsplit=1)
 
             # Save header to read instances
             read1.header = name_and_pos_r1 + '_' + bc_seq + ' ' + read_and_index_r1
