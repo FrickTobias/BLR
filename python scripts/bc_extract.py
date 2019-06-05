@@ -1,10 +1,8 @@
 #! /usr/bin python3
 
+
 def main():
 
-    #
-    # Imports & globals
-    #
     global args
     import BLR_functions as BLR, sys
 
