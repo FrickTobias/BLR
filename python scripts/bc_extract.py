@@ -1,4 +1,8 @@
-#! /usr/bin python3
+"""
+Extract barcode sequences by moving 20 bp from 5' end of the read to the header,
+separated by an underline.
+"""
+
 import argparse
 
 import blr.utils as BLR
@@ -45,8 +49,7 @@ def main():
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="Extracts barcode sequences by moving 20 bp from 5' end "
-                                                 "of the read to the header, separated by an underline.")
+    parser = argparse.ArgumentParser(description=__doc__)
 
     # Arguments
     parser.add_argument("r1", help="Read 1 fastq file")
