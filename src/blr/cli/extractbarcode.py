@@ -2,20 +2,15 @@
 Extract barcode sequences by moving 20 bp from 5' end of the read to the header,
 separated by an underline.
 """
-
-import argparse
+import logging
 
 import blr.utils as BLR
 
 
-def main():
+logger = logging.getLogger(__name__)
 
-    args = parse_arguments()
 
-    #
-    # Process data
-    #
-
+def main(args):
     BLR.report_progress('Starting')
     progress = BLR.ProgressReporter('Read pairs processed', 1000000)
     generator = BLR.FileReader(args.r1, args.r2)
@@ -46,16 +41,8 @@ def main():
     BLR.report_progress('Finished')
 
 
-def parse_arguments():
-    parser = argparse.ArgumentParser(description=__doc__)
-
-    # Arguments
+def add_arguments(parser):
     parser.add_argument("r1", help="Read 1 fastq file")
     parser.add_argument("r2", help="Read 2 fastq file")
     parser.add_argument("out_r1", help="Read 1 output")
     parser.add_argument("out_r2", help="Read 2 output")
-
-    return parser.parse_args()
-
-
-if __name__=="__main__": main()
