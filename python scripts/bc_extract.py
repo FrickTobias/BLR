@@ -2,14 +2,12 @@
 
 
 def main():
-
-    global args
     import blr.utils as BLR, sys
 
     #
     # Argument parsing
     #
-    argumentsInstance = readArgs()
+    args = readArgs().parse()
 
     # Check python3 is being run
     if not BLR.pythonVersion(args.force_run): sys.exit()
@@ -56,8 +54,8 @@ class readArgs:
 
     def __init__(self):
 
-        readArgs.parse(self)
-        readArgs.pythonVersion(self)
+        args = readArgs.parse(self)
+        readArgs.pythonVersion(self, args)
 
     def parse(self):
 
@@ -65,7 +63,6 @@ class readArgs:
         # Imports & globals
         #
         import argparse
-        global args
 
         parser = argparse.ArgumentParser(description="Extracts barcode sequences by moving 20 bp from 5' end "
                                                      "of the read to the header, separated by an underline.")
@@ -81,9 +78,9 @@ class readArgs:
                                                                            "Not recommended due to different function "
                                                                            "names in python 2 and 3.")
 
-        args = parser.parse_args()
+        return parser.parse_args()
 
-    def pythonVersion(self):
+    def pythonVersion(self, args):
         """ Makes sure the user is running python 3."""
 
         #
