@@ -165,7 +165,7 @@ def fetch_and_format(read):
 
     return BC_id, read_start, read_stop
 
-class Molecules(object):
+class Molecules:
     """
     Tmp storage for molecules which might still get more reads assigned to them. Basically a dict with customised functions.
     """
@@ -214,7 +214,7 @@ class Molecules(object):
             summary.reportMolecule(name=BC_id, molecule=self.dictionary[BC_id])
             del self.dictionary[BC_id]
 
-class readArgs(object):
+class readArgs:
     """
     Reads arguments and handles basic error handling like python version control etc.
     """
@@ -280,7 +280,7 @@ class readArgs(object):
             else:
                 sys.stderr.write('\nForcing run. This might yield inaccurate results.\n')
 
-class Summary(object):
+class Summary:
 
     def __init__(self):
 

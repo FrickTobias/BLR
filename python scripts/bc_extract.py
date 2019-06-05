@@ -51,7 +51,7 @@ def main():
     generator.close()
     BLR.report_progress('Finished')
 
-class readArgs(object):
+class readArgs:
     """
     Reads arguments and handles basic error handling like python version control etc.
     """
