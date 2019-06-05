@@ -1,8 +1,11 @@
 #! /usr/bin python3
+import sys
+import argparse
+
+import blr.utils as BLR
 
 
 def main():
-    import blr.utils as BLR, sys
 
     #
     # Argument parsing
@@ -60,11 +63,6 @@ class readArgs:
 
     def parse(self):
 
-        #
-        # Imports & globals
-        #
-        import argparse
-
         parser = argparse.ArgumentParser(description="Extracts barcode sequences by moving 20 bp from 5' end "
                                                      "of the read to the header, separated by an underline.")
 
@@ -87,7 +85,6 @@ class readArgs:
         #
         # Version control
         #
-        import sys
         if sys.version_info.major == 3:
             pass
         else:
