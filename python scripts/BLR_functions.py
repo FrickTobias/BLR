@@ -44,7 +44,7 @@ def report_progress(string):
     """
     sys.stderr.write(script_name.upper() + ':\t' + time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
 
-class ProgressReporter(object):
+class ProgressReporter:
     """
     Progress reporter object, writes updates to std err for every <report_step> iteration. Used for iterations of unknown
     lengths.
@@ -77,7 +77,7 @@ class ProgressReporter(object):
             report_progress(self.name + '\t' + "{:,}".format(self.position))
             self.next_limit += self.report_step
 
-class ProgressBar(object):
+class ProgressBar:
     """
     Progress reporter object, writes updates to std err in for of a progress bar. Used for iterations of known lenghts.
 
@@ -138,7 +138,7 @@ class ProgressBar(object):
         """
         sys.stderr.write('\n')
 
-class FileReader(object):
+class FileReader:
     """
     Reads input files as generator, handles gzip.
     """
@@ -237,7 +237,7 @@ class FileReader(object):
         if self.filehandle2:
             self.openfile2.close()
 
-class FastqRead(object):
+class FastqRead:
     """
     Stores read as instance.
     """

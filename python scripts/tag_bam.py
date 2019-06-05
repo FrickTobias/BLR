@@ -80,7 +80,7 @@ def ProcessClusters(openInfile):
 
     return(cluster_dict)
 
-class readArgs(object):
+class readArgs:
     """ Reads arguments and handles basic error handling like python version control etc."""
 
     def __init__(self):

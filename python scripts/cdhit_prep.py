@@ -106,7 +106,7 @@ def reduceComplexity(bc_dict):
 
     return index_dict, not_ATGC_index
 
-class readArgs(object):
+class readArgs:
     """
     Reads arguments and handles basic error handling like python version control etc.
     """

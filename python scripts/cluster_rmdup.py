@@ -399,7 +399,7 @@ def report_matches(current_match_dict, merge_dict, chromosome):#, duplicate_posi
 
     return merge_dict
 
-class OverlapValues(object):
+class OverlapValues:
     """
     bc_id^2 matrix tracking overalap values.
     """
@@ -455,7 +455,7 @@ class OverlapValues(object):
 
         return value_vector_dict
 
-class BarcodeDuplicates(object):
+class BarcodeDuplicates:
     """
     Tracks barcode ID:s which have readpairs ovelapping with others.
     """
@@ -533,7 +533,7 @@ class BarcodeDuplicates(object):
         else:
             self.translation_dict[bc_id] = min_id
 
-class readArgs(object):
+class readArgs:
     """ Reads arguments and handles basic error handling like python version control etc."""
 
     def __init__(self):
@@ -590,7 +590,7 @@ class readArgs(object):
             else:
                 sys.stderr.write('\nForcing run. This might yield inaccurate results.\n')
 
-class Summary(object):
+class Summary:
     """ Summarizes chunks"""
 
     def __init__(self):
