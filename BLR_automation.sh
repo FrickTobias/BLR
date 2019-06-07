@@ -215,32 +215,6 @@ then
 
     ln -sr $ARG1 $path/reads.1.fastq.gz
     ln -sr $ARG2 $path/reads.2.fastq.gz
-    snakemake $path/trimmed-a.1.fastq.gz $path/trimmed-a.2.fastq.gz
-    ln -sr $path/trimmed-a.1.fastq.gz $file_name".h1.fastq.gz"
-    ln -sr $path/trimmed-a.2.fastq.gz $file_name2".h1.fastq.gz"
-
-    printf "`date`"'\t1st adaptor removal done\n'
-    printf "`date`"'\tBarcode extraction\n'
-
-    ## Get DBS using UMI-Tools -> _BDHVBDVHBDVHBDVH in header.
-    blr extractbarcode \
-        $file_name".h1.fastq.gz" \
-        $file_name2".h1.fastq.gz" \
-        $file_name".h1.bc.fastq" \
-        $file_name2".h1.bc.fastq" 2>$path"/bc_extract.stderr"
-    if $remove
-    then
-        rm $file_name".h1.fastq.gz"
-        rm $file_name2".h1.fastq.gz"
-    fi
-    pigz $file_name".h1.bc.fastq"
-    pigz $file_name2".h1.bc.fastq"
-
-    printf "`date`"'\tBarcode extraction done\n'
-    printf "`date`"'\t2nd adaptor removal\n'
-
-    ln -sr $file_name".h1.bc.fastq.gz" $path/unbarcoded.1.fastq.gz
-    ln -sr $file_name2".h1.bc.fastq.gz" $path/unbarcoded.2.fastq.gz
     snakemake $path/trimmed-c.1.fastq.gz $path/trimmed-c.2.fastq.gz
     if $remove
     then

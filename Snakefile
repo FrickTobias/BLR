@@ -1,5 +1,5 @@
 # kate: syntax Python;
-rule:
+rule trim_r1_handle:
     "Trim away E handle on R1 5'. Also removes reads shorter than 85 bp."
     output:
         r1_fastq=temp("{dir}/trimmed-a.1.fastq.gz"),
@@ -22,6 +22,28 @@ rule:
         " {input.r2_fastq}"
         " > {log}"
 
+
+rule extract_barcodes:
+    output:
+        r1_fastq=temp("{dir}/unbarcoded.1.fastq"),
+        r2_fastq=temp("{dir}/unbarcoded.2.fastq")
+    input:
+        r1_fastq="{dir}/trimmed-a.1.fastq.gz",
+        r2_fastq="{dir}/trimmed-a.2.fastq.gz"
+    log: "{dir}/extractbarcode.log"
+    shell:
+        # BDHVBDVHBDVHBDVH
+        "blr extractbarcode"
+        " {input.r1_fastq} {input.r2_fastq}"
+        " {output.r1_fastq} {output.r2_fastq}"
+        " 2> {log}"
+
+
+rule compress:
+    output: "{dir}/unbarcoded.{nr}.fastq.gz"
+    input: "{dir}/unbarcoded.{nr}.fastq"
+    shell:
+        "pigz < {input} > {output}"
 
 rule:
     """Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed."""
