@@ -213,14 +213,11 @@ then
     printf '\n1. Demultiplexing\n'
     printf "`date`"'\t1st adaptor removal\n'
 
-    # Trim away E handle on R1 5'. Also removes reads shorter than 85 bp.
-    cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
-        -j $processors \
-        -o $file_name".h1.fastq.gz" \
-        -p $file_name2".h1.fastq.gz" \
-        $ARG1 \
-        $ARG2 \
-        --discard-untrimmed -e 0.2 -m 65 > $trim_logfile # Tosses reads shorter than len(e+bc+handle+TES)
+    ln -sr $ARG1 $path/reads.1.fastq.gz
+    ln -sr $ARG2 $path/reads.2.fastq.gz
+    snakemake $path/trimmed-a.1.fastq.gz $path/trimmed-a.2.fastq.gz
+    ln -sr $path/trimmed-a.1.fastq.gz $file_name".h1.fastq.gz"
+    ln -sr $path/trimmed-a.2.fastq.gz $file_name2".h1.fastq.gz"
 
     printf "`date`"'\t1st adaptor removal done\n'
     printf "`date`"'\tBarcode extraction\n'
