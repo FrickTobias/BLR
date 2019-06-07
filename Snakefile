@@ -20,7 +20,7 @@ rule:
         " -p {output.r2_fastq}"
         " {input.r1_fastq}"
         " {input.r2_fastq}"
-        " | tee {log}"
+        " > {log}"
 
 
 rule:
@@ -43,4 +43,27 @@ rule:
         " -p {output.r2_fastq}"
         " {input.r1_fastq}"
         " {input.r2_fastq}"
-        " | tee {log}"
+        " > {log}"
+
+
+rule:
+    "Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT"
+    output:
+        r1_fastq="{dir}/trimmed-c.1.fastq.gz",
+        r2_fastq="{dir}/trimmed-c.2.fastq.gz"
+    input:
+        r1_fastq="{dir}/trimmed-b.1.fastq.gz",
+        r2_fastq="{dir}/trimmed-b.2.fastq.gz"
+    log: "{dir}/trimmed-c.log"
+    threads: 20
+    shell:
+        "cutadapt"
+        " -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT"
+        " -j {threads}"
+        " -m 25"
+        " -e 0.2"
+        " -o {output.r1_fastq}"
+        " -p {output.r2_fastq}"
+        " {input.r1_fastq}"
+        " {input.r2_fastq}"
+        " > {log}"

@@ -241,41 +241,23 @@ then
 
     ln -sr $file_name".h1.bc.fastq.gz" $path/unbarcoded.1.fastq.gz
     ln -sr $file_name2".h1.bc.fastq.gz" $path/unbarcoded.2.fastq.gz
-    snakemake $path/trimmed-b.1.fastq.gz $path/trimmed-b.2.fastq.gz
+    snakemake $path/trimmed-c.1.fastq.gz $path/trimmed-c.2.fastq.gz
     if $remove
     then
         rm $file_name".h1.bc.fastq.gz"
         rm $file_name2".h1.bc.fastq.gz"
     fi
-    ln -sr $path/trimmed-b.1.fastq.gz $file_name".h1.bc.h2.fastq.gz"
-    ln -sr $path/trimmed-b.2.fastq.gz $file_name2".h1.bc.h2.fastq.gz"
 
-    printf "`date`"'\t2nd adaptor removal done\n'
-    printf "`date`""\t3' trimming\n"
-
-    #Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT
-    cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
-        -j $processors \
-        -o $file_name".trimmed.fastq.gz" \
-        -p $file_name2".trimmed.fastq.gz" \
-        -m 25 \
-        $file_name".h1.bc.h2.fastq.gz" \
-        $file_name2".h1.bc.h2.fastq.gz" \
-        -e 0.2  >> $trim_logfile
-
-
-    if $remove
-    then
-        rm $file_name".h1.bc.h2.fastq.gz"
-        rm $file_name2".h1.bc.h2.fastq.gz"
-    fi
+    ln -sr $path/trimmed-c.1.fastq.gz $file_name".trimmed.fastq.gz"
+    ln -sr $path/trimmed-c.2.fastq.gz $file_name2".trimmed.fastq.gz"
 
     printf "`date`""\t3' trimming done\n"
 
     # Ugly solution to calculate % construOK
-    var1=$( cat $trim_logfile | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 1 )
-    var2=$( cat $trim_logfile | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 2 )
-    printf "`date`""\t"; awk '{print "Intact reads: "$1*$2*0.0001" %"}' <<< "$var1 $var2"
+    # TODO
+#    var1=$( cat $trim_logfile | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 1 )
+#    var2=$( cat $trim_logfile | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 2 )
+#    printf "`date`""\t"; awk '{print "Intact reads: "$1*$2*0.0001" %"}' <<< "$var1 $var2"
 
 fi
 
@@ -306,13 +288,13 @@ then
     printf "`date`"'\tBarcode fasta generation\n'
 
     # Barcode extraction
-    pigz -d $file_name".trimmed.fastq.gz"
+    pigz -d < $file_name".trimmed.fastq.gz" > $file_name".trimmedunpacked.fastq"
     (python3 $wgh_path'/python scripts/cdhit_prep.py' \
-        $file_name".trimmed.fastq" \
+        $file_name".trimmedunpacked.fastq" \
         $path"/unique_bc" \
         -i $index_nucleotides\
         -f 0 >$path"/cdhit_prep.stdout") 2>$path"/cdhit_prep.stderr"
-    pigz $file_name".trimmed.fastq"
+    rm $file_name".trimmedunpacked.fastq"
 
     printf "`date`"'\tBarcode fasta generation done\n'
     printf "`date`"'\tBarcode clustering\n'
