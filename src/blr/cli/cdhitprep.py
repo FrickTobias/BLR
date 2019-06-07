@@ -41,7 +41,7 @@ def main(args):
         try:
             import os
             os.mkdir(args.output_fasta)
-        except OSError:
+        except FileExistsError:
             pass
 
         # Write one file per index
