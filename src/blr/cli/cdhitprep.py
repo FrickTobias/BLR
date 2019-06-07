@@ -2,20 +2,13 @@
 Take trimmed read barcodes sequences from headers (@HEADER_bc-seq)
 and write FASTA files with unique barcodes
 """
-import argparse
+import sys
+
+import blr.utils as BLR
 
 
-def main():
+def main(args):
     """Takes a fastq file barcode sequences in the header and writes a barcode fasta file with only unique entries. """
-
-    #
-    # Imports & globals
-    #
-    import blr.utils as BLR, sys
-
-    parser = argparse.ArgumentParser(description=__doc__)
-    add_arguments(parser)
-    args = parser.parse_args()
 
     # Check python3 is being run
     if not BLR.pythonVersion(args.force_run): sys.exit()
@@ -122,6 +115,3 @@ def add_arguments(parser):
                                                         "first bases. DEFAULT: None")
     parser.add_argument("-s", "--space_separation", action="store_true", help='If BC is separated by <space> ( ) '
                                                                               'instead of <underline> (_)')
-
-
-if __name__ == "__main__": main()
