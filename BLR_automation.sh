@@ -239,19 +239,16 @@ then
     printf "`date`"'\tBarcode extraction done\n'
     printf "`date`"'\t2nd adaptor removal\n'
 
-    #Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed.
-    cutadapt -g AGATGTGTATAAGAGACAG \
-        -o $file_name".h1.bc.h2.fastq.gz" \
-        -j $processors \
-        -p $file_name2".h1.bc.h2.fastq.gz" \
-        $file_name".h1.bc.fastq.gz" \
-        $file_name2".h1.bc.fastq.gz" \
-        --discard-untrimmed -e 0.2  >> $trim_logfile
+    ln -sr $file_name".h1.bc.fastq.gz" $path/unbarcoded.1.fastq.gz
+    ln -sr $file_name2".h1.bc.fastq.gz" $path/unbarcoded.2.fastq.gz
+    snakemake $path/trimmed-b.1.fastq.gz $path/trimmed-b.2.fastq.gz
     if $remove
     then
         rm $file_name".h1.bc.fastq.gz"
         rm $file_name2".h1.bc.fastq.gz"
     fi
+    ln -sr $path/trimmed-b.1.fastq.gz $file_name".h1.bc.h2.fastq.gz"
+    ln -sr $path/trimmed-b.2.fastq.gz $file_name2".h1.bc.h2.fastq.gz"
 
     printf "`date`"'\t2nd adaptor removal done\n'
     printf "`date`""\t3' trimming\n"
