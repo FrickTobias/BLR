@@ -259,11 +259,11 @@ then
     printf "`date`"'\tBarcode extraction\n'
 
     ## Get DBS using UMI-Tools -> _BDHVBDVHBDVHBDVH in header.
-    (python3 $wgh_path'/python scripts/bc_extract.py' \
+    blr extractbarcode \
         $file_name".h1.fastq.gz" \
         $file_name2".h1.fastq.gz" \
         $file_name".h1.bc.fastq" \
-        $file_name2".h1.bc.fastq") 2>$path"/bc_extract.stderr"
+        $file_name2".h1.bc.fastq" 2>$path"/bc_extract.stderr"
     if $remove
     then
         rm $file_name".h1.fastq.gz"

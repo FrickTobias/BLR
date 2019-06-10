@@ -7,7 +7,7 @@ def main():
     # Imports & globals
     #
     global args, summaryInstance, output_tagged_bamfile
-    import BLR_functions as BLR, sys, pysam
+    import blr.utils as BLR, sys, pysam
 
     #
     # Argument parsing
