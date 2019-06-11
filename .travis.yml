@@ -25,5 +25,6 @@ before_install:
 install:
   - conda env create -n testenv -f environment.yml
   - conda activate testenv
+  - pip install .
 
 script: tests/run.sh

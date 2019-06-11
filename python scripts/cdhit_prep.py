@@ -6,7 +6,7 @@ def main():
     #
     # Imports & globals
     #
-    import BLR_functions as BLR, sys
+    import blr.utils as BLR, sys
 
     #
     # Argument parsing

@@ -6,7 +6,7 @@ def main():
     # Imports & globals
     #
     global args, summaryInstance, duplicate_position_dict, overlapValues, window, duplicates, pos_dict, singleton_duplicate_position, BLR
-    import BLR_functions as BLR, sys, pysam
+    import blr.utils as BLR, sys, pysam
 
 
     #
