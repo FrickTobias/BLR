@@ -78,6 +78,8 @@ rule athena_config:
         with open(output.json, 'w') as fh:
             fh.write(json.dumps(cfg, indent=4, sort_keys=False))
 
+ruleorder: athena > athena_osx
+
 rule athena_osx:
     input:
         json="{dir}/config.json"
