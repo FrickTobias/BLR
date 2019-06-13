@@ -262,13 +262,11 @@ then
     printf "`date`"'\tBarcode fasta generation\n'
 
     # Barcode extraction
-    pigz -d < $file_name".trimmed.fastq.gz" > $file_name".trimmedunpacked.fastq"
-    (python3 $wgh_path'/python scripts/cdhit_prep.py' \
-        $file_name".trimmedunpacked.fastq" \
+    blr cdhitprep \
+        $file_name".trimmed.fastq.gz" \
         $path"/unique_bc" \
         -i $index_nucleotides\
-        -f 0 >$path"/cdhit_prep.stdout") 2>$path"/cdhit_prep.stderr"
-    rm $file_name".trimmedunpacked.fastq"
+        -f 0 >$path"/cdhit_prep.stdout" 2>$path"/cdhit_prep.stderr"
 
     printf "`date`"'\tBarcode fasta generation done\n'
     printf "`date`"'\tBarcode clustering\n'
