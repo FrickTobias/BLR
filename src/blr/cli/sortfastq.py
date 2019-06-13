@@ -1,26 +1,11 @@
-#! /usr/bin/env python2
+"""
+Takes a fastq file barcode sequences in the header and writes a barcode fasta file with only unique entries
+"""
 
-def main():
-    """Takes a fastq file barcode sequences in the header and writes a barcode fasta file with only unique entries. """
+import sys
 
-    #
-    # Imports & globals
-    #
-    global args, output_tagged_bamfile, sys, time, progress
-    import sys, time
-
-    #
-    # Argument parsing
-    #
-    argumentsInstance = readArgs()
-
-    #
-    # Data processing & writing output
-    #
-
+def main(args):
     # Input clustering information in reads
-    report_progress('Starting')
-    progress = ProgressReporter("Read saved to RAM", 1000000)
     reads_written = int()
     bc_to_read_dict = dict()
     readpair_generator = FileReader(args.input_fastq1, args.input_fastq2)
@@ -34,11 +19,8 @@ def main():
         if not bc_seq in bc_to_read_dict:
             bc_to_read_dict[bc_seq] = set()
         bc_to_read_dict[bc_seq].add((read1, read2))
-        progress.update()
     readpair_generator.close()
-    report_progress('Read pairs saved to RAM')
 
-    progressBar = ProgressBar('Writing output', 0, progress.position, 1)
     if args.interleaved_output:
         with open(args.output1, 'w') as openout1:
             for sorted_bc in sorted(bc_to_read_dict.keys()):
@@ -46,7 +28,6 @@ def main():
                     openout1.write(read1.fastq_string())
                     openout1.write(read2.fastq_string())
                     reads_written += 1
-                    progressBar.update()
     else:
         with open(args.output1, 'w') as openout1, open(args.output2, 'w') as openout2:
             for sorted_bc in sorted(bc_to_read_dict.keys()):
@@ -54,80 +35,6 @@ def main():
                     openout1.write(read1.fastq_string())
                     openout2.write(read2.fastq_string())
                     reads_written += 1
-                    progressBar.update()
-    progressBar.terminate()
-
-    # Reporting
-    report_progress("Reads pairs written:\t" + str(reads_written))
-    report_progress("Finished")
-
-def report_progress(string):
-    """
-    Writes a time stamp followed by a message (=string) to standard out.
-    Input: String
-    Output: [date]  string
-    """
-    sys.stderr.write(time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime()) + '\t' + string + '\n')
-
-class ProgressReporter(object):
-    """
-    Writes to out during iteration of unknown length
-    """
-
-    def __init__(self, name_of_process, report_step):
-
-        self.name = name_of_process
-        self.report_step = report_step
-        self.position = int()
-        self.next_limit = report_step
-
-    def update(self):
-
-        self.position += 1
-        if self.position >= self.next_limit:
-            report_progress(self.name + '\t' + "{:,}".format(self.position))
-            self.next_limit += self.report_step
-
-class ProgressBar(object):
-    """
-    Writes a progress bar to stderr
-    """
-
-    def __init__(self, name, min, max, step):
-        # Variables
-        self.min = min
-        self.max = max
-        self.current_position = min
-        self.step = step
-
-        # Metadata
-        self.two_percent = (self.max-self.min)/50
-        self.current_percentage = self.two_percent
-
-        # If two percent, equivalent of one '#', is less than one step length increase the number of # written each step
-        if self.two_percent < self.step and not self.max==2:
-            self.progress_length = int(50/(self.max-2))
-            self.progress_string = '#' * self.progress_length
-        elif self.max == 2:
-            self.progress_string = '#' * 25
-        else:
-            self.progress_string = '#'
-
-        # Printing
-        report_progress(str(name))
-        sys.stderr.write('\n|------------------------------------------------|\n')
-
-    def update(self):
-        # If progress is over 2%, write '#' to stdout
-        self.current_position += self.step
-        if self.current_percentage < self.current_position:
-            sys.stderr.write(self.progress_string)
-            sys.stderr.flush()
-            time.sleep(0.001)
-            self.current_percentage += self.two_percent
-
-    def terminate(self):
-         sys.stderr.write('\n')
 
 class FileReader(object):
     """
@@ -141,7 +48,6 @@ class FileReader(object):
 
         # Open files as zipped or not not (depending on if they end with .gz)
         if self.filehandle[-3:] == '.gz':
-            report_progress('File detected as gzipped, unzipping when reading')
             import gzip
             self.openfile = gzip.open(self.filehandle, 'r')
             self.gzip = True
@@ -154,7 +60,6 @@ class FileReader(object):
 
             # Open files as zipped or not not (depending on if they end with .gz)
             if self.filehandle2[-3:] == '.gz':
-                report_progress('File detected as gzipped, unzipping when reading')
                 import gzip
                 self.openfile2 = gzip.open(self.filehandle2, 'r')
             else:
@@ -236,61 +141,22 @@ class FastqRead(object):
     def fastq_string(self):
         return self.header + '\n' + self.seq  + '\n' + self.comment  + '\n' + self.qual + '\n'
 
-class readArgs(object):
-    """ Reads arguments and handles basic error handling like python version control etc."""
 
-    def __init__(self):
-        """ Main funcion for overview of what is run. """
+def add_arguments(parser):
+    parser.add_argument("input_fastq1",
+                        help="r1 with _BC:Z:BDVH..VH in header")
+    parser.add_argument("input_fastq2",
+                        help="r2 with _BC:Z:BDVH..VH in header")
+    parser.add_argument("output1",
+                        help="Sorted r1 according BC sequence in header")
 
-        readArgs.parse(self)
-        readArgs.pythonVersion(self)
-
-    def parse(self):
-
-        #
-        # Imports & globals
-        #
-        import argparse
-        global args
-
-        parser = argparse.ArgumentParser(description="Sorts fastq files (with _BC:Z:BDVH...VH in header) according to"
-                                                     "their barcode sequence.")
-
-        # Arguments
-        parser.add_argument("input_fastq1", help="r1 with _BC:Z:BDVH..VH in header")
-        parser.add_argument("input_fastq2", help="r2 with _BC:Z:BDVH..VH in header")
-        parser.add_argument("output1", help="Sorted r1 according BC sequence in header")
-        parser.add_argument("output2", help="Sorted r2 according BC sequence in header")
-
-        # Options
-        parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
-                                                                           "Not recommended due to different function "
-                                                                           "names in python 2 and 3.")
-        parser.add_argument("-af", "--alternative_format", action="store_true", help="Instead relies BC seq to be second "
-                                                                                     "element after being split on "
-                                                                                     "<space>")
-        parser.add_argument("-io", "--interleaved_output", action="store_true", help="Writes output as interleaved fq "
-                                                                                     "files (named by output1). Output2 "
-                                                                                     "will not be used.")
-        args = parser.parse_args()
-
-    def pythonVersion(self):
-        """ Makes sure the user is running python 3."""
-
-        #
-        # Version control
-        #
-        import sys
-        if sys.version_info.major == 3:
-            pass
-        else:
-            sys.stderr.write('\nWARNING: you are running python ' + str(
-                sys.version_info.major) + ', this script is written for python 3.')
-            if not args.force_run:
-                sys.stderr.write('\nAborting analysis. Use -F (--Force) to run anyway.\n')
-                sys.exit()
-            else:
-                sys.stderr.write('\nForcing run. This might yield inaccurate results.\n')
-
-
-if __name__=="__main__": main()
+    # Options
+    parser.add_argument("--output2", required='--interleaved_output' not in sys.argv,
+                        help="Sorted r2 according BC sequence in header")
+    parser.add_argument("--interleaved_output", action="store_true", required=False,
+                        help="Writes output as interleaved fq files (named by output1). Output2 will not be used.")
+    parser.add_argument("-F", "--force_run", action="store_true",
+                        help="Run analysis even if not running python 3. Not recommended due to different function "
+                        "names in python 2 and 3.")
+    parser.add_argument("-af", "--alternative_format", action="store_true",
+                        help="Instead relies BC seq to be second element after being split on <space>")
