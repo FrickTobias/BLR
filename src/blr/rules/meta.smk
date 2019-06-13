@@ -38,3 +38,13 @@ rule megahit:
         mv {params.tmpdir}/final.contigs.fa {output.fa}
         rm -r {params.tmpdir}
         """
+
+rule bwa_index:
+    output:
+        index=expand("{{dir}}/contigs.fa.{suffix}", suffix=["amb","ann","bwt","pac","sa"])
+    input:
+        fa="{dir}/contigs.fa"
+    shell:
+        """
+        bwa index {input.fa}
+        """
