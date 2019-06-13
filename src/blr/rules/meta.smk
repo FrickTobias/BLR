@@ -80,3 +80,24 @@ rule athena_config:
                'cluster_settings': {'cluster_type': 'multiprocessing', 'processes': params.threads}}
         with open(output.json, 'w') as fh:
             fh.write(json.dumps(cfg, indent=4, sort_keys=False))
+
+rule athena_osx:
+    input:
+        json="{dir}/config.json"
+    output:
+        touch("{dir}/athena.done")
+    shell:
+        """
+        docker run --rm -v $(pwd)/{dir}:/{dir} abishara/athena-meta-docker athena-meta --config {dir}/config.json
+        """
+
+rule athena:
+    input:
+        json="{dir}/config.json"
+    output:
+        touch("{dir}/athena.done")
+    conda: "athena.yml"
+    shell:
+        """
+        athena-meta --config {input.json}
+        """
