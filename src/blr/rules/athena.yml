@@ -1,0 +1,6 @@
+name: athena-meta
+channels:
+  - bioconda
+dependencies:
+  - python=2.7
+  - athena_meta
