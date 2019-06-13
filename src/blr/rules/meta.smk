@@ -51,7 +51,8 @@ rule bwa_index:
 
 rule bwa_mem:
     output:
-        bam="{dir}/reads.read_cloud_preprocessings.bam"
+        bam="{dir}/reads.read_cloud_preprocessings.bam",
+        bai="{dir}/reads.read_cloud_preprocessings.bam.bai"
     input:
         index=expand("{{dir}}/contigs.fa.{suffix}", suffix=["amb","ann","bwt","pac","sa"]),
         fastq="{dir}/reads.fastq.trimmed.tag.sorted.itlvd.fastq"
@@ -60,4 +61,5 @@ rule bwa_mem:
     shell:
         """
         bwa mem -C -p {input.fastq} {params.index_base} | samtools sort -o {output.bam} -
+        samtools index {output.bam}
         """
