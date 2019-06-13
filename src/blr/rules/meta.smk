@@ -60,6 +60,23 @@ rule bwa_mem:
         index_base="{dir}/contigs.fa"
     shell:
         """
-        bwa mem -C -p {input.fastq} {params.index_base} | samtools sort -o {output.bam} -
+        bwa mem -C -p {params.index_base} {input.fastq} | samtools sort -o {output.bam} -
         samtools index {output.bam}
         """
+
+rule athena_config:
+    output:
+        json="{dir}/config.json"
+    input:
+        fq="{dir}/reads.fastq.trimmed.tag.sorted.itlvd.fastq",
+        fa="{dir}/contigs.fa",
+        bam="{dir}/reads.read_cloud_preprocessings.bam",
+        bai="{dir}/reads.read_cloud_preprocessings.bam.bai"
+    params:
+        threads=4
+    run:
+        import json
+        cfg = {'ctgfasta_path': input.fa, 'reads_ctg_bam_path': input.bam, 'input_fqs': input.fq,
+               'cluster_settings': {'cluster_type': 'multiprocessing', 'processes': params.threads}}
+        with open(output.json, 'w') as fh:
+            fh.write(json.dumps(cfg, indent=4, sort_keys=False))
