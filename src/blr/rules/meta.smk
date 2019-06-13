@@ -14,13 +14,27 @@ rule tagfastq:
 
 rule sortfastq:
     output:
-        r1="{dir}/reads.1.fastq.trimmed.tag.sorted.fastq.gz",
-        r2="{dir}/reads.2.fastq.trimmed.tag.sorted.fastq.gz"
+        fastq="{dir}/reads.fastq.trimmed.tag.sorted.itlvd.fastq"
     input:
         r1="{dir}/reads.1.fastq.trimmed.tag.fastq.gz",
         r2="{dir}/reads.2.fastq.trimmed.tag.fastq.gz"
     shell:
          """
-         blr sortfastq {input.r1} {input.r2} {output.r1} --output2 {output.r2}
+         blr sortfastq {input.r1} {input.r2} {output.fastq} --interleaved_output
          """
 
+rule megahit:
+    output:
+        fa="{dir}/contigs.fa"
+    input:
+        fq="{dir}/reads.fastq.trimmed.tag.sorted.itlvd.fastq"
+    threads: 4
+    params:
+        tmpdir="$TMPDIR/megahit"
+    shell:
+        """
+        rm -rf {params.tmpdir}
+        megahit --12 {input.fq} -o {params.tmpdir} -t {threads}
+        mv {params.tmpdir}/final.contigs.fa {output.fa}
+        rm -r {params.tmpdir}
+        """
