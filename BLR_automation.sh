@@ -16,7 +16,7 @@ set -euo pipefail
   # 3. Barcode clustering & tagging         #
   # 4. Rmdup + filtering + fq-generation    #
   #                                         #
-# # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # #na # # #
   #                                         #
 
 
@@ -144,7 +144,7 @@ if [ -z ${picard_command+x} ]; then
 fi
 
 # output folder
-path=$ARG3
+path=$PWD/$ARG3
 mkdir -p $path
 
 # File one prep
@@ -213,8 +213,8 @@ then
     printf '\n1. Demultiplexing\n'
     printf "`date`"'\t1st adaptor removal\n'
 
-    ln -sr $ARG1 $path/reads.1.fastq.gz
-    ln -sr $ARG2 $path/reads.2.fastq.gz
+    ln -s $PWD/$ARG1 $path/reads.1.fastq.gz
+    ln -s $PWD/$ARG2 $path/reads.2.fastq.gz
     snakemake $path/trimmed-c.1.fastq.gz $path/trimmed-c.2.fastq.gz
     if $remove
     then
@@ -222,8 +222,8 @@ then
         rm $file_name2".h1.bc.fastq.gz"
     fi
 
-    ln -sr $path/trimmed-c.1.fastq.gz $file_name".trimmed.fastq.gz"
-    ln -sr $path/trimmed-c.2.fastq.gz $file_name2".trimmed.fastq.gz"
+    ln -s $path/trimmed-c.1.fastq.gz $file_name".trimmed.fastq.gz"
+    ln -s $path/trimmed-c.2.fastq.gz $file_name2".trimmed.fastq.gz"
 
     printf "`date`""\t3' trimming done\n"
 
