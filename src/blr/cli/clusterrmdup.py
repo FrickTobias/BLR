@@ -11,11 +11,6 @@ import blr.utils as BLR
 
 def main(args):
 
-    #
-    # Initials
-    #
-    global summaryInstance, duplicate_position_dict, overlapValues, window, duplicates, pos_dict, singleton_duplicate_position, BLR
-
     summaryInstance = Summary(args.output_bam)
 
     #
@@ -96,12 +91,12 @@ def main(args):
 
             # Every time a new chromosome is found, send duplicates for processing (seed_duplicates)
             if not read.reference_name == prev_chromosome:
-                seed_duplicates(duplicate_position_dict=duplicate_position_dict, chromosome=prev_chromosome, force_run=args.force_run, barcode_tag=args.barcode_tag)
+                seed_duplicates(duplicate_position_dict=duplicate_position_dict, chromosome=prev_chromosome, force_run=args.force_run, barcode_tag=args.barcode_tag, overlapValues=overlapValues, window=window, duplicates=duplicates, pos_dict=pos_dict)
                 cache_read_tracker = dict()
                 duplicate_position_dict = dict()
 
             # Send chunk of reads to classification function: two duplicates => duplicate_position_dict
-            for the_only_entry in cache_readpair_tracker.values(): process_readpairs(list_of_start_stop_tuples=the_only_entry, barcode_tag=args.barcode_tag)
+            for the_only_entry in cache_readpair_tracker.values(): process_readpairs(list_of_start_stop_tuples=the_only_entry, barcode_tag=args.barcode_tag, duplicate_position_dict=duplicate_position_dict, singleton_duplicate_position=singleton_duplicate_position, summaryInstance=summaryInstance)
             cache_readpair_tracker = dict()
             cache_readpair_tracker[rp_position_tuple] = list()
             cache_readpair_tracker[rp_position_tuple].append((mate, read))
@@ -109,8 +104,8 @@ def main(args):
             prev_chromosome = read.reference_name
 
     # Takes care of the last chunk of reads
-    for the_only_entry in cache_readpair_tracker.values(): process_readpairs(list_of_start_stop_tuples=the_only_entry, barcode_tag=args.barcode_tag)
-    seed_duplicates(duplicate_position_dict=duplicate_position_dict, chromosome=prev_chromosome, force_run=args.force_run, barcode_tag=args.barcode_tag)
+    for the_only_entry in cache_readpair_tracker.values(): process_readpairs(list_of_start_stop_tuples=the_only_entry, barcode_tag=args.barcode_tag, duplicate_position_dict=duplicate_position_dict, singleton_duplicate_position=singleton_duplicate_position, summaryInstance=summaryInstance)
+    seed_duplicates(duplicate_position_dict=duplicate_position_dict, chromosome=prev_chromosome, force_run=args.force_run, barcode_tag=args.barcode_tag, overlapValues=overlapValues, window=window, duplicates=duplicates, pos_dict=pos_dict)
     duplicate_position_dict = dict()
 
     BLR.report_progress('Total reads in file:\t' + "{:,}".format(tot_read_pair_count))
@@ -126,7 +121,7 @@ def main(args):
 
     # Fetch all seeds which are above -t (--threshold, default=0) number of overlaps (require readpair overlap for seed)
     for bc_id_set in duplicates.seeds:
-        duplicates.reduce_to_significant_overlaps(bc_id_set)
+        duplicates.reduce_to_significant_overlaps(bc_id_set, overlapValues)
     BLR.report_progress('Barcodes over threshold (' + str(args.threshold) +'):\t' + "{:,}".format(len(duplicates.translation_dict.keys())))
 
     # Remove several step redundancy (5 -> 3, 3 -> 1) => (5 -> 1, 3 -> 1)
@@ -193,7 +188,7 @@ def update_cache_dict(pos_dict, chromosome, position, window):
 
     return pos_dict
 
-def process_readpairs(list_of_start_stop_tuples, barcode_tag):
+def process_readpairs(list_of_start_stop_tuples, barcode_tag, duplicate_position_dict, singleton_duplicate_position, summaryInstance):
     """
     Takes readpairs with the same start positions and process them simultaneously (since if one is a duplicate, all
     should be used for seeding duplicates).
@@ -274,13 +269,14 @@ def process_readpairs(list_of_start_stop_tuples, barcode_tag):
                 # Add read to dictionary
                 singleton_duplicate_position[chromosome][positions].append(int(single_read.get_tag(barcode_tag)))
 
-def seed_duplicates(duplicate_position_dict, chromosome, force_run, barcode_tag):
+    return duplicate_position_dict, singleton_duplicate_position, summaryInstance
+
+def seed_duplicates(duplicate_position_dict, chromosome, force_run, barcode_tag, overlapValues, window, duplicates, pos_dict):
     """
     Seeds duplicates for read pairs
     :param duplicate_position_dict: Dictionary with read pairs where both read&mate are marked as duplicates
     :return: Nothing, sends results to possible_duplicate_seeds & overlapValues
     """
-    global pos_dict
 
     # If all reads for this chromosome has been "unpaired duplicates", won't be able to seed => return
     if not chromosome in duplicate_position_dict:
@@ -344,6 +340,7 @@ def seed_duplicates(duplicate_position_dict, chromosome, force_run, barcode_tag)
     # Terminate progress bar
     # UPDATE
     progressBar.terminate()
+    return overlapValues, pos_dict
 
 def match_clusterid(clusterid_list_one, clusterid_list_two):
     """
@@ -460,7 +457,7 @@ class BarcodeDuplicates:
         self.threshold = threshold
         self.translation_dict = dict()
 
-    def reduce_to_significant_overlaps(self, bc_set):
+    def reduce_to_significant_overlaps(self, bc_set, overlapValues):
         """
         Fetches all barcode overlaps which are above a specified threshold. Default is 0, aka just having been seeded,
         correlating to having shared exact positions between two readpairs with different barcodes.
@@ -481,6 +478,8 @@ class BarcodeDuplicates:
             for bc_id in bc_set:
                 if bc_id > min_id:
                     self.add(bc_id, min_id)
+
+        return overlapValues
 
     def reduce_several_step_redundancy(self):
         """
