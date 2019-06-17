@@ -16,7 +16,7 @@ set -euo pipefail
   # 3. Barcode clustering & tagging         #
   # 4. Rmdup + filtering + fq-generation    #
   #                                         #
-# # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # #na # # #
   #                                         #
 
 
