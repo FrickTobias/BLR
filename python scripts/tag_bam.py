@@ -1,6 +1,6 @@
 #! /usr/bin python3
 
-def main():
+def main(args):
     """Takes a fastq file barcode sequences in the header and writes a barcode fasta file with only unique entries. """
 
     #
@@ -80,57 +80,20 @@ def ProcessClusters(openInfile):
 
     return(cluster_dict)
 
-class readArgs:
-    """ Reads arguments and handles basic error handling like python version control etc."""
+def add_arguments(parser):
 
-    def __init__(self):
-        """ Main funcion for overview of what is run. """
+    parser = argparse.ArgumentParser(description="Tags bam files with barcode clustering information. Looks for raw "
+                                                 "sequence in read header and puts barcode cluster ID in BC tag as "
+                                                 "well as in header.")
 
-        readArgs.parse(self)
-        readArgs.pythonVersion(self)
+    # Arguments
+    parser.add_argument("input_mapped_bam", help=".bam file with mapped reads which is to be tagged with barcode id:s.")
+    parser.add_argument("input_clstr", help=".clstr file from cdhit clustering.")
+    parser.add_argument("output_tagged_bam", help=".bam file with barcode cluster id in the bc tag.")
 
-    def parse(self):
-
-        #
-        # Imports & globals
-        #
-        import argparse
-        global args
-
-        parser = argparse.ArgumentParser(description="Tags bam files with barcode clustering information. Looks for raw "
-                                                     "sequence in read header and puts barcode cluster ID in BC tag as "
-                                                     "well as in header.")
-
-        # Arguments
-        parser.add_argument("input_mapped_bam", help=".bam file with mapped reads which is to be tagged with barcode id:s.")
-        parser.add_argument("input_clstr", help=".clstr file from cdhit clustering.")
-        parser.add_argument("output_tagged_bam", help=".bam file with barcode cluster id in the bc tag.")
-
-        # Options
-        parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
-                                                                           "Not recommended due to different function "
-                                                                           "names in python 2 and 3.")
-        parser.add_argument("-s", "--skip_nonclust", action="store_true", help="Does not give cluster ID:s to clusters "
-                                                                               "made out by only one sequence.")
-
-        args = parser.parse_args()
-
-    def pythonVersion(self):
-        """ Makes sure the user is running python 3."""
-
-        #
-        # Version control
-        #
-        import sys
-        if sys.version_info.major == 3:
-            pass
-        else:
-            sys.stderr.write('\nWARNING: you are running python ' + str(
-                sys.version_info.major) + ', this script is written for python 3.')
-            if not args.force_run:
-                sys.stderr.write('\nAborting analysis. Use -F (--Force) to run anyway.\n')
-                sys.exit()
-            else:
-                sys.stderr.write('\nForcing run. This might yield inaccurate results.\n')
-
-if __name__=="__main__": main()
+    # Options
+    parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
+                                                                       "Not recommended due to different function "
+                                                                       "names in python 2 and 3.")
+    parser.add_argument("-s", "--skip_nonclust", action="store_true", help="Does not give cluster ID:s to clusters "
+                                                                           "made out by only one sequence.")
