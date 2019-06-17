@@ -9,11 +9,6 @@ def main(args):
     global args, summaryInstance, output_tagged_bamfile
     import blr.utils as BLR, sys, pysam
 
-    #
-    # Argument parsing
-    #
-    argumentsInstance = readArgs()
-
     # Check python3 is being run
     if not BLR.pythonVersion(args.force_run): sys.exit()
 
