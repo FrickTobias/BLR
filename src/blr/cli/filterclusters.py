@@ -8,15 +8,6 @@ import pysam
 import blr.utils as BLR
 
 def main(args):
-
-    #
-    # Imports & globals
-    #
-    global summary
-
-    #
-    # Initials
-    #
     summary = Summary()
     molecules = Molecules()
     prev_chrom = 'chr1'
@@ -32,13 +23,13 @@ def main(args):
             progress.update()
 
             # Fetches barcode and genomic position. Position will be formatted so start < stop.
-            BC_id, read_start, read_stop = fetch_and_format(read, args.barcode_tag)
+            BC_id, read_start, read_stop, summary = fetch_and_format(read, args.barcode_tag, summary=summary)
             # If read is unmapped or does not have barcode, skip
             if BC_id == None or read_start == 'unmapped': continue
 
             # Commit molecules between chromosomes
             if not prev_chrom == read.reference_name:
-                molecules.reportAndRemoveAll()
+                molecules.reportAndRemoveAll(summary=summary)
                 prev_chrom = read.reference_name
 
             # If BC_id already has seen prior reads
@@ -47,12 +38,12 @@ def main(args):
 
                 # Read is within window => add read to molecule.
                 if (molecule_stop+args.window) >= read_start and molecule_stop < read_start:
-                    molecules.addRead(name=BC_id, read_start=read_start, read_stop=read_stop, read_name=read.query_name)
+                    molecules.addRead(name=BC_id, read_start=read_start, read_stop=read_stop, read_name=read.query_name, summary=summary)
 
                 # Overlapping reads => If not overlapping to it's mate, discard read.
                 elif molecule_stop >= read_start:
                     if read.query_name in molecules.dictionary[BC_id]['reads']:
-                        molecules.addRead(name=BC_id, read_start=read_start, read_stop=read_stop, read_name=read.query_name)
+                        molecules.addRead(name=BC_id, read_start=read_start, read_stop=read_stop, read_name=read.query_name, summary=summary)
                     else:
                         summary.overlapping_reads_in_pb += 1
 
@@ -60,14 +51,14 @@ def main(args):
                 else:
                     summary.reportMolecule(name=BC_id, molecule=molecules.dictionary[BC_id])
                     molecules.terminate(name=BC_id)
-                    molecules.initiate(name=BC_id, start=read_start, stop=read_stop, read_name=read.query_name)
+                    molecules.initiate(name=BC_id, start=read_start, stop=read_stop, read_name=read.query_name, summary=summary)
 
             # No previous reads for this bc has been discovered
             else:
-                molecules.initiate(name=BC_id, start=read_start, stop=read_stop, read_name=read.query_name)
+                molecules.initiate(name=BC_id, start=read_start, stop=read_stop, read_name=read.query_name, summary=summary)
 
     # Commit last chr molecules and log stats
-    molecules.reportAndRemoveAll()
+    molecules.reportAndRemoveAll(summary=summary)
     summary.reads = progress.position
     summary.non_analyzed_reads = summary.unmapped_reads + summary.non_tagged_reads + summary.overlapping_reads_in_pb
     BLR.report_progress('Molecules analyzed')
@@ -141,7 +132,7 @@ def main(args):
     try: BLR.report_progress('Reads with barcodes removed:\t' + "{:,}".format((summary.reads_with_removed_barcode)) + '\t(' + ("%.2f" % ((summary.reads_with_removed_barcode/summary.reads)*100) + ' %)'))
     except ZeroDivisionError: BLR.report_progress('No reads passing filters found in file.')
 
-def fetch_and_format(read, barcode_tag):
+def fetch_and_format(read, barcode_tag, summary):
     """
 
     :param read:
@@ -161,7 +152,7 @@ def fetch_and_format(read, barcode_tag):
         read_start, read_stop = 'unmapped', 'unmapped'
         summary.unmapped_reads += 1
 
-    return BC_id, read_start, read_stop
+    return BC_id, read_start, read_stop, summary
 
 class Molecules:
     """
@@ -171,7 +162,7 @@ class Molecules:
     def __init__(self):
         self.dictionary = dict()
 
-    def initiate(self, name, start, stop, read_name):
+    def initiate(self, name, start, stop, read_name, summary):
 
         summary.molecules += 1
 
@@ -184,7 +175,9 @@ class Molecules:
         self.dictionary[name]['reads'] = set()
         self.dictionary[name]['reads'].add(read_name)
 
-    def addRead(self, name, read_start, read_stop, read_name):
+        return summary
+
+    def addRead(self, name, read_start, read_stop, read_name, summary):
 
         # Tracks distances between read pairs, won't add value if it is mate to read
         if not read_name in self.dictionary[name]['reads']:
@@ -202,16 +195,19 @@ class Molecules:
         self.dictionary[name]['number_of_reads'] += 1
         self.dictionary[name]['reads'].add(read_name)
 
+        return summary
+
     def terminate(self, name):
 
         del self.dictionary[name]
 
-    def reportAndRemoveAll(self):
+    def reportAndRemoveAll(self, summary):
 
         for BC_id in self.dictionary.copy().keys():
             summary.reportMolecule(name=BC_id, molecule=self.dictionary[BC_id])
             del self.dictionary[BC_id]
 
+        return summary
 
 class Summary:
 
@@ -289,7 +285,7 @@ class Summary:
         reads_per_molecule_out = open((output_prefix + '.reads_per_molecule'), 'w')
         molecule_len_out = open((output_prefix + '.molecule_lengths'), 'w')
         everything = open((output_prefix + '.everything'), 'w')
-        progressBar = BLR.ProgressBar(name='Writing stats files', min=0, max = summary.molecules, step = 1)
+        progressBar = BLR.ProgressBar(name='Writing stats files', min=0, max = self.molecules, step = 1)
 
         # Writing molecule-dependant stats
         for barcode_id in self.molecules_result_dict.keys():
@@ -304,7 +300,7 @@ class Summary:
                 if molecule[3] >= threshold:
                     molecules_in_cluster += 1
                     percent_bases_read.write(str(molecule[4]))
-                    summary.molecules_over_threshold += 1
+                    self.molecules_over_threshold += 1
                     molecule_len_out.write(str(molecule[2]) + '\n')
                     everything_cache_row.append((str(molecule[3]) + '\t' + str(molecule[2]) + '\t' + str(molecule[4]) + '\t' + str(molecule[4]) + '\t'  + str(barcode_id) + '\t'))
 
@@ -322,8 +318,8 @@ class Summary:
                 molecules_per_bc_out.write(str(molecules_in_cluster) + '\t')
                 if filter_bam:
                     if molecules_in_cluster > Max_molecules:
-                        summary.bc_rmvd_outbam += 1
-                        summary.mol_rmvd_outbam += molecules_in_cluster
+                        self.bc_rmvd_outbam += 1
+                        self.mary.mol_rmvd_outbam += molecules_in_cluster
                         self.barcode_removal_set.add(barcode_id)
 
                 # Writes everything file afterwards in chunks (since it needs molecule per droplet)
