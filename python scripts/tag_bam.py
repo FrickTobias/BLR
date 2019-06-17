@@ -1,20 +1,16 @@
-#! /usr/bin python3
+"""
+Takes a fastq file barcode sequences in the header and writes a barcode fasta file with only unique entries.
+"""
+
+global args, summaryInstance, output_tagged_bamfile
+
+import sys
+import pysam
+
+import blr.utils as BLR
+
 
 def main(args):
-    """Takes a fastq file barcode sequences in the header and writes a barcode fasta file with only unique entries. """
-
-    #
-    # Imports & globals
-    #
-    global args, summaryInstance, output_tagged_bamfile
-    import blr.utils as BLR, sys, pysam
-
-    # Check python3 is being run
-    if not BLR.pythonVersion(args.force_run): sys.exit()
-
-    #
-    # Data processing & writing output
-    #
 
     # Generate dict with bc => bc_cluster consensus sequence
     BLR.report_progress("Starting analysis")
