@@ -69,17 +69,9 @@ def ProcessClusters(openInfile):
     return(cluster_dict)
 
 def add_arguments(parser):
-
-    parser = argparse.ArgumentParser(description="Tags bam files with barcode clustering information. Looks for raw "
-                                                 "sequence in read header and puts barcode cluster ID in BC tag as "
-                                                 "well as in header.")
-
-    # Arguments
     parser.add_argument("input_mapped_bam", help=".bam file with mapped reads which is to be tagged with barcode id:s.")
     parser.add_argument("input_clstr", help=".clstr file from cdhit clustering.")
     parser.add_argument("output_tagged_bam", help=".bam file with barcode cluster id in the bc tag.")
-
-    # Options
     parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
                                                                        "Not recommended due to different function "
                                                                        "names in python 2 and 3.")
