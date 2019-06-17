@@ -3,6 +3,7 @@ Take trimmed read barcodes sequences from headers (@HEADER_bc-seq)
 and write FASTA files with unique barcodes
 """
 import sys
+import os
 
 import blr.utils as BLR
 
@@ -39,7 +40,6 @@ def main(args):
         # Make directory to put indexing files in
         index_dict, not_ATGC_index = reduceComplexity(bc_dict, args.index)
         try:
-            import os
             os.mkdir(args.output_fasta)
         except FileExistsError:
             pass
