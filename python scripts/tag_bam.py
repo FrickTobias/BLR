@@ -2,8 +2,6 @@
 Takes a fastq file barcode sequences in the header and writes a barcode fasta file with only unique entries.
 """
 
-global args, summaryInstance, output_tagged_bamfile
-
 import sys
 import pysam
 
