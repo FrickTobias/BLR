@@ -2,7 +2,6 @@
 Takes a fastq file barcode sequences in the header and writes a barcode fasta file with only unique entries.
 """
 
-import sys
 import pysam
 
 import blr.utils as BLR
