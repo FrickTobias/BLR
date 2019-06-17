@@ -94,7 +94,7 @@ rule athena:
     input:
         json="{dir}/config.json"
     output:
-        touch("{dir}/athena.done")
+        "{dir}/results/olc/athena.asm.fa"
     conda: "athena.yml"
     threads: 10
     shell:
