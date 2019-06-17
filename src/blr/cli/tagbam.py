@@ -44,7 +44,7 @@ def process_clusters(openInfile, skip_nonclust):
     """
 
     # For first loop
-    if args.skip_nonclust: seqs_in_cluster = 2
+    if skip_nonclust: seqs_in_cluster = 2
 
     # Reads cluster file and saves as dict
     cluster_dict = dict()
@@ -55,7 +55,7 @@ def process_clusters(openInfile, skip_nonclust):
         if line.startswith('>'):
 
             # If non-clustered sequences are to be omitted, removes if only one sequence makes out the cluster
-            if args.skip_nonclust and seqs_in_cluster < 2:
+            if skip_nonclust and seqs_in_cluster < 2:
                 del cluster_dict[current_key]
             seqs_in_cluster = 0
 
