@@ -362,7 +362,7 @@ then
     printf "`date`"'\tBam tagging\n'
 
     # Tagging bamfile
-    (blr tagbam ' \
+    (blr tagbam \
         $file_name".sort.bam" \
         $path"/"$N_string".clstr" \
         $file_name".sort.tag.bam" ) 2>$path"/tag_bam.stderr"
