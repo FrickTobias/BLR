@@ -3,4 +3,5 @@ channels:
   - bioconda
 dependencies:
   - python=2.7
-  - athena_meta
+  - athena_meta=1.2
+  - flye=2.4.2
