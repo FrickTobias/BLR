@@ -98,7 +98,7 @@ Advanced options: globals
 
 Advanced options: software settings
   -i  indexing nucletide number used for clustering (cdhit_prep.py)                     DEFAULT: 3
-  -t  threshold for cluster duplicate calling (cluster_rmdup.py)                        DEFAULT: 0
+  -t  threshold for cluster duplicate calling (clusterrmdup.py)                        DEFAULT: 0
   -H  heap space (~RAM) in GB for duplicate removal step                                DEFAULT: 90
   \n'
 	        exit 0
@@ -428,7 +428,7 @@ then
     printf "`date`"'\tCluster merging\n'
 
     # Cluster duplicate merging
-    (python3 $wgh_path'/python scripts/cluster_rmdup.py' \
+    (blr clusterrmdup \
         $file_name".sort.tag.rmdup.mkdup.bam" \
         $file_name".sort.tag.rmdup.x2.bam") 2>>$rmdup_logfile
 
