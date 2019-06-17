@@ -7,6 +7,7 @@ import pysam
 
 import blr.utils as BLR
 
+
 def main(args):
     summary = Summary()
     molecules = Molecules()
