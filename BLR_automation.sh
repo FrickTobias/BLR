@@ -16,7 +16,7 @@ set -euo pipefail
   # 3. Barcode clustering & tagging         #
   # 4. Rmdup + filtering + fq-generation    #
   #                                         #
-# # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # #na # # #
   #                                         #
 
 
@@ -34,7 +34,6 @@ set -euo pipefail
 
 # Initials
 processors=1
-mailing=false
 remove=false
 duplicate_rmdup=false
 heap_space=90
@@ -50,10 +49,6 @@ do
 
         p)
             processors=${OPTARG}
-            ;;
-        m)
-            email=${OPTARG}
-            mailing=true
             ;;
         r)
             remove=true
@@ -93,7 +88,6 @@ Positional arguments (REQUIRED)
   <output_dir>  Output directory for analysis results
 
 Global optional arguments
-  -m  mails the supplied email when analysis is finished                                DEFAULT: None
   -p  processors for threading                                                          DEFAULT: 1
   -r  removes files generated during analysis instead of just compressing them          DEFAULT: false
   -h  help (this output)                                                                DEFAULT: N/A
@@ -104,7 +98,7 @@ Advanced options: globals
 
 Advanced options: software settings
   -i  indexing nucletide number used for clustering (cdhit_prep.py)                     DEFAULT: 3
-  -t  threshold for cluster duplicate calling (cluster_rmdup.py)                        DEFAULT: 0
+  -t  threshold for cluster duplicate calling (clusterrmdup.py)                        DEFAULT: 0
   -H  heap space (~RAM) in GB for duplicate removal step                                DEFAULT: 90
   \n'
 	        exit 0
@@ -135,22 +129,6 @@ printf '\nStarts at step:\t'$start_step
 printf '\nEnd after step:\t'$end_step
 
 
-# Mailing option
-if $mailing
-then
-    if [[ $email == *"@"* ]]
-    then
-        printf '\nMail:\t\t'$email
-    else
-        echo ''
-        echo 'OPTION ERROR: -m '
-        echo ''
-        echo 'Please supply email on format john.doe@domain.org'
-        echo '(got "'$email'" instead)'
-        exit 0
-    fi
-fi
-
 # Fetching paths to external programs (from paths.txt)
 
 # PATH to WGH_Analysis folder
@@ -166,7 +144,7 @@ if [ -z ${picard_command+x} ]; then
 fi
 
 # output folder
-path=$ARG3
+path=$PWD/$ARG3
 mkdir -p $path
 
 # File one prep
@@ -212,12 +190,6 @@ fi
         done
     fi
 
-# Mailing
-if $mailing
-then
-    echo 'ANALYSIS STARTING '$(date) | mail -s $path $email
-fi
-
 printf '\n\n'"`date`"'\tANALYSIS STARTING\n'
 
 # 1. ###################################################################################
@@ -238,87 +210,28 @@ current_step=$((current_step+1))
 if (( "$current_step" >= "$start_step" )) && [ "$continue" == true ]
 then
 
-    # Mailing
-    if $mailing
-    then
-        echo '1_trim starting '$(date) | mail -s $path $email
-    fi
     printf '\n1. Demultiplexing\n'
     printf "`date`"'\t1st adaptor removal\n'
 
-    # Trim away E handle on R1 5'. Also removes reads shorter than 85 bp.
-    cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG \
-        -j $processors \
-        -o $file_name".h1.fastq.gz" \
-        -p $file_name2".h1.fastq.gz" \
-        $ARG1 \
-        $ARG2 \
-        --discard-untrimmed -e 0.2 -m 65 > $trim_logfile # Tosses reads shorter than len(e+bc+handle+TES)
-
-    printf "`date`"'\t1st adaptor removal done\n'
-    printf "`date`"'\tBarcode extraction\n'
-
-    ## Get DBS using UMI-Tools -> _BDHVBDVHBDVHBDVH in header.
-    blr extractbarcode \
-        $file_name".h1.fastq.gz" \
-        $file_name2".h1.fastq.gz" \
-        $file_name".h1.bc.fastq" \
-        $file_name2".h1.bc.fastq" 2>$path"/bc_extract.stderr"
-    if $remove
-    then
-        rm $file_name".h1.fastq.gz"
-        rm $file_name2".h1.fastq.gz"
-    fi
-    pigz $file_name".h1.bc.fastq"
-    pigz $file_name2".h1.bc.fastq"
-
-    printf "`date`"'\tBarcode extraction done\n'
-    printf "`date`"'\t2nd adaptor removal\n'
-
-    #Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed.
-    cutadapt -g AGATGTGTATAAGAGACAG \
-        -o $file_name".h1.bc.h2.fastq.gz" \
-        -j $processors \
-        -p $file_name2".h1.bc.h2.fastq.gz" \
-        $file_name".h1.bc.fastq.gz" \
-        $file_name2".h1.bc.fastq.gz" \
-        --discard-untrimmed -e 0.2  >> $trim_logfile
+    ln -s $PWD/$ARG1 $path/reads.1.fastq.gz
+    ln -s $PWD/$ARG2 $path/reads.2.fastq.gz
+    snakemake $path/trimmed-c.1.fastq.gz $path/trimmed-c.2.fastq.gz
     if $remove
     then
         rm $file_name".h1.bc.fastq.gz"
         rm $file_name2".h1.bc.fastq.gz"
     fi
 
-    printf "`date`"'\t2nd adaptor removal done\n'
-    printf "`date`""\t3' trimming\n"
+    ln -s $path/trimmed-c.1.fastq.gz $file_name".trimmed.fastq.gz"
+    ln -s $path/trimmed-c.2.fastq.gz $file_name2".trimmed.fastq.gz"
 
-    #Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT
-    cutadapt -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT \
-        -j $processors \
-        -o $file_name".trimmed.fastq.gz" \
-        -p $file_name2".trimmed.fastq.gz" \
-        -m 25 \
-        $file_name".h1.bc.h2.fastq.gz" \
-        $file_name2".h1.bc.h2.fastq.gz" \
-        -e 0.2  >> $trim_logfile
-
-
-    if $remove
-    then
-        rm $file_name".h1.bc.h2.fastq.gz"
-        rm $file_name2".h1.bc.h2.fastq.gz"
-    fi
-
-    if $mailing
-    then
-        echo '1_trim finished '$(date) | mail -s $path $email
-    fi
     printf "`date`""\t3' trimming done\n"
 
     # Ugly solution to calculate % construOK
-    var1=$( cat $trim_logfile | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 1 )
-    var2=$( cat $trim_logfile | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 2 )
-    printf "`date`""\t"; awk '{print "Intact reads: "$1*$2*0.0001" %"}' <<< "$var1 $var2"
+    # TODO
+#    var1=$( cat $trim_logfile | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 1 )
+#    var2=$( cat $trim_logfile | grep 'Read 1 with adapter' | cut -d '(' -f 2 | cut -d '%' -f 1 | tr '\n' ' ' | cut -d ' ' -f 2 )
+#    printf "`date`""\t"; awk '{print "Intact reads: "$1*$2*0.0001" %"}' <<< "$var1 $var2"
 
 fi
 
@@ -345,21 +258,15 @@ current_step=$((current_step+1))
 if (( "$current_step" >= "$start_step" )) && [ "$continue" == true ]
 then
 
-    if $mailing
-    then
-        echo '2_clustering starting'$(date) | mail -s $path $email
-    fi
     printf '\n2. Clustering\n'
     printf "`date`"'\tBarcode fasta generation\n'
 
     # Barcode extraction
-    pigz -d $file_name".trimmed.fastq.gz"
-    (python3 $wgh_path'/python scripts/cdhit_prep.py' \
-        $file_name".trimmed.fastq" \
+    blr cdhitprep \
+        $file_name".trimmed.fastq.gz" \
         $path"/unique_bc" \
         -i $index_nucleotides\
-        -f 0 >$path"/cdhit_prep.stdout") 2>$path"/cdhit_prep.stderr"
-    pigz $file_name".trimmed.fastq"
+        -f 0 >$path"/cdhit_prep.stdout" 2>$path"/cdhit_prep.stderr"
 
     printf "`date`"'\tBarcode fasta generation done\n'
     printf "`date`"'\tBarcode clustering\n'
@@ -396,11 +303,6 @@ then
         rm -rf $path"/unique_bc"
     fi
 
-    if $mailing
-    then
-        echo '2_clustering finished '$(date) | mail -s $path $email
-    fi
-
     printf "`date`"'\tBarcode clustering done\n'
 
 fi
@@ -427,10 +329,6 @@ current_step=$((current_step+1))
 if (( "$current_step" >= "$start_step" )) && [ "$continue" == true ]
 then
 
-    if $mailing
-    then
-        echo '3_map starting '$(date) | mail -s $path $email
-    fi
     printf '\n3. Mapping\n'
     printf "`date`"'\tMapping\n'
     printf '\n\n Map stats: .sort.bam\n' >> $map_logfile
@@ -464,15 +362,10 @@ then
     printf "`date`"'\tBam tagging\n'
 
     # Tagging bamfile
-    (python3 $wgh_path'/python scripts/tag_bam.py' \
+    (blr tagbam \
         $file_name".sort.bam" \
         $path"/"$N_string".clstr" \
         $file_name".sort.tag.bam" ) 2>$path"/tag_bam.stderr"
-
-    if $mailing
-    then
-        echo '3_map finished '$(date) | mail -s $path $email
-    fi
 
     printf "`date`"'\tBam tagging done\n'
 
@@ -502,10 +395,6 @@ current_step=$((current_step+1))
 if (( "$current_step" >= "$start_step" )) && [ "$continue" == true ]
 then
 
-    if $mailing
-    then
-        echo '4_rmdup starting '$(date) | mail -s $path $email
-    fi
     printf '\n4. Duplicate removal\n'
     printf "`date`"'\tDuplicate removal\n'
 
@@ -539,7 +428,7 @@ then
     printf "`date`"'\tCluster merging\n'
 
     # Cluster duplicate merging
-    (python3 $wgh_path'/python scripts/cluster_rmdup.py' \
+    (blr clusterrmdup \
         $file_name".sort.tag.rmdup.mkdup.bam" \
         $file_name".sort.tag.rmdup.x2.bam") 2>>$rmdup_logfile
 
@@ -553,7 +442,7 @@ then
 
     mkdir -p $path"/cluster_stats"
     # Cluster filtering
-    (python3 $wgh_path'/python scripts/filter_clusters.py' \
+    (blr filterclusters \
         -f $file_name".sort.tag.rmdup.x2.filt.bam" \
         -M 260 \
         $file_name".sort.tag.rmdup.x2.bam" \
@@ -572,17 +461,8 @@ then
     pigz $file_name".final.fastq"
     pigz $file_name2".final.fastq"
 
-    if $mailing
-    then
-        echo '4_rmdup finished '$(date) | mail -s $path $email
-    fi
     printf "`date`"'\tFastq generation done\n'
 
 fi
 
 printf '\n'"`date`"'\tANALYSIS FINISHED\n'
-
-if $mailing
-then
-    echo 'ANALYSIS FINISHED '$(date) | mail -s $path $email
-fi

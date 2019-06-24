@@ -1,37 +1,26 @@
-#! /usr/bin python3
+"""
+Removes barcode cluster duplicates (two different barcode sequences tagging the same original molecule) by merging barcode
+sequences for reads sharing the duplicate positions.
+"""
 
-def main():
+import sys
+import pysam
+import logging
 
-    #
-    # Imports & globals
-    #
-    global args, summaryInstance, duplicate_position_dict, overlapValues, window, duplicates, pos_dict, singleton_duplicate_position, BLR
-    import blr.utils as BLR, sys, pysam
+import blr.utils as BLR
+
+logger = logging.getLogger(__name__)
 
 
-    #
-    # Argument parsing
-    #
-    argumentsInstance = readArgs()
+def main(args):
 
-    # Check python3 is being run
-    if not BLR.pythonVersion(args.force_run): sys.exit()
-
-    #
-    # Argument parsing
-    #
-    argumentsInstance = readArgs()
-
-    #
-    # Initials
-    #
-    summaryInstance = Summary()
+    summaryInstance = Summary(args.output_bam)
 
     #
     # Start of script
     #
 
-    BLR.report_progress('Starting Analysis')
+    logger.info('Starting Analysis')
 
 
     #######
@@ -44,7 +33,7 @@ def main():
     cache_readpair_tracker = dict()
     singleton_duplicate_position = dict()
     first_read = True
-    duplicates = BarcodeDuplicates()
+    duplicates = BarcodeDuplicates(args.threshold)
     window = 100000
     pos_dict = dict()
     overlapValues = OverlapValues()
@@ -105,12 +94,12 @@ def main():
 
             # Every time a new chromosome is found, send duplicates for processing (seed_duplicates)
             if not read.reference_name == prev_chromosome:
-                seed_duplicates(duplicate_position_dict, chromosome=prev_chromosome)
+                seed_duplicates(duplicate_position_dict=duplicate_position_dict, chromosome=prev_chromosome, force_run=args.force_run, barcode_tag=args.barcode_tag, overlapValues=overlapValues, window=window, duplicates=duplicates, pos_dict=pos_dict)
                 cache_read_tracker = dict()
                 duplicate_position_dict = dict()
 
             # Send chunk of reads to classification function: two duplicates => duplicate_position_dict
-            for the_only_entry in cache_readpair_tracker.values(): process_readpairs(list_of_start_stop_tuples=the_only_entry)
+            for the_only_entry in cache_readpair_tracker.values(): process_readpairs(list_of_start_stop_tuples=the_only_entry, barcode_tag=args.barcode_tag, duplicate_position_dict=duplicate_position_dict, singleton_duplicate_position=singleton_duplicate_position, summaryInstance=summaryInstance)
             cache_readpair_tracker = dict()
             cache_readpair_tracker[rp_position_tuple] = list()
             cache_readpair_tracker[rp_position_tuple].append((mate, read))
@@ -118,31 +107,31 @@ def main():
             prev_chromosome = read.reference_name
 
     # Takes care of the last chunk of reads
-    for the_only_entry in cache_readpair_tracker.values(): process_readpairs(list_of_start_stop_tuples=the_only_entry)
-    seed_duplicates(duplicate_position_dict, prev_chromosome)
+    for the_only_entry in cache_readpair_tracker.values(): process_readpairs(list_of_start_stop_tuples=the_only_entry, barcode_tag=args.barcode_tag, duplicate_position_dict=duplicate_position_dict, singleton_duplicate_position=singleton_duplicate_position, summaryInstance=summaryInstance)
+    seed_duplicates(duplicate_position_dict=duplicate_position_dict, chromosome=prev_chromosome, force_run=args.force_run, barcode_tag=args.barcode_tag, overlapValues=overlapValues, window=window, duplicates=duplicates, pos_dict=pos_dict)
     duplicate_position_dict = dict()
 
-    BLR.report_progress('Total reads in file:\t' + "{:,}".format(tot_read_pair_count))
-    BLR.report_progress('Total paired reads:\t' + "{:,}".format(summaryInstance.intact_read_pairs*2))
-    BLR.report_progress('Reads in unmapped read pairs:\t' + "{:,}".format(summaryInstance.unmapped_read_pair*2))
-    BLR.report_progress('Non-primary alignments in file:\t' + "{:,}".format(summaryInstance.non_primary_alignments))
+    logger.info(f'Total reads in file:\t{"{:,}".format(tot_read_pair_count)}')
+    logger.info(f'Total paired reads:\t{"{:,}".format(summaryInstance.intact_read_pairs*2)}')
+    logger.info(f'Reads in unmapped read pairs:\t{"{:,}".format(summaryInstance.unmapped_read_pair*2)}')
+    logger.info(f'Non-primary alignments in file:\t{"{:,}".format(summaryInstance.non_primary_alignments)}')
 
     # Close input file
     infile.close()
 
-    BLR.report_progress('Removing overlaps under threshold and reducing several step redundancy')
-    BLR.report_progress('Barcodes seeded for removal:\t' + "{:,}".format(len(duplicates.seeds)))
+    logger.info('Removing overlaps under threshold and reducing several step redundancy')
+    logger.info(f'Barcodes seeded for removal:\t{"{:,}".format(len(duplicates.seeds))}')
 
     # Fetch all seeds which are above -t (--threshold, default=0) number of overlaps (require readpair overlap for seed)
     for bc_id_set in duplicates.seeds:
-        duplicates.reduce_to_significant_overlaps(bc_id_set)
-    BLR.report_progress('Barcodes over threshold (' + str(args.threshold) +'):\t' + "{:,}".format(len(duplicates.translation_dict.keys())))
+        duplicates.reduce_to_significant_overlaps(bc_id_set, overlapValues)
+    logger.info(f'Barcodes over threshold ({args.threshold}):\t{"{:,}".format(len(duplicates.translation_dict.keys()))}')
 
     # Remove several step redundancy (5 -> 3, 3 -> 1) => (5 -> 1, 3 -> 1)
     duplicates.reduce_several_step_redundancy()
     barcode_ID_merge_dict = duplicates.translation_dict
-    BLR.report_progress('Barcodes removed:\t\t' + "{:,}".format(len(barcode_ID_merge_dict)))
-    BLR.report_progress('Barcode dict finished')
+    logger.info(f'Barcodes removed:\t\t{"{:,}".format(len(barcode_ID_merge_dict))}')
+    logger.info('Barcode dict finished')
 
     # Option: EXPLICIT MERGE - Writes bc_seq + prev_bc_id + new_bc_id
     if args.explicit_merge:
@@ -182,7 +171,7 @@ def main():
     progressBar.terminate()
     out.close()
     if args.explicit_merge: explicit_merge_file.close()
-    BLR.report_progress('Finished')
+    logger.info('Finished')
 
 def update_cache_dict(pos_dict, chromosome, position, window):
     """
@@ -202,7 +191,7 @@ def update_cache_dict(pos_dict, chromosome, position, window):
 
     return pos_dict
 
-def process_readpairs(list_of_start_stop_tuples):
+def process_readpairs(list_of_start_stop_tuples, barcode_tag, duplicate_position_dict, singleton_duplicate_position, summaryInstance):
     """
     Takes readpairs with the same start positions and process them simultaneously (since if one is a duplicate, all
     should be used for seeding duplicates).
@@ -281,15 +270,16 @@ def process_readpairs(list_of_start_stop_tuples):
                     singleton_duplicate_position[chromosome][positions] = list()
 
                 # Add read to dictionary
-                singleton_duplicate_position[chromosome][positions].append(int(single_read.get_tag(args.barcode_tag)))
+                singleton_duplicate_position[chromosome][positions].append(int(single_read.get_tag(barcode_tag)))
 
-def seed_duplicates(duplicate_position_dict, chromosome):
+    return duplicate_position_dict, singleton_duplicate_position, summaryInstance
+
+def seed_duplicates(duplicate_position_dict, chromosome, force_run, barcode_tag, overlapValues, window, duplicates, pos_dict):
     """
     Seeds duplicates for read pairs
     :param duplicate_position_dict: Dictionary with read pairs where both read&mate are marked as duplicates
     :return: Nothing, sends results to possible_duplicate_seeds & overlapValues
     """
-    global pos_dict
 
     # If all reads for this chromosome has been "unpaired duplicates", won't be able to seed => return
     if not chromosome in duplicate_position_dict:
@@ -311,9 +301,9 @@ def seed_duplicates(duplicate_position_dict, chromosome):
             read_pos_tuple = (read.get_reference_positions()[0], read.get_reference_positions()[-1])
             mate_pos_tuple = (mate.get_reference_positions()[0], mate.get_reference_positions()[-1])
             readpair_pos_tuple = (mate_pos_tuple, read_pos_tuple)
-            try:barcode_ID = int(read.get_tag(args.barcode_tag))
+            try:barcode_ID = int(read.get_tag(barcode_tag))
             except KeyError:
-                if not args.force_run:
+                if not force_run:
                     import sys
                     sys.exit('\nERROR: No BC tag for read ' + str(read.query_name) + '\nPlease double check BC '
                              'clustering & tagging has run correctly.\n\nIf BC indexing nucleotides contain N, '
@@ -353,6 +343,7 @@ def seed_duplicates(duplicate_position_dict, chromosome):
     # Terminate progress bar
     # UPDATE
     progressBar.terminate()
+    return overlapValues, pos_dict
 
 def match_clusterid(clusterid_list_one, clusterid_list_two):
     """
@@ -460,16 +451,16 @@ class BarcodeDuplicates:
     Tracks barcode ID:s which have readpairs ovelapping with others.
     """
 
-    def __init__(self):
+    def __init__(self, threshold):
         """
         Initials
         """
 
         self.seeds = set()
-        self.threshold = args.threshold
+        self.threshold = threshold
         self.translation_dict = dict()
 
-    def reduce_to_significant_overlaps(self, bc_set):
+    def reduce_to_significant_overlaps(self, bc_set, overlapValues):
         """
         Fetches all barcode overlaps which are above a specified threshold. Default is 0, aka just having been seeded,
         correlating to having shared exact positions between two readpairs with different barcodes.
@@ -490,6 +481,8 @@ class BarcodeDuplicates:
             for bc_id in bc_set:
                 if bc_id > min_id:
                     self.add(bc_id, min_id)
+
+        return overlapValues
 
     def reduce_several_step_redundancy(self):
         """
@@ -533,72 +526,15 @@ class BarcodeDuplicates:
         else:
             self.translation_dict[bc_id] = min_id
 
-class readArgs:
-    """ Reads arguments and handles basic error handling like python version control etc."""
-
-    def __init__(self):
-        """ Main funcion for overview of what is run. """
-
-        readArgs.parse(self)
-        readArgs.pythonVersion(self)
-
-    def parse(self):
-
-        #
-        # Imports & globals
-        #
-        import argparse
-        global args
-
-        parser = argparse.ArgumentParser(description="Merges barcodes if they share several read duplicates in proximity "
-                                                     "to each other. These 'barcode clusters' arise from several barcodes "
-                                                     "being enveloped in the same emulsion.")
-
-        # Arguments
-        parser.add_argument("input_tagged_bam", help=".bam file tagged with RG tags and duplicates marked (not taking "
-                                                     "cluster id into account).")
-        parser.add_argument("output_bam", help=".bam file without cluster duplicates")
-
-        # Options
-        parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
-                                                                           "Not recommended due to different function "
-                                                                           "names in python 2 and 3.")
-        parser.add_argument("-t", "--threshold", metavar="<INTEGER>", type=int, default=0, help="Threshold for how many additional overlaps "
-                                                                            "(other than four exact positions from two "
-                                                                            "readpairs) is needed for mergin two barcode "
-                                                                            "clusters. DEFAULT: 0")
-        parser.add_argument("-e", "--explicit_merge", metavar="<FILENAME>", type=str, help="Writes a file with new_bc_id \\t original_bc_seq")
-        parser.add_argument("-bc", "--barcode_tag", metavar="<BARCODE_TAG>", type=str, default='BC', help="Bamfile tag in which the barcode is specified in. DEFAULT: BC")
-
-        args = parser.parse_args()
-
-    def pythonVersion(self):
-        """ Makes sure the user is running python 3."""
-
-        #
-        # Version control
-        #
-        import sys
-        if sys.version_info.major == 3:
-            pass
-        else:
-            sys.stderr.write('\nWARNING: you are running python ' + str(
-                sys.version_info.major) + ', this script is written for python 3.')
-            if not args.force_run:
-                sys.stderr.write('\nAborting analysis. Use -F (--Force) to run anyway.\n')
-                sys.exit()
-            else:
-                sys.stderr.write('\nForcing run. This might yield inaccurate results.\n')
-
 class Summary:
     """ Summarizes chunks"""
 
-    def __init__(self):
+    def __init__(self, output_bam):
 
         self.totalReadPairsCount = int()
         self.seeded_barcodes = int()
         self.totalReadPairsMarkedAsDuplicates = int()
-        self.log = args.output_bam + '.log'
+        self.log = output_bam + '.log'
         self.intact_read_pairs = int()
         self.unmapped_read_pair = int()
         self.non_primary_alignments = int()
@@ -644,4 +580,16 @@ class Summary:
             for objectVariable, value in vars(self).items():
                 openout.write('\n\n'+str(objectVariable) + '\n' + str(value))
 
-if __name__=="__main__": main()
+def add_arguments(parser):
+    parser.add_argument("input_tagged_bam", help=".bam file tagged with RG tags and duplicates marked (not taking "
+                                                 "cluster id into account).")
+    parser.add_argument("output_bam", help=".bam file without cluster duplicates")
+    parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
+                                                                       "Not recommended due to different function "
+                                                                       "names in python 2 and 3.")
+    parser.add_argument("-t", "--threshold", metavar="<INTEGER>", type=int, default=0, help="Threshold for how many additional overlaps "
+                                                                        "(other than four exact positions from two "
+                                                                        "readpairs) is needed for mergin two barcode "
+                                                                        "clusters. DEFAULT: 0")
+    parser.add_argument("-e", "--explicit_merge", metavar="<FILENAME>", type=str, help="Writes a file with new_bc_id \\t original_bc_seq")
+    parser.add_argument("-bc", "--barcode_tag", metavar="<BARCODE_TAG>", type=str, default='BC', help="Bamfile tag in which the barcode is specified in. DEFAULT: BC")

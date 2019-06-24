@@ -1,31 +1,24 @@
-#! /usr/bin python3
+"""
+Removes barcode tags present at more than -M loci (corresponding to removing barcode tags from reads origin to droplets
+which had more than -M molecules).
+"""
 
-def main():
+import pysam
+import logging
 
-    #
-    # Imports & globals
-    #
-    global args, summary, BLR
-    import blr.utils as BLR, sys, pysam
+import blr.utils as BLR
 
-    #
-    # Argument parsing
-    #
-    argumentsInstance = readArgs()
+logger = logging.getLogger(__name__)
 
-    # Check python3 is being run
-    if not BLR.pythonVersion(args.force_run): sys.exit()
 
-    #
-    # Initials
-    #
+def main(args):
     summary = Summary()
     molecules = Molecules()
     prev_chrom = 'chr1'
 
     # Open file, loop over all reads
-    BLR.report_progress('Running analysis with ' + "{:,}".format(args.window) + ' bp window size')
-    BLR.report_progress('Fetching reads')
+    logger.info(f'Running analysis with {"{:,}".format(args.window)} bp window size')
+    logger.info('Fetching reads')
     progress = BLR.ProgressReporter('Reads processed', 1000000)
     with pysam.AlignmentFile(args.x2_bam, 'rb') as infile:
         for read in infile.fetch(until_eof=True):
@@ -34,13 +27,13 @@ def main():
             progress.update()
 
             # Fetches barcode and genomic position. Position will be formatted so start < stop.
-            BC_id, read_start, read_stop = fetch_and_format(read)
+            BC_id, read_start, read_stop, summary = fetch_and_format(read, args.barcode_tag, summary=summary)
             # If read is unmapped or does not have barcode, skip
             if BC_id == None or read_start == 'unmapped': continue
 
             # Commit molecules between chromosomes
             if not prev_chrom == read.reference_name:
-                molecules.reportAndRemoveAll()
+                molecules.reportAndRemoveAll(summary=summary)
                 prev_chrom = read.reference_name
 
             # If BC_id already has seen prior reads
@@ -49,12 +42,12 @@ def main():
 
                 # Read is within window => add read to molecule.
                 if (molecule_stop+args.window) >= read_start and molecule_stop < read_start:
-                    molecules.addRead(name=BC_id, read_start=read_start, read_stop=read_stop, read_name=read.query_name)
+                    molecules.addRead(name=BC_id, read_start=read_start, read_stop=read_stop, read_name=read.query_name, summary=summary)
 
                 # Overlapping reads => If not overlapping to it's mate, discard read.
                 elif molecule_stop >= read_start:
                     if read.query_name in molecules.dictionary[BC_id]['reads']:
-                        molecules.addRead(name=BC_id, read_start=read_start, read_stop=read_stop, read_name=read.query_name)
+                        molecules.addRead(name=BC_id, read_start=read_start, read_stop=read_stop, read_name=read.query_name, summary=summary)
                     else:
                         summary.overlapping_reads_in_pb += 1
 
@@ -62,21 +55,21 @@ def main():
                 else:
                     summary.reportMolecule(name=BC_id, molecule=molecules.dictionary[BC_id])
                     molecules.terminate(name=BC_id)
-                    molecules.initiate(name=BC_id, start=read_start, stop=read_stop, read_name=read.query_name)
+                    molecules.initiate(name=BC_id, start=read_start, stop=read_stop, read_name=read.query_name, summary=summary)
 
             # No previous reads for this bc has been discovered
             else:
-                molecules.initiate(name=BC_id, start=read_start, stop=read_stop, read_name=read.query_name)
+                molecules.initiate(name=BC_id, start=read_start, stop=read_stop, read_name=read.query_name, summary=summary)
 
     # Commit last chr molecules and log stats
-    molecules.reportAndRemoveAll()
+    molecules.reportAndRemoveAll(summary=summary)
     summary.reads = progress.position
     summary.non_analyzed_reads = summary.unmapped_reads + summary.non_tagged_reads + summary.overlapping_reads_in_pb
-    BLR.report_progress('Molecules analyzed')
+    logger.info('Molecules analyzed')
 
     # Stats to output files and stdout
-    summary.writeResultFiles()
-    summary.printStats()
+    summary.writeResultFiles(output_prefix=args.output_prefix, threshold=args.threshold, filter_bam=args.filter_bam, Max_molecules=args.Max_molecules)
+    summary.printStats(barcode_tag=args.barcode_tag, threshold=args.threshold, filter_bam=args.filter_bam)
 
     # Writes output bam file if wanted
     if args.filter_bam:
@@ -140,17 +133,20 @@ def main():
         # End progress bar
         progressBar.terminate()
 
-    try: BLR.report_progress('Reads with barcodes removed:\t' + "{:,}".format((summary.reads_with_removed_barcode)) + '\t(' + ("%.2f" % ((summary.reads_with_removed_barcode/summary.reads)*100) + ' %)'))
-    except ZeroDivisionError: BLR.report_progress('No reads passing filters found in file.')
+    try:
+        logger.info(f'Reads with barcodes removed:\t{"{:,}".format(summary.reads_with_removed_barcode)}\t'
+                    f'({"%.2f" % ((summary.reads_with_removed_barcode/summary.reads)*100)}%)')
+    except ZeroDivisionError:
+        logger.warning('No reads passing filters found in file.')
 
-def fetch_and_format(read):
+def fetch_and_format(read, barcode_tag, summary):
     """
 
     :param read:
     :return:
     """
 
-    try: BC_id = read.get_tag(args.barcode_tag)
+    try: BC_id = read.get_tag(barcode_tag)
     except KeyError:
         summary.non_tagged_reads += 1
         BC_id = None
@@ -163,7 +159,7 @@ def fetch_and_format(read):
         read_start, read_stop = 'unmapped', 'unmapped'
         summary.unmapped_reads += 1
 
-    return BC_id, read_start, read_stop
+    return BC_id, read_start, read_stop, summary
 
 class Molecules:
     """
@@ -173,7 +169,7 @@ class Molecules:
     def __init__(self):
         self.dictionary = dict()
 
-    def initiate(self, name, start, stop, read_name):
+    def initiate(self, name, start, stop, read_name, summary):
 
         summary.molecules += 1
 
@@ -186,7 +182,9 @@ class Molecules:
         self.dictionary[name]['reads'] = set()
         self.dictionary[name]['reads'].add(read_name)
 
-    def addRead(self, name, read_start, read_stop, read_name):
+        return summary
+
+    def addRead(self, name, read_start, read_stop, read_name, summary):
 
         # Tracks distances between read pairs, won't add value if it is mate to read
         if not read_name in self.dictionary[name]['reads']:
@@ -204,81 +202,19 @@ class Molecules:
         self.dictionary[name]['number_of_reads'] += 1
         self.dictionary[name]['reads'].add(read_name)
 
+        return summary
+
     def terminate(self, name):
 
         del self.dictionary[name]
 
-    def reportAndRemoveAll(self):
+    def reportAndRemoveAll(self, summary):
 
         for BC_id in self.dictionary.copy().keys():
             summary.reportMolecule(name=BC_id, molecule=self.dictionary[BC_id])
             del self.dictionary[BC_id]
 
-class readArgs:
-    """
-    Reads arguments and handles basic error handling like python version control etc.
-    """
-
-    def __init__(self):
-
-        readArgs.parse(self)
-        readArgs.pythonVersion(self)
-
-    def parse(self):
-
-        #
-        # Imports & globals
-        #
-        import argparse
-        global args
-
-        parser = argparse.ArgumentParser(description="Removes barcode tags present at more than -M loci (corresponding "
-                                                     "to removing barcode tags from reads origin to droplets which had "
-                                                     "more than -M molecules).")
-
-        # Arguments
-        parser.add_argument("x2_bam", help=".bam file tagged with @RG tags and duplicates removed. Needs to be indexed.")
-        parser.add_argument("output_prefix", help="prefix for results files (.coupling_efficiency, "
-                                                  ".reads_per_molecule, .molecule_per_barcode and .molecule_lengths). "
-                                                  "Will also write a .everything file containing rows (equivalent to "
-                                                  "molecules) with all the information from the other files.")
-
-        # Options
-        parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
-                                                                           "Not recommended due to different function "
-                                                                           "names in python 2 and 3. DEFAULT: False")
-        parser.add_argument("-t","--threshold", metavar='<INTEGER>', type=int, default=4, help="Threshold for how many reads are required for including given molecule in statistics (except_reads_per_molecule). DEFAULT: 4")
-        parser.add_argument("-w", "--window", metavar='<INTEGER>', type=int, default=30000, help="Window size cutoff for maximum distance "
-                                                                                  "in between two reads in one molecule. "
-                                                                                  "DEFAULT: 30000")
-        parser.add_argument("-bc", "--barcode_tag", metavar='<STRING>', type=str, default='BC', help="Bam file tag where barcode is stored. DEFAULT: BC")
-        parser.add_argument("-f", "--filter_bam", metavar='<OUTPUT>', type=str, default=False, help="Write an output bam file where reads have their barcode tag removed if it is "
-                                                                                "from a cluster with more molecules than -M (--Max_molecules) molecules. DEFAULT: False")
-        parser.add_argument("-M", "--Max_molecules", metavar='<INTEGER>', type=int, default=500, help="When using -f (--filter) this will remove barcode tags for those clusters which have more than -M molecules. DEFAULT: 500")
-        parser.add_argument("-s", "--split", action="store_true", help="Will intead of writing one output filtered file "
-                                                                       "split output into separate files based on "
-                                                                       "#mol/bc. The -f (--filter) output file name will instead be "
-                                                                       "used as prefix for the output. -f option "
-                                                                       "required. DEFAULT: None")
-        args = parser.parse_args()
-
-    def pythonVersion(self):
-        """ Makes sure the user is running python 3."""
-
-        #
-        # Version control
-        #
-        import sys
-        if sys.version_info.major == 3:
-            pass
-        else:
-            sys.stderr.write('\nWARNING: you are running python ' + str(
-                sys.version_info.major) + ', this script is written for python 3.')
-            if not args.force_run:
-                sys.stderr.write('\nAborting analysis. Use -F (--Force) to run anyway.\n')
-                sys.exit()
-            else:
-                sys.stderr.write('\nForcing run. This might yield inaccurate results.\n')
+        return summary
 
 class Summary:
 
@@ -322,41 +258,39 @@ class Summary:
         # Save in summary dictionary
         self.molecules_result_dict[name].add((start, stop, length, num_reads, percent_bases_read))
 
-    def printStats(self):
+    def printStats(self, barcode_tag, threshold, filter_bam):
 
         # Read stats
-        BLR.report_progress('- Read stats -')
-        BLR.report_progress('Total Reads in file:\t' + "{:,}".format(self.reads) + '\n')
-        BLR.report_progress('- Reads skipped in analysis -')
-        BLR.report_progress('Unmapped:\t' + "{:,}".format(self.unmapped_reads))
-        BLR.report_progress('Without ' + args.barcode_tag + ' tag:\t' + "{:,}".format(self.non_tagged_reads))
-        BLR.report_progress('Overlapping with other reads in molecule:\t' + "{:,}".format(self.overlapping_reads_in_pb) + '\n')
-        BLR.report_progress('- Remaining reads -')
-        BLR.report_progress('Reads analyzed:\t' + "{:,}".format(self.reads-self.non_analyzed_reads))
+        logger.info('- Read stats -')
+        logger.info(f'Total Reads in file:\t{"{:,}".format(self.reads)}')
+        logger.info('- Reads skipped in analysis -')
+        logger.info(f'Unmapped:\t{"{:,}".format(self.unmapped_reads)}')
+        logger.info(f'Without {barcode_tag} tag:\t{"{:,}".format(self.non_tagged_reads)}')
+        logger.info(f'Overlapping with other reads in molecule:\t{"{:,}".format(self.overlapping_reads_in_pb)}')
+        logger.info('- Remaining reads -')
+        logger.info(f'Reads analyzed:\t{"{:,}".format(self.reads-self.non_analyzed_reads)}')
 
         # Molecule stats
-        BLR.report_progress('- Molecule stats -')
-        BLR.report_progress('Molecules total:\t' + "{:,}".format(self.molecules))
-        BLR.report_progress('Molecules kept for stats (min read: ' + str(args.threshold) + '):\t' + "{:,}".format(
-            self.molecules_over_threshold))
-        BLR.report_progress(
-            'BC consequently removed:\t' + "{:,}".format(self.drops_without_molecules_over_threshold) + '\n')
+        logger.info('- Molecule stats -')
+        logger.info(f'Molecules total:\t{"{:,}".format(self.molecules)}')
+        logger.info(f'Molecules kept for stats (min read: {threshold}):\t{"{:,}".format(self.molecules_over_threshold)}')
+        logger.info(f'BC consequently removed:\t{"{:,}".format(self.drops_without_molecules_over_threshold)}')
 
         # Filtering stats
-        if args.filter_bam:
-            BLR.report_progress('- Bam output stats -')
-            BLR.report_progress('Molecules removed in output:\t' + "{:,}".format(self.mol_rmvd_outbam))
-            BLR.report_progress('BC removed in output:\t' + "{:,}".format(self.bc_rmvd_outbam) + '\n')
+        if filter_bam:
+            logger.info('- Bam output stats -')
+            logger.info(f'Molecules removed in output:\t{"{:,}".format(self.mol_rmvd_outbam)}')
+            logger.info(f'BC removed in output:\t{"{:,}".format(self.bc_rmvd_outbam)}')
 
-    def writeResultFiles(self):
+    def writeResultFiles(self, output_prefix, threshold, filter_bam, Max_molecules):
 
         # Opening all files
-        molecules_per_bc_out = open((args.output_prefix + '.molecules_per_bc'), 'w')
-        percent_bases_read = open((args.output_prefix + '.percent_bases_read'), 'w')
-        reads_per_molecule_out = open((args.output_prefix + '.reads_per_molecule'), 'w')
-        molecule_len_out = open((args.output_prefix + '.molecule_lengths'), 'w')
-        everything = open((args.output_prefix + '.everything'), 'w')
-        progressBar = BLR.ProgressBar(name='Writing stats files', min=0, max = summary.molecules, step = 1)
+        molecules_per_bc_out = open((output_prefix + '.molecules_per_bc'), 'w')
+        percent_bases_read = open((output_prefix + '.percent_bases_read'), 'w')
+        reads_per_molecule_out = open((output_prefix + '.reads_per_molecule'), 'w')
+        molecule_len_out = open((output_prefix + '.molecule_lengths'), 'w')
+        everything = open((output_prefix + '.everything'), 'w')
+        progressBar = BLR.ProgressBar(name='Writing stats files', min=0, max = self.molecules, step = 1)
 
         # Writing molecule-dependant stats
         for barcode_id in self.molecules_result_dict.keys():
@@ -368,10 +302,10 @@ class Summary:
                 reads_per_molecule_out.write(str(molecule[3]) + '\n')
 
                 # Filter molecules with less than N reads (--threshold)
-                if molecule[3] >= args.threshold:
+                if molecule[3] >= threshold:
                     molecules_in_cluster += 1
                     percent_bases_read.write(str(molecule[4]))
-                    summary.molecules_over_threshold += 1
+                    self.molecules_over_threshold += 1
                     molecule_len_out.write(str(molecule[2]) + '\n')
                     everything_cache_row.append((str(molecule[3]) + '\t' + str(molecule[2]) + '\t' + str(molecule[4]) + '\t' + str(molecule[4]) + '\t'  + str(barcode_id) + '\t'))
 
@@ -387,10 +321,10 @@ class Summary:
                     barcode_id] = molecules_in_cluster
 
                 molecules_per_bc_out.write(str(molecules_in_cluster) + '\t')
-                if args.filter_bam:
-                    if molecules_in_cluster > args.Max_molecules:
-                        summary.bc_rmvd_outbam += 1
-                        summary.mol_rmvd_outbam += molecules_in_cluster
+                if filter_bam:
+                    if molecules_in_cluster > Max_molecules:
+                        self.bc_rmvd_outbam += 1
+                        self.mary.mol_rmvd_outbam += molecules_in_cluster
                         self.barcode_removal_set.add(barcode_id)
 
                 # Writes everything file afterwards in chunks (since it needs molecule per droplet)
@@ -402,11 +336,32 @@ class Summary:
             output_file.close()
 
         # Distance between reads
-        with open(args.output_prefix + '.lengths_between_readpairs', 'w') as openout:
+        with open(output_prefix + '.lengths_between_readpairs', 'w') as openout:
             for length, number_of_times in self.bp_btw_reads.items():
                 for i in range(number_of_times):
                     openout.write(str(length) + '\n')
 
         progressBar.terminate()
 
-if __name__=="__main__": main()
+def add_arguments(parser):
+    parser.add_argument("x2_bam", help=".bam file tagged with @RG tags and duplicates removed. Needs to be indexed.")
+    parser.add_argument("output_prefix", help="prefix for results files (.coupling_efficiency, "
+                                              ".reads_per_molecule, .molecule_per_barcode and .molecule_lengths). "
+                                              "Will also write a .everything file containing rows (equivalent to "
+                                              "molecules) with all the information from the other files.")
+    parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
+                                                                       "Not recommended due to different function "
+                                                                       "names in python 2 and 3. DEFAULT: False")
+    parser.add_argument("-t","--threshold", metavar='<INTEGER>', type=int, default=4, help="Threshold for how many reads are required for including given molecule in statistics (except_reads_per_molecule). DEFAULT: 4")
+    parser.add_argument("-w", "--window", metavar='<INTEGER>', type=int, default=30000, help="Window size cutoff for maximum distance "
+                                                                              "in between two reads in one molecule. "
+                                                                              "DEFAULT: 30000")
+    parser.add_argument("-bc", "--barcode_tag", metavar='<STRING>', type=str, default='BC', help="Bam file tag where barcode is stored. DEFAULT: BC")
+    parser.add_argument("-f", "--filter_bam", metavar='<OUTPUT>', type=str, default=False, help="Write an output bam file where reads have their barcode tag removed if it is "
+                                                                            "from a cluster with more molecules than -M (--Max_molecules) molecules. DEFAULT: False")
+    parser.add_argument("-M", "--Max_molecules", metavar='<INTEGER>', type=int, default=500, help="When using -f (--filter) this will remove barcode tags for those clusters which have more than -M molecules. DEFAULT: 500")
+    parser.add_argument("-s", "--split", action="store_true", help="Will intead of writing one output filtered file "
+                                                                   "split output into separate files based on "
+                                                                   "#mol/bc. The -f (--filter) output file name will instead be "
+                                                                   "used as prefix for the output. -f option "
+                                                                   "required. DEFAULT: None")
