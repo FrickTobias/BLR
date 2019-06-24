@@ -71,7 +71,7 @@ def main(args):
                 bc_written += 1
 
     # Reporting
-    logger.info(f'Unique BC count in input:\t{len(bc_dict.keys()))}')
+    logger.info(f'Unique BC count in input:\t{len(bc_dict.keys())}')
     logger.info(f'Unique BC count in output:\t{bc_written}')
     if args.index:
         logger.info(f'BC count where N was in index (Omitted from tot. BC count):\t{not_ATGC_index}')
