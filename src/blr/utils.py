@@ -16,30 +16,6 @@ script_name = sys.argv[0].split('/')[-1].split('.')[0]
 # All functions are described in detail in the function specific documentation with examples given in the main function,
 # including how to use the arguments.
 
-def pythonVersion(force_run):
-    """
-    Error handling - Checks if python 3 is being run and returns bool (True/False)
-    :param force_run: bool (True/False). Override python 3 requirement
-    :return: bool (True/False)
-    """
-
-    #
-    # Version control
-    #
-    if sys.version_info.major == 3:
-        python3 = True
-    else:
-        logger.warning(f'You are running python {sys.version_info.major}, this script is written for python 3.')
-        if not force_run:
-            logger.warning(f'You are running python {sys.version_info.major}, this script is written for python 3.')
-            logger.warning('Aborting analysis. Use -F (--Force) to run anyway.')
-            python3 = False
-        else:
-            logger.exception('Forcing run. This might yield inaccurate results.')
-            python3 = True
-
-    return python3
-
 def report_progress(string):
     """
     Progress report function, writes string (<time_stamp> <tab> <string> <newline>) to std err.

@@ -26,9 +26,7 @@ def main() -> int:
     for _, module_name, _ in modules:
         module = importlib.import_module("." + module_name, cli_package.__name__)
         help = module.__doc__.strip().split("\n", maxsplit=1)[0]
-        subparser = subparsers.add_parser(
-            module_name, help=help, description=module.__doc__
-        )
+        subparser = subparsers.add_parser(module_name, help=help, description=module.__doc__)
         subparser.set_defaults(module=module)
         module.add_arguments(subparser)
 

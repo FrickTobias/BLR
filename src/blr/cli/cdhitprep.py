@@ -14,9 +14,6 @@ logger = logging.getLogger(__name__)
 def main(args):
     """Takes a fastq file barcode sequences in the header and writes a barcode fasta file with only unique entries. """
 
-    # Check python3 is being run
-    if not BLR.pythonVersion(args.force_run): sys.exit()
-
     #
     # Filtering
     #
