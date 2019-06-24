@@ -3,14 +3,17 @@ Takes a fastq file barcode sequences in the header and writes a barcode fasta fi
 """
 
 import pysam
+import logging
 
 import blr.utils as BLR
+
+logger = logging.getLogger(__name__)
 
 
 def main(args):
 
     # Generate dict with bc => bc_cluster consensus sequence
-    BLR.report_progress("Starting analysis")
+    logger.info("Starting analysis")
     clstr_generator = BLR.FileReader(args.input_clstr)
     cluster_dict = process_clusters(clstr_generator.fileReader(), args.skip_nonclust)
     clstr_generator.close()
@@ -36,7 +39,8 @@ def main(args):
 
     infile.close()
     out.close()
-    BLR.report_progress('Finished')
+    logger.info('Finished')
+
 
 def process_clusters(openInfile, skip_nonclust):
     """

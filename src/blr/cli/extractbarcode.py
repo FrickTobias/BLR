@@ -6,12 +6,11 @@ import logging
 
 import blr.utils as BLR
 
-
 logger = logging.getLogger(__name__)
 
 
 def main(args):
-    BLR.report_progress('Starting')
+    logger.info('Starting')
     progress = BLR.ProgressReporter('Read pairs processed', 1000000)
     generator = BLR.FileReader(args.r1, args.r2)
     with open(args.out_r1, 'w') as openr1, open(args.out_r2, 'w') as openr2:
@@ -38,7 +37,7 @@ def main(args):
             progress.update()
 
     generator.close()
-    BLR.report_progress('Finished')
+    logger.info('Finished')
 
 
 def add_arguments(parser):
