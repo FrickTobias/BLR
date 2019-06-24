@@ -349,9 +349,6 @@ def add_arguments(parser):
                                               ".reads_per_molecule, .molecule_per_barcode and .molecule_lengths). "
                                               "Will also write a .everything file containing rows (equivalent to "
                                               "molecules) with all the information from the other files.")
-    parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
-                                                                       "Not recommended due to different function "
-                                                                       "names in python 2 and 3. DEFAULT: False")
     parser.add_argument("-t","--threshold", metavar='<INTEGER>', type=int, default=4, help="Threshold for how many reads are required for including given molecule in statistics (except_reads_per_molecule). DEFAULT: 4")
     parser.add_argument("-w", "--window", metavar='<INTEGER>', type=int, default=30000, help="Window size cutoff for maximum distance "
                                                                               "in between two reads in one molecule. "
