@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 def main(args):
     summary = Summary()
     molecules = Molecules()
-    prev_chrom = 'chr1'
 
     # Open file, loop over all reads
     logger.info(f'Running analysis with {"{:,}".format(args.window)} bp window size')
