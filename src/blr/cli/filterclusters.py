@@ -1,6 +1,6 @@
 """
 Removes barcode tags present at more than -M loci (corresponding to removing barcode tags from reads origin to droplets
-which had more than -M molecules).
+which had more than -M molecules in one and the same droplet).
 """
 
 import pysam
@@ -8,7 +8,6 @@ import logging
 
 from tqdm import tqdm
 
-import blr.utils as BLR
 
 logger = logging.getLogger(__name__)
 
@@ -331,7 +330,8 @@ class Summary:
 
 
 def add_arguments(parser):
-    parser.add_argument("x2_bam", help=".bam file tagged with @RG tags and duplicates removed. Needs to be indexed.")
+    parser.add_argument("x2_bam", help=".bam file tagged with BC:Z:<int> tags. Needs to be indexed, sorted & have "
+                                       "duplicates removed.")
     parser.add_argument("output", help="Output filtered file.")
     parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
                                                                        "Not recommended due to different function "
