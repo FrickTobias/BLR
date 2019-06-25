@@ -71,11 +71,11 @@ def main(args):
                 bc_written += 1
 
     # Reporting
-    logger.info(f'Unique BC count in input:\t{len(bc_dict.keys())}')
-    logger.info(f'Unique BC count in output:\t{bc_written}')
+    logger.info(f'Unique BC count in input: {len(bc_dict): 15}')
+    logger.info(f'Unique BC count in output: {bc_written: 15}')
     if args.index:
-        logger.info(f'BC count where N was in index (Omitted from tot. BC count):\t{not_ATGC_index}')
-    logger.info("Finished")
+        logger.info(f'BC count where N was in index (Omitted from tot. BC count): {not_ATGC_index: 15}')
+    logger.info(f'Finished')
 
 
 def reduceComplexity(bc_dict, index):

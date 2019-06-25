@@ -163,7 +163,7 @@ class FileReader:
             self.openfile = sys.stdin
         # Open files as zipped or not not (depending on if they end with .gz)
         elif self.filehandle[-3:] == '.gz':
-            logger.info('File detected as gzipped, unzipping when reading')
+            logger.info(f'File detected as gzipped, unzipping when reading')
             self.openfile = gzip.open(self.filehandle, 'r')
             self.gzip = True
         else:
@@ -175,7 +175,7 @@ class FileReader:
 
             # Open files as zipped or not not (depending on if they end with .gz)
             if self.filehandle2[-3:] == '.gz':
-                logger.info('File detected as gzipped, unzipping when reading')
+                logger.info(f'File detected as gzipped, unzipping when reading')
 
                 self.openfile2 = gzip.open(self.filehandle2, 'r')
             else:

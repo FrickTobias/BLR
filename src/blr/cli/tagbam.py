@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 def main(args):
 
     # Generate dict with bc => bc_cluster consensus sequence
-    logger.info("Starting analysis")
+    logger.info(f'Starting analysis')
     clstr_generator = BLR.FileReader(args.input_clstr)
     cluster_dict = process_clusters(clstr_generator.fileReader(), args.skip_nonclust)
     clstr_generator.close()
@@ -39,7 +39,7 @@ def main(args):
 
     infile.close()
     out.close()
-    logger.info('Finished')
+    logger.info(f'Finished')
 
 
 def process_clusters(openInfile, skip_nonclust):

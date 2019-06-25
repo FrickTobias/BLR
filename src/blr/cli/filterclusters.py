@@ -261,26 +261,26 @@ class Summary:
     def printStats(self, barcode_tag, threshold, filter_bam):
 
         # Read stats
-        logger.info('- Read stats -')
-        logger.info(f'Total Reads in file:\t{"{:,}".format(self.reads)}')
-        logger.info('- Reads skipped in analysis -')
-        logger.info(f'Unmapped:\t{"{:,}".format(self.unmapped_reads)}')
-        logger.info(f'Without {barcode_tag} tag:\t{"{:,}".format(self.non_tagged_reads)}')
-        logger.info(f'Overlapping with other reads in molecule:\t{"{:,}".format(self.overlapping_reads_in_pb)}')
-        logger.info('- Remaining reads -')
-        logger.info(f'Reads analyzed:\t{"{:,}".format(self.reads-self.non_analyzed_reads)}')
+        logger.info(f'- Read stats -')
+        logger.info(f'Total Reads in file:{self.reads:15,}')
+        logger.info(f'- Reads skipped in analysis -')
+        logger.info(f'Unmapped: {self.unmapped_reads:15,}')
+        logger.info(f'Without {barcode_tag} tag: {self.non_tagged_reads:15,}')
+        logger.info(f'Overlapping with other reads in molecule: {self.overlapping_reads_in_pb:15,}')
+        logger.info(f'- Remaining reads -')
+        logger.info(f'Reads analyzed: {self.reads-self.non_analyzed_reads:15,}')
 
         # Molecule stats
-        logger.info('- Molecule stats -')
-        logger.info(f'Molecules total:\t{"{:,}".format(self.molecules)}')
-        logger.info(f'Molecules kept for stats (min read: {threshold}):\t{"{:,}".format(self.molecules_over_threshold)}')
-        logger.info(f'BC consequently removed:\t{"{:,}".format(self.drops_without_molecules_over_threshold)}')
+        logger.info(f'- Molecule stats -')
+        logger.info(f'Molecules total: {self.molecules:15,}')
+        logger.info(f'Molecules kept for stats (min read: {threshold}): {self.molecules_over_threshold:15,}')
+        logger.info(f'BC consequently removed: {self.drops_without_molecules_over_threshold:15,}')
 
         # Filtering stats
         if filter_bam:
-            logger.info('- Bam output stats -')
-            logger.info(f'Molecules removed in output:\t{"{:,}".format(self.mol_rmvd_outbam)}')
-            logger.info(f'BC removed in output:\t{"{:,}".format(self.bc_rmvd_outbam)}')
+            logger.info(f'- Bam output stats -')
+            logger.info(f'Molecules removed in output: {self.mol_rmvd_outbam:15,}')
+            logger.info(f'BC removed in output: {self.bc_rmvd_outbam:15,}')
 
     def writeResultFiles(self, output_prefix, threshold, filter_bam, Max_molecules):
 
