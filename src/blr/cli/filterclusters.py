@@ -20,7 +20,9 @@ def main(args):
     logger.info(f'Running analysis with {"{:,}".format(args.window)} bp window size')
     logger.info('Fetching reads')
     progress = BLR.ProgressReporter('Reads processed', 1000000)
+    prev_chrom = infile.references[0]
     with pysam.AlignmentFile(args.x2_bam, 'rb') as infile:
+
         for read in infile.fetch(until_eof=True):
 
             # Progress reporting. Upmost because of continue-statement in loop
