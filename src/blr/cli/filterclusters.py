@@ -25,7 +25,6 @@ def main(args):
         summary.reads = infile.mapped + infile.unmapped
         for read in tqdm(infile.fetch(until_eof=True)):
 
-
             # Fetches barcode and genomic position. Position will be formatted so start < stop.
             BC_id, read_start, read_stop, summary = fetch_and_format(read, args.barcode_tag, summary=summary)
             # If read is unmapped or does not have barcode, skip
@@ -67,64 +66,63 @@ def main(args):
     logger.info('Molecules analyzed')
 
     # Stats to output files and stdout
-    summary.writeResultFiles(output_prefix=args.output_prefix, threshold=args.threshold, filter_bam=args.filter_bam, Max_molecules=args.Max_molecules)
-    summary.printStats(barcode_tag=args.barcode_tag, threshold=args.threshold, filter_bam=args.filter_bam)
+    if args.print_stats:
+        summary.writeResultFiles(output_prefix=args.print_stats, threshold=args.threshold, filter_bam=args.output, Max_molecules=args.Max_molecules)
+        summary.printStats(barcode_tag=args.barcode_tag, threshold=args.threshold, filter_bam=args.output)
 
     # Writes output bam file if wanted
-    if args.filter_bam:
+    with pysam.AlignmentFile(args.x2_bam, 'rb') as openin:
 
-        with pysam.AlignmentFile(args.x2_bam, 'rb') as openin:
+        # OPEN FILES
+        openfiles = dict()
+        # IF SPLITTING INTO SEVERAL OUTPUTS
+        if args.split:
+            openfiles['no_bc'] = pysam.AlignmentFile(args.output + '.no_bc.bam', 'wb', template=openin)
+            openfiles['not_phased'] = pysam.AlignmentFile(args.output + '.not_phased.bam', 'wb', template=openin)
+            for reads_per_mol in range(1, args.Max_molecules+1):
+                openfiles[reads_per_mol] = pysam.AlignmentFile(
+                    args.output + '.' + str(reads_per_mol) + '_rpm.bam', 'wb', template=openin)
+        # NORMAL FILTERED FILE
+        else:
+            open_file_key = 'all_reads'
+            openfiles[open_file_key] = pysam.AlignmentFile(args.output, 'wb', template=openin)
+            openout = openfiles[open_file_key]
 
-            # OPEN FILES
-            openfiles = dict()
-            # IF SPLITTING INTO SEVERAL OUTPUTS
-            if args.split:
-                openfiles['no_bc'] = pysam.AlignmentFile(args.filter_bam + '.no_bc.bam', 'wb', template=openin)
-                openfiles['not_phased'] = pysam.AlignmentFile(args.filter_bam + '.not_phased.bam', 'wb', template=openin)
-                for reads_per_mol in range(1, args.Max_molecules+1):
-                    openfiles[reads_per_mol] = pysam.AlignmentFile(
-                        args.filter_bam + '.' + str(reads_per_mol) + '_rpm.bam', 'wb', template=openin)
-            # NORMAL FILTERED FILE
-            else:
-                open_file_key = 'all_reads'
-                openfiles[open_file_key] = pysam.AlignmentFile(args.filter_bam, 'wb', template=openin)
-                openout = openfiles[open_file_key]
+        for read in tqdm(openin.fetch(until_eof=True)):
 
-            for read in tqdm(openin.fetch(until_eof=True)):
-
-                # If no bc_id, just write it to out
-                try: BC_id = read.get_tag(args.barcode_tag)
-                except KeyError:
-                    BC_id = False
-
-                    # IF SPLITTING INTO SEVERAL OUTPUTS
-                    if args.split:
-                        openout = openfiles['no_bc']
-
-                # If too many molecules in cluster, change tag and header of read
-                if BC_id in summary.barcode_removal_set:
-                    tmp_header_list = read.query_name.split('_')
-                    read.query_name = str(tmp_header_list[0]) + '_' + str(tmp_header_list[1])
-                    read.set_tag(args.barcode_tag, 'FILTERED', value_type='Z')
-                    summary.reads_with_removed_barcode += 1
-
-                    # IF SPLITTING INTO SEVERAL OUTPUTS
-                    if args.split:
-                        openout = openfiles['no_bc']
+            # If no bc_id, just write it to out
+            try: BC_id = read.get_tag(args.barcode_tag)
+            except KeyError:
+                BC_id = False
 
                 # IF SPLITTING INTO SEVERAL OUTPUTS
-                elif args.split and BC_id:
-                    if not BC_id in summary.bc_to_numberMolOverReadThreshold:
-                        openout = openfiles['not_phased']
-                    else:
-                        mol_per_barcode = summary.bc_to_numberMolOverReadThreshold[BC_id]
-                        openout = openfiles[mol_per_barcode]
+                if args.split:
+                    openout = openfiles['no_bc']
 
-                openout.write(read)
+            # If too many molecules in cluster, change tag and header of read
+            if BC_id in summary.barcode_removal_set:
+                tmp_header_list = read.query_name.split('_')
+                read.query_name = str(tmp_header_list[0]) + '_' + str(tmp_header_list[1])
+                read.set_tag(args.barcode_tag, 'FILTERED', value_type='Z')
+                summary.reads_with_removed_barcode += 1
 
-            # CLOSE FILES
-            for openout in openfiles.values():
-                openout.close()
+                # IF SPLITTING INTO SEVERAL OUTPUTS
+                if args.split:
+                    openout = openfiles['no_bc']
+
+            # IF SPLITTING INTO SEVERAL OUTPUTS
+            elif args.split and BC_id:
+                if not BC_id in summary.bc_to_numberMolOverReadThreshold:
+                    openout = openfiles['not_phased']
+                else:
+                    mol_per_barcode = summary.bc_to_numberMolOverReadThreshold[BC_id]
+                    openout = openfiles[mol_per_barcode]
+
+            openout.write(read)
+
+        # CLOSE FILES
+        for openout in openfiles.values():
+            openout.close()
 
     try:
         logger.info(f'Reads with barcodes removed:\t{"{:,}".format(summary.reads_with_removed_barcode)}\t'
@@ -334,21 +332,25 @@ class Summary:
 
 def add_arguments(parser):
     parser.add_argument("x2_bam", help=".bam file tagged with @RG tags and duplicates removed. Needs to be indexed.")
-    parser.add_argument("output_prefix", help="prefix for results files (.coupling_efficiency, "
-                                              ".reads_per_molecule, .molecule_per_barcode and .molecule_lengths). "
-                                              "Will also write a .everything file containing rows (equivalent to "
-                                              "molecules) with all the information from the other files.")
+    parser.add_argument("output", help="Output filtered file.")
     parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
                                                                        "Not recommended due to different function "
                                                                        "names in python 2 and 3. DEFAULT: False")
-    parser.add_argument("-t","--threshold", metavar='<INTEGER>', type=int, default=4, help="Threshold for how many reads are required for including given molecule in statistics (except_reads_per_molecule). DEFAULT: 4")
-    parser.add_argument("-w", "--window", metavar='<INTEGER>', type=int, default=30000, help="Window size cutoff for maximum distance "
+    parser.add_argument("-t","--threshold", metavar='<INTEGER>', type=int, default=4,
+                        help="Threshold for how many reads are required for including given molecule in statistics "
+                             "(except_reads_per_molecule). DEFAULT: 4")
+    parser.add_argument("-w", "--window", metavar='<INTEGER>', type=int, default=30000,
+                        help="Window size cutoff for maximum distance "
                                                                               "in between two reads in one molecule. "
                                                                               "DEFAULT: 30000")
-    parser.add_argument("-bc", "--barcode_tag", metavar='<STRING>', type=str, default='BC', help="Bam file tag where barcode is stored. DEFAULT: BC")
-    parser.add_argument("-f", "--filter_bam", metavar='<OUTPUT>', type=str, default=False, help="Write an output bam file where reads have their barcode tag removed if it is "
-                                                                            "from a cluster with more molecules than -M (--Max_molecules) molecules. DEFAULT: False")
-    parser.add_argument("-M", "--Max_molecules", metavar='<INTEGER>', type=int, default=500, help="When using -f (--filter) this will remove barcode tags for those clusters which have more than -M molecules. DEFAULT: 500")
+    parser.add_argument("-bc", "--barcode_tag", metavar='<STRING>', type=str, default='BC',
+                        help="Bam file tag where barcode is stored. DEFAULT: BC")
+    parser.add_argument("-ps", "--print_stats", metavar='<PREFIX>', type=str,
+                        help="Write barcode statistics files (reads per molecule, molecule per barcode, molecule "
+                             "lengths & coupling effiency). DEFAULT: None")
+    parser.add_argument("-M", "--Max_molecules", metavar='<INTEGER>', type=int, default=500,
+                        help="When using -f (--filter) this will remove barcode tags for those clusters which have more "
+                             "than -M molecules. DEFAULT: 500")
     parser.add_argument("-s", "--split", action="store_true", help="Will intead of writing one output filtered file "
                                                                    "split output into separate files based on "
                                                                    "#mol/bc. The -f (--filter) output file name will instead be "
