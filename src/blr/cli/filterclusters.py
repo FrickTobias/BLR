@@ -6,6 +6,8 @@ which had more than -M molecules).
 import pysam
 import logging
 
+from tqdm import tqdm
+
 import blr.utils as BLR
 
 logger = logging.getLogger(__name__)
@@ -19,14 +21,11 @@ def main(args):
     # Open file, loop over all reads
     logger.info(f'Running analysis with {"{:,}".format(args.window)} bp window size')
     logger.info('Fetching reads')
-    progress = BLR.ProgressReporter('Reads processed', 1000000)
-    prev_chrom = infile.references[0]
     with pysam.AlignmentFile(args.x2_bam, 'rb') as infile:
-
-        for read in infile.fetch(until_eof=True):
+        prev_chrom = infile.references[0]
+        for read in tqdm(infile.fetch(until_eof=True)):
 
             # Progress reporting. Upmost because of continue-statement in loop
-            progress.update()
 
             # Fetches barcode and genomic position. Position will be formatted so start < stop.
             BC_id, read_start, read_stop, summary = fetch_and_format(read, args.barcode_tag, summary=summary)
@@ -65,7 +64,7 @@ def main(args):
 
     # Commit last chr molecules and log stats
     molecules.reportAndRemoveAll(summary=summary)
-    summary.reads = progress.position
+    #summary.reads = progress.position
     summary.non_analyzed_reads = summary.unmapped_reads + summary.non_tagged_reads + summary.overlapping_reads_in_pb
     logger.info('Molecules analyzed')
 
@@ -76,7 +75,6 @@ def main(args):
     # Writes output bam file if wanted
     if args.filter_bam:
 
-        progressBar = BLR.ProgressBar(name='Writing filtered bam file', min=0, max=summary.reads, step=1)
         with pysam.AlignmentFile(args.x2_bam, 'rb') as openin:
 
             # OPEN FILES
@@ -94,7 +92,7 @@ def main(args):
                 openfiles[open_file_key] = pysam.AlignmentFile(args.filter_bam, 'wb', template=openin)
                 openout = openfiles[open_file_key]
 
-            for read in openin.fetch(until_eof=True):
+            for read in tqdm(openin.fetch(until_eof=True)):
 
                 # If no bc_id, just write it to out
                 try: BC_id = read.get_tag(args.barcode_tag)
@@ -124,16 +122,11 @@ def main(args):
                         mol_per_barcode = summary.bc_to_numberMolOverReadThreshold[BC_id]
                         openout = openfiles[mol_per_barcode]
 
-                # Writ to out & update progress bar
                 openout.write(read)
-                progressBar.update()
 
             # CLOSE FILES
             for openout in openfiles.values():
                 openout.close()
-
-        # End progress bar
-        progressBar.terminate()
 
     try:
         logger.info(f'Reads with barcodes removed:\t{"{:,}".format(summary.reads_with_removed_barcode)}\t'
@@ -292,10 +285,9 @@ class Summary:
         reads_per_molecule_out = open((output_prefix + '.reads_per_molecule'), 'w')
         molecule_len_out = open((output_prefix + '.molecule_lengths'), 'w')
         everything = open((output_prefix + '.everything'), 'w')
-        progressBar = BLR.ProgressBar(name='Writing stats files', min=0, max = self.molecules, step = 1)
 
         # Writing molecule-dependant stats
-        for barcode_id in self.molecules_result_dict.keys():
+        for barcode_id in tqdm(self.molecules_result_dict.keys()):
 
             molecules_in_cluster = 0
             everything_cache_row = list()
@@ -311,8 +303,6 @@ class Summary:
                     molecule_len_out.write(str(molecule[2]) + '\n')
                     everything_cache_row.append((str(molecule[3]) + '\t' + str(molecule[2]) + '\t' + str(molecule[4]) + '\t' + str(molecule[4]) + '\t'  + str(barcode_id) + '\t'))
 
-                progressBar.update()
-
             # Skips clusters which as a result of -t does not have any molecules left.
             if molecules_in_cluster == 0:
                 self.drops_without_molecules_over_threshold += 1
@@ -326,7 +316,7 @@ class Summary:
                 if filter_bam:
                     if molecules_in_cluster > Max_molecules:
                         self.bc_rmvd_outbam += 1
-                        self.mary.mol_rmvd_outbam += molecules_in_cluster
+                        self.mol_rmvd_outbam += molecules_in_cluster
                         self.barcode_removal_set.add(barcode_id)
 
                 # Writes everything file afterwards in chunks (since it needs molecule per droplet)
@@ -343,7 +333,6 @@ class Summary:
                 for i in range(number_of_times):
                     openout.write(str(length) + '\n')
 
-        progressBar.terminate()
 
 def add_arguments(parser):
     parser.add_argument("x2_bam", help=".bam file tagged with @RG tags and duplicates removed. Needs to be indexed.")
