@@ -23,9 +23,9 @@ def main(args):
     logger.info('Fetching reads')
     with pysam.AlignmentFile(args.x2_bam, 'rb') as infile:
         prev_chrom = infile.references[0]
+        summary.reads = infile.mapped + infile.unmapped
         for read in tqdm(infile.fetch(until_eof=True)):
 
-            # Progress reporting. Upmost because of continue-statement in loop
 
             # Fetches barcode and genomic position. Position will be formatted so start < stop.
             BC_id, read_start, read_stop, summary = fetch_and_format(read, args.barcode_tag, summary=summary)
@@ -64,7 +64,6 @@ def main(args):
 
     # Commit last chr molecules and log stats
     molecules.reportAndRemoveAll(summary=summary)
-    #summary.reads = progress.position
     summary.non_analyzed_reads = summary.unmapped_reads + summary.non_tagged_reads + summary.overlapping_reads_in_pb
     logger.info('Molecules analyzed')
 
