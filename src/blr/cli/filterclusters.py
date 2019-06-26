@@ -124,7 +124,7 @@ def main(args):
 
         # Stats to output files and stdout
     if args.print_stats:
-        summary.writeResultFiles(output_prefix=args.print_stats, Max_molecules=args.Max_molecules,
+        summary.writeMoleculeStats(output_prefix=args.print_stats, Max_molecules=args.Max_molecules,
                                  allMolecules=allMolecules)
         summary.printStats(barcode_tag=args.barcode_tag, threshold=args.threshold, allMolecules=allMolecules)
 
@@ -271,7 +271,7 @@ class Summary:
         logger.info(f'Barcodes removed:\t{len(self.barcode_removal_set)}')
         logger.info(f'Molecules removed:\t{self.number_removed_molecules}')
 
-    def writeResultFiles(self, output_prefix, Max_molecules, allMolecules):
+    def writeMoleculeStats(self, output_prefix, Max_molecules, allMolecules):
 
         # Opening all files
         molecules_per_bc_out = open((output_prefix + '.molecules_per_bc'), 'w')
