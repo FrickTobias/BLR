@@ -14,53 +14,54 @@ logger = logging.getLogger(__name__)
 
 def main(args):
     summary = Summary()
-    molecules = Molecules()
+    allMolecules = AllMolecules()
 
-    # Open file, loop over all reads
     logger.info(f'Running analysis with {"{:,}".format(args.window)} bp window size')
     logger.info('Fetching reads')
     with pysam.AlignmentFile(args.x2_bam, 'rb') as infile:
+        # Bam file stats
         prev_chrom = infile.references[0]
         summary.reads = infile.mapped + infile.unmapped
         for read in tqdm(infile.fetch(until_eof=True)):
 
             # Fetches barcode and genomic position. Position will be formatted so start < stop.
             BC_id, read_start, read_stop, summary = fetch_and_format(read, args.barcode_tag, summary=summary)
-            # If read is unmapped or does not have barcode, skip
             if BC_id == None or read_start == 'unmapped': continue
 
             # Commit molecules between chromosomes
             if not prev_chrom == read.reference_name:
-                molecules.reportAndRemoveAll(summary=summary)
+                allMolecules.reportAndRemoveAll(summary=summary)
                 prev_chrom = read.reference_name
 
-            # If BC_id already has seen prior reads
-            if BC_id in molecules.dictionary:
-                molecule_stop = molecules.dictionary[BC_id]['stop']
+            if BC_id in allMolecules.cache_dict:
+                molecule = allMolecules.cache_dict[BC_id]
 
-                # Read is within window => add read to molecule.
-                if (molecule_stop+args.window) >= read_start and molecule_stop < read_start:
-                    molecules.addRead(name=BC_id, read_start=read_start, read_stop=read_stop, read_name=read.query_name, summary=summary)
+                # Read is within args.window => add read to molecule.
+                if (molecule.stop+args.window) >= read_start and molecule.stop < read_start:
+                    molecule.addRead(stop=read_stop, read_header=read.query_name)
+                    allMolecules.cache_dict[BC_id] = molecule
 
                 # Overlapping reads => If not overlapping to it's mate, discard read.
-                elif molecule_stop >= read_start:
-                    if read.query_name in molecules.dictionary[BC_id]['reads']:
-                        molecules.addRead(name=BC_id, read_start=read_start, read_stop=read_stop, read_name=read.query_name, summary=summary)
+                elif molecule.stop >= read_start:
+                    if read.query_name in molecule.read_headers:
+                        molecule.addRead(stop=read_stop, read_header=read.query_name)
+                        allMolecules.cache_dict[BC_id] = molecule
                     else:
                         summary.overlapping_reads_in_pb += 1
 
-                # Read is not within window => report old and initate new molecule.
+                # Read is not within window => report old and initiate new molecule for that barcode.
                 else:
-                    summary.reportMolecule(name=BC_id, molecule=molecules.dictionary[BC_id])
-                    molecules.terminate(name=BC_id)
-                    molecules.initiate(name=BC_id, start=read_start, stop=read_stop, read_name=read.query_name, summary=summary)
+                    allMolecules.report(molecule=molecule, summary=summary)
+                    allMolecules.terminate(molecule=molecule)
+                    molecule = Molecule(barcode=BC_id, start=read_start, stop=read_stop, read_header=read.query_name)
+                    allMolecules.cache_dict[molecule.barcode] = molecule
 
-            # No previous reads for this bc has been discovered
             else:
-                molecules.initiate(name=BC_id, start=read_start, stop=read_stop, read_name=read.query_name, summary=summary)
+                molecule = Molecule(barcode=BC_id, start=read_start, stop=read_stop, read_header=read.query_name)
+                allMolecules.cache_dict[molecule.barcode] = molecule
 
     # Commit last chr molecules and log stats
-    molecules.reportAndRemoveAll(summary=summary)
+    allMolecules.reportAndRemoveAll(summary=summary)
     summary.non_analyzed_reads = summary.unmapped_reads + summary.non_tagged_reads + summary.overlapping_reads_in_pb
     logger.info('Molecules analyzed')
 
@@ -131,9 +132,7 @@ def main(args):
 
 def fetch_and_format(read, barcode_tag, summary):
     """
-
-    :param read:
-    :return:
+    Fetches barcode tag and turns read positions so read start < read stop
     """
 
     try: BC_id = read.get_tag(barcode_tag)
@@ -151,58 +150,74 @@ def fetch_and_format(read, barcode_tag, summary):
 
     return BC_id, read_start, read_stop, summary
 
-class Molecules:
+class Molecule:
     """
-    Tmp storage for molecules which might still get more reads assigned to them. Basically a dict with customised functions.
+    Splits reads for barcodes into several molecules based on mapping proximity. Equivalent to several molecules being
+    barcoded simultaneously in the same emulsion droplet (meaning with the same barcode).
+    """
+
+    def __init__(self, barcode, start, stop, read_header):
+        """
+        Creates a molecule defined by one read.
+        """
+
+        self.barcode = barcode
+        self.start = start
+        self.stop = stop
+        self.read_headers = set()
+        self.read_headers.add(read_header)
+
+        self.number_of_reads = 1
+
+    def addRead(self, stop, read_header):
+        """
+        Updates molecule's stop poistion, number of reads and header name set()
+        """
+
+        self.stop = stop
+        self.read_headers.add(read_header)
+
+        self.number_of_reads += 1
+
+
+class AllMolecules:
+    """
+    Tracks all molecule information, with finsished molecules in .final_dict and molecules which still might get more
+    reads in .cache_dict.
     """
 
     def __init__(self):
-        self.dictionary = dict()
+        self.cache_dict = dict()
+        self.final_dict = dict()
 
-    def initiate(self, name, start, stop, read_name, summary):
+    def report(self, molecule, summary):
+        """
+        Commit molecule to a set inside of an overlying dict where barcode:set(molecule1, molecule2...)
+        """
 
+        if not molecule.barcode in self.final_dict:
+            self.final_dict[molecule.barcode] = set()
+
+        self.final_dict[molecule.barcode].add(molecule)
         summary.molecules += 1
 
-        self.dictionary[name] = dict()
-        self.dictionary[name]['start'] = start
-        self.dictionary[name]['stop'] = stop
-        self.dictionary[name]['number_of_reads'] = 1
-        self.dictionary[name]['bases_btw_inserts'] = 0
-        self.dictionary[name]['bases_read'] = stop - start
-        self.dictionary[name]['reads'] = set()
-        self.dictionary[name]['reads'].add(read_name)
-
         return summary
 
-    def addRead(self, name, read_start, read_stop, read_name, summary):
+    def terminate(self, molecule):
+        """
+        Removes a specific molecule from .cache_dict
+        """
 
-        # Tracks distances between read pairs, won't add value if it is mate to read
-        if not read_name in self.dictionary[name]['reads']:
-            bp_btw_reads = read_start - self.dictionary[name]['stop']
-
-            # Tracking the different lengths
-            if not bp_btw_reads in summary.bp_btw_reads:
-                summary.bp_btw_reads[bp_btw_reads] = int()
-            summary.bp_btw_reads[bp_btw_reads] += 1
-
-        # Builds new object
-        self.dictionary[name]['bases_read'] += read_stop - read_start
-        self.dictionary[name]['bases_btw_inserts'] += read_start - self.dictionary[name]['stop']
-        self.dictionary[name]['stop'] = read_stop
-        self.dictionary[name]['number_of_reads'] += 1
-        self.dictionary[name]['reads'].add(read_name)
-
-        return summary
-
-    def terminate(self, name):
-
-        del self.dictionary[name]
+        del self.cache_dict[molecule.barcode]
 
     def reportAndRemoveAll(self, summary):
+        """
+        Commit all .cache_dict molecules to .final_dict and empty .cache_dict.
+        """
 
-        for BC_id in self.dictionary.copy().keys():
-            summary.reportMolecule(name=BC_id, molecule=self.dictionary[BC_id])
-            del self.dictionary[BC_id]
+        for molecule in self.cache_dict.values():
+            self.report(molecule=molecule, summary=summary)
+        self.cache_dict = dict()
 
         return summary
 
@@ -230,23 +245,6 @@ class Summary:
 
         # Stats tracker needed to split bam files into separate according barcode per molecule
         self.bc_to_numberMolOverReadThreshold = dict()
-
-    def reportMolecule(self, name, molecule):
-
-        # Fetching and formatting information
-        start = molecule['start']
-        stop = molecule['stop']
-        length = stop-start
-        num_reads = molecule['number_of_reads']
-        percent_bases_read = molecule['bases_read']/(molecule['bases_btw_inserts'] + molecule['bases_read'])
-
-        # Tries to append to list of tuples, otherwise creates a tuple list as value for given barcode id
-        try: self.molecules_result_dict[name]
-        except KeyError:
-            self.molecules_result_dict[name] = set()
-
-        # Save in summary dictionary
-        self.molecules_result_dict[name].add((start, stop, length, num_reads, percent_bases_read))
 
     def printStats(self, barcode_tag, threshold, filter_bam):
 
