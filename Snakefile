@@ -30,7 +30,7 @@ rule extract_barcodes:
     log: "{dir}/extractbarcode.log"
     shell:
         # BDHVBDVHBDVHBDVH
-        " blr extractbarcode {input.interleavedfastq} "
+        " blr extractbarcode {input.interleavedfastq} --interleaved --gzipped"
         " 1> {output.interleavedfastq}"
         " 2> {log}"
 

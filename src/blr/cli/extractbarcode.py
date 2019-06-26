@@ -15,30 +15,36 @@ def main(args):
 
     progress = BLR.ProgressReporter('Read pairs processed', 1000000)
 
-    #generator = BLR.FileReader(args.r1, args.r2)
-    generator = BLR.FileReader(args.r1)
+    # Check if paired-end files given or not.
+    input1, input2 = (None, None)
+    if len(args.input) == 2:
+        input1, input2 = args.input
+    elif len(args.input) == 1:
+        input1 = args.input[0]
+    else:
+        sys.exit(f'EXITING: Files given as input ({len(args.input)}) does not match the required 1 or 2.')
+
+    generator = BLR.FileReader(input1, filehandle2=input2, gzipped=args.gzipped, interleaved=args.interleaved)
 
     read1_name = None
-    for read in generator.fastqReader():
-        # Header parsing
-        name_and_pos, read_and_index = read.header.split(maxsplit=1)
-        is_read1 = read_and_index.startswith('1')
+#    for read in generator.fastqReader():
+    for read1, read2 in generator.reader():
+        # Adjusting for BC
+        bc_seq = read1.seq[:20]
+        read1.seq = read1.seq[20:]
+        read1.qual = read1.qual[20:]
 
-        if is_read1:
-            # Adjusting for BC on read 1
-            bc_seq = read.seq[:20]
-            read.seq = read.seq[20:]
-            read.qual = read.qual[20:]
-            read1_name = name_and_pos
-        else:
-            # Checking that read2 is in fact paired with read1.
-            assert name_and_pos == read1_name, f'Read2 name {name_and_pos} does not match read1 name {read1_name}'
+        # Header parsing
+        name_and_pos_r1, read_and_index_r1 = read1.header.split(maxsplit=1)
+        name_and_pos_r2, read_and_index_r2 = read2.header.split(maxsplit=1)
 
         # Save header to read instances
-        read.header = f'{name_and_pos}_{bc_seq} {read_and_index}'
+        read1.header = name_and_pos_r1 + '_' + bc_seq + ' ' + read_and_index_r1
+        read2.header = name_and_pos_r2 + '_' + bc_seq + ' ' + read_and_index_r2
 
         # Write to out
-        sys.stdout.write(read.fastq_string())
+        sys.stdout.write(read1.fastq_string())
+        sys.stdout.write(read2.fastq_string())
 
         # Progress reporting
         progress.update()
@@ -71,7 +77,21 @@ def main(args):
 
 
 def add_arguments(parser):
-    parser.add_argument("r1", help="Read 1 fastq file")
+    # Files
+    parser.add_argument("input", nargs='*',
+                        help="Input paired fastq for read1 and read2. Use '-' if using stdin.")
+    parser.add_argument("-o1", default=None,
+                        help="Output file name for read1. If not specified the result is written to stdout as "
+                             "interleaved fastq.")
+    parser.add_argument("-o2", default=None,
+                        help="Output file name for read2. If not specified the result is written to stdout as "
+                             "interleaved fastq.")
+    # Options
+    parser.add_argument("--interleaved", default=False, action='store_true',
+                        help="Interleaved fastq")
+    parser.add_argument("--gzipped", default=False, action='store_true',
+                        help="Input is gzipped. Required if stdin used as input. For other files this may "
+                             "be detected from file extension.")
     #parser.add_argument("r2", help="Read 2 fastq file")
     #parser.add_argument("out_r1", help="Read 1 output")
     #parser.add_argument("out_r2", help="Read 2 output")
