@@ -36,18 +36,13 @@ def main(args):
             if BC_id in allMolecules.cache_dict:
                 molecule = allMolecules.cache_dict[BC_id]
 
-                # Read is within args.window => add read to molecule.
-                if (molecule.stop+args.window) >= read_start and molecule.stop < read_start:
-                    molecule.addRead(stop=read_stop, read_header=read.query_name)
-                    allMolecules.cache_dict[BC_id] = molecule
-
-                # Overlapping reads => If not overlapping to it's mate, discard read.
-                elif molecule.stop >= read_start:
-                    if read.query_name in molecule.read_headers:
+                # Read is within args.window => add read to molecule (don't include overlapping reads).
+                if (molecule.stop+args.window) >= read_start:
+                    if molecule.stop >= read_start:
+                        summary.overlapping_reads_in_pb += 1
+                    else:
                         molecule.addRead(stop=read_stop, read_header=read.query_name)
                         allMolecules.cache_dict[BC_id] = molecule
-                    else:
-                        summary.overlapping_reads_in_pb += 1
 
                 # Read is not within window => report old and initiate new molecule for that barcode.
                 else:
