@@ -2,8 +2,7 @@
 rule trim_r1_handle:
     "Trim away E handle on R1 5'. Also removes reads shorter than 85 bp."
     output:
-        r1_fastq=temp("{dir}/trimmed-a.1.fastq.gz"),
-        r2_fastq=temp("{dir}/trimmed-a.2.fastq.gz")
+        interleavedfastq="{dir}/trimmed-a.fastq.gz"
     input:
         r1_fastq="{dir}/reads.1.fastq.gz",
         r2_fastq="{dir}/reads.2.fastq.gz"
@@ -16,8 +15,8 @@ rule trim_r1_handle:
         " --discard-untrimmed"
         " -j {threads}"
         " -m 65"
-        " -o {output.r1_fastq}"
-        " -p {output.r2_fastq}"
+        " --interleaved"
+        " -o {output.interleavedfastq}"
         " {input.r1_fastq}"
         " {input.r2_fastq}"
         " > {log}"
@@ -25,23 +24,20 @@ rule trim_r1_handle:
 
 rule extract_barcodes:
     output:
-        r1_fastq=temp("{dir}/unbarcoded.1.fastq"),
-        r2_fastq=temp("{dir}/unbarcoded.2.fastq")
+        interleavedfastq="{dir}/unbarcoded.fastq"
     input:
-        r1_fastq="{dir}/trimmed-a.1.fastq.gz",
-        r2_fastq="{dir}/trimmed-a.2.fastq.gz"
+        interleavedfastq="{dir}/trimmed-a.fastq.gz"
     log: "{dir}/extractbarcode.log"
     shell:
         # BDHVBDVHBDVHBDVH
-        "blr extractbarcode"
-        " {input.r1_fastq} {input.r2_fastq}"
-        " {output.r1_fastq} {output.r2_fastq}"
+        " blr extractbarcode {input.interleavedfastq} "
+        " 1> {output.interleavedfastq}"
         " 2> {log}"
 
 
 rule compress:
-    output: "{dir}/unbarcoded.{nr}.fastq.gz"
-    input: "{dir}/unbarcoded.{nr}.fastq"
+    output: "{dir}/unbarcoded.fastq.gz"
+    input: "{dir}/unbarcoded.fastq"
     shell:
         "pigz < {input} > {output}"
 
@@ -51,8 +47,7 @@ rule:
         r1_fastq=temp("{dir}/trimmed-b.1.fastq.gz"),
         r2_fastq=temp("{dir}/trimmed-b.2.fastq.gz")
     input:
-        r1_fastq="{dir}/unbarcoded.1.fastq.gz",
-        r2_fastq="{dir}/unbarcoded.2.fastq.gz"
+        interleavedfastq="{dir}/unbarcoded.fastq.gz",
     log: "{dir}/trimmed-b.log"
     threads: 20
     shell:
@@ -61,10 +56,10 @@ rule:
         " -e 0.2"
         " --discard-untrimmed"
         " -j {threads}"
+        " --interleaved"
         " -o {output.r1_fastq}"
         " -p {output.r2_fastq}"
-        " {input.r1_fastq}"
-        " {input.r2_fastq}"
+        " {input.interleavedfastq}"
         " > {log}"
 
 

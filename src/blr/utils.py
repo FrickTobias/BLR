@@ -146,7 +146,7 @@ class FileReader:
     """
     Reads input files as generator, handles gzip.
     """
-    def __init__(self, filehandle, filehandle2=None):
+    def __init__(self, filehandle, filehandle2=None, gzipped=False):
 
         """
         Setup function, detects if files are gzipped and saves file handles (generator =
@@ -156,11 +156,16 @@ class FileReader:
         """
         # Init variables setting
         self.filehandle = filehandle
-        self.gzip = bool()
+        self.gzip = gzipped
 
         if self.filehandle == "stdin":
             import sys
-            self.openfile = sys.stdin
+            logger.info(f"Reading file from stdin")
+            if self.gzip:
+                self.openfile = gzip.open(sys.stdin.buffer, mode="rb")
+            else:
+                self.openfile = sys.stdin
+
         # Open files as zipped or not not (depending on if they end with .gz)
         elif self.filehandle[-3:] == '.gz':
             logger.info(f'File detected as gzipped, unzipping when reading')
