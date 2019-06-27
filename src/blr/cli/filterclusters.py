@@ -58,8 +58,8 @@ def main(args):
 
     # Stats to output files and stdout
     summary.printStats(barcode_tag=args.barcode_tag, threshold=args.threshold, allMolecules=allMolecules)
-    if args.print_stats:
-        summary.writeMoleculeStats(output_prefix=args.print_stats, allMolecules=allMolecules)
+    if args.stats_file:
+        summary.writeMoleculeStats(output_prefix=args.stats_file, allMolecules=allMolecules)
 
 def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary):
 
@@ -240,7 +240,7 @@ class Summary:
 
         try:
             logger.info(f'Reads with barcodes removed:\t{"{:,}".format(self.reads_with_removed_barcode)}\t'
-                        f'({"%.2f" % ((summary.reads_with_removed_barcode/self.tot_reads)*100)}%)')
+                        f'({"%.2f" % ((self.reads_with_removed_barcode/self.tot_reads)*100)}%)')
         except ZeroDivisionError:
             logger.warning('No reads passing filters found in file.')
 
