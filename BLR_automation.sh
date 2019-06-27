@@ -444,7 +444,7 @@ then
     # Cluster filtering
     (blr filterclusters \
         -M 260 \
-        -ps $path"/cluster_stats/x2.stats" \
+        -s $path"/cluster_stats/x2.stats" \
         $file_name".sort.tag.rmdup.x2.bam" \
         $file_name".sort.tag.rmdup.x2.filt.bam") 2>>$rmdup_logfile
 
