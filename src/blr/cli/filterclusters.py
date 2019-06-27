@@ -247,22 +247,21 @@ class Summary:
     def writeMoleculeStats(self, output_prefix, allMolecules):
 
         # Opening all files
-        molecules_per_bc_out = open((output_prefix + '.molecules_per_bc'), 'w')
-        reads_per_molecule_out = open((output_prefix + '.reads_per_molecule'), 'w')
-        molecule_len_out = open((output_prefix + '.molecule_lengths'), 'w')
-        everything = open((output_prefix + '.everything'), 'w')
+        molecules_per_bc = open((output_prefix + '.molecules_per_bc'), 'w')
+        molecule_stats = open((output_prefix + '.molecule_stats'), 'w')
 
         # Writing molecule-dependant stats
         for barcode in tqdm(allMolecules.final_dict):
-            molecules_per_bc_out.write(str(len(allMolecules.final_dict[barcode])))
+            number_of_molecules = len(allMolecules.final_dict[barcode])
+            molecules_per_bc.write(str(number_of_molecules))
             for molecule in (allMolecules.final_dict[barcode]):
-                everything.write(str(molecule.number_of_reads) + '\t' + str(molecule.length()) + '\t' + str(barcode) + '\t' + str(len(allMolecules.final_dict[barcode])) + '\n')
+                molecule_stats.write(str(molecule.number_of_reads) + '\t' + str(molecule.length()) + '\t' + barcode + '\t' + str(number_of_molecules) + '\n')
 
             # Stats tracker needed to split bam files into separate according barcode per molecule
-            self.bc_to_numberMolecules[barcode] = len(allMolecules.final_dict[barcode])
+            self.bc_to_numberMolecules[barcode] = number_of_molecules
 
         # Close files
-        for output_file in (molecules_per_bc_out, reads_per_molecule_out, molecule_len_out, everything):
+        for output_file in (molecules_per_bc, molecule_stats):
             output_file.close()
 
 def add_arguments(parser):
@@ -281,9 +280,8 @@ def add_arguments(parser):
                                                                               "DEFAULT: 30000")
     parser.add_argument("-bc", "--barcode_tag", metavar='<STRING>', type=str, default='BC',
                         help="Bam file tag where barcode is stored. DEFAULT: BC")
-    parser.add_argument("-ps", "--print_stats", metavar='<PREFIX>', type=str,
-                        help="Write barcode statistics files (reads per molecule, molecule per barcode, molecule "
-                             "lengths & coupling effiency). DEFAULT: None")
+    parser.add_argument("-s", "--stats_file", metavar='<PREFIX>', type=str,
+                        help="Write barcode/molecule statistics files.")
     parser.add_argument("-M", "--Max_molecules", metavar='<INTEGER>', type=int, default=500,
                         help="When using -f (--filter) this will remove barcode tags for those clusters which have more "
                              "than -M molecules. DEFAULT: 500")
