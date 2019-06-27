@@ -2,12 +2,12 @@
 rule trim_r1_handle:
     "Trim away E handle on R1 5'. Also removes reads shorter than 85 bp."
     output:
-        interleavedfastq="{dir}/trimmed-a.fastq.gz"
+        interleavedfastq=pipe("{dir}/trimmed-a.fastq")
     input:
         r1_fastq="{dir}/reads.1.fastq.gz",
         r2_fastq="{dir}/reads.2.fastq.gz"
     log: "{dir}/trimmed-a.log"
-    threads: 20
+    threads: 1  # TODO currently limited to 1
     shell:
         "cutadapt"
         " -g ^CAGTTGATCATCAGCAGGTAATCTGG"
@@ -26,11 +26,12 @@ rule extract_barcodes:
     output:
         interleavedfastq="{dir}/unbarcoded.fastq"
     input:
-        interleavedfastq="{dir}/trimmed-a.fastq.gz"
+        interleavedfastq="{dir}/trimmed-a.fastq"
     log: "{dir}/extractbarcode.log"
+    threads: 1 # TODO currently limited to 1
     shell:
         # BDHVBDVHBDVHBDVH
-        " blr extractbarcode {input.interleavedfastq} --interleaved --gzipped"
+        " blr extractbarcode {input.interleavedfastq} --interleaved "
         " 1> {output.interleavedfastq}"
         " 2> {log}"
 
