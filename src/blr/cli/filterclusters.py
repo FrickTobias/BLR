@@ -59,8 +59,7 @@ def main(args):
     # Stats to output files and stdout
     summary.printStats(barcode_tag=args.barcode_tag, threshold=args.threshold, allMolecules=allMolecules)
     if args.print_stats:
-        summary.writeMoleculeStats(output_prefix=args.print_stats, Max_molecules=args.Max_molecules,
-                                 allMolecules=allMolecules)
+        summary.writeMoleculeStats(output_prefix=args.print_stats, allMolecules=allMolecules)
 
 def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary):
 
