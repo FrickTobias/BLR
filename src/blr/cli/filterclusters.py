@@ -15,9 +15,10 @@ logger = logging.getLogger(__name__)
 def main(args):
     summary = Summary()
 
+    logger.info(f'Running analysis with {"{:,}".format(args.window)} bp window size')
+
     # Build allMolecules.final_dict[barcode][moleculeID] = molecule
     # molecule are instances of Molecule, defined as proximal reads if they are more than min_reads argument.
-    logger.info(f'Running analysis with {"{:,}".format(args.window)} bp window size')
     with pysam.AlignmentFile(args.x2_bam, 'rb') as infile:
         allMolecules = build_molecule_dict(pysam_openfile=infile, barcode_tag=args.barcode_tag, window=args.window, min_reads=args.threshold, summary=summary)
         allMolecules.reportAndRemoveAll()
@@ -25,34 +26,24 @@ def main(args):
         summary.tot_reads = infile.mapped + infile.unmapped
         summary.unmapped_reads = infile.unmapped
         summary.mapped_reads = infile.mapped
-
-    # Commit last chr molecules and log stats
-    summary.non_analyzed_reads = summary.unmapped_reads + summary.non_tagged_reads + summary.overlapping_reads_in_pb
-    logger.info('Molecules analyzed')
+        summary.non_analyzed_reads = summary.unmapped_reads + summary.non_tagged_reads + summary.overlapping_reads_in_pb
 
     # Writes output bam file if wanted
     with pysam.AlignmentFile(args.x2_bam, 'rb') as openin:
         with pysam.AlignmentFile(args.output, 'wb', template=openin) as openout:
             logger.info("Writing filtered bam file")
             for read in tqdm(openin.fetch(until_eof=True)):
-
-                # If no bc_id, just write it to out
-                try: BC_id = read.get_tag(args.barcode_tag)
-                except KeyError:
-                    BC_id = False
+                BC_id = fetch_bc(pysam_read=read, barcode_tag=args.barcode_tag)
 
                 # If BC_id is not in allMolecules there the barcode does not have enough proximal reads to make a single molecule
-                if BC_id in allMolecules.final_dict:
+                # If the barcode has too many barcodes, remove it from the read
+                if BC_id in allMolecules.final_dict and len(allMolecules.final_dict[BC_id]) > args.Max_molecules:
+                    read = strip_barcode(read=read ,barcode_tag=args.barcode_tag)
 
-                    # If too many molecules in cluster, change tag and header of read
-                    if len(allMolecules.final_dict[BC_id]) > args.Max_molecules:
-                        tmp_header_list = read.query_name.split('_')
-                        read.query_name = str(tmp_header_list[0]) + '_' + str(tmp_header_list[1])
-                        read.set_tag(args.barcode_tag, 'FILTERED', value_type='Z')
-                        summary.reads_with_removed_barcode += 1
-                        if not BC_id in summary.barcode_removal_set:
-                            summary.barcode_removal_set.add(BC_id)
-                            summary.number_removed_molecules += len(allMolecules.final_dict[BC_id])
+                    summary.reads_with_removed_barcode += 1
+                    if not BC_id in summary.barcode_removal_set:
+                        summary.barcode_removal_set.add(BC_id)
+                        summary.number_removed_molecules += len(allMolecules.final_dict[BC_id])
 
                 openout.write(read)
 
@@ -71,57 +62,72 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
     for read in tqdm(pysam_openfile.fetch(until_eof=True)):
 
         # Fetches barcode and genomic position. Position will be formatted so start < stop.
-        BC_id, read_start, read_stop, summary = fetch_and_format(read, barcode_tag, summary=summary)
-        if BC_id == None or read.is_unmapped: continue
+        BC_id = fetch_bc(pysam_read=read, barcode_tag=barcode_tag, summary=summary)
+        if BC_id and read.is_unmapped == False:
+            read_start, read_stop = sorted((read.get_reference_positions()[0], read.get_reference_positions()[-1]))
 
-        # Commit molecules between chromosomes
-        if not prev_chrom == read.reference_name:
-            allMolecules.reportAndRemoveAll()
-            prev_chrom = read.reference_name
+            # Commit molecules between chromosomes
+            if not prev_chrom == read.reference_name:
+                allMolecules.reportAndRemoveAll()
+                prev_chrom = read.reference_name
 
-        if BC_id in allMolecules.cache_dict:
-            molecule = allMolecules.cache_dict[BC_id]
+            if BC_id in allMolecules.cache_dict:
+                molecule = allMolecules.cache_dict[BC_id]
 
-            # Read is within window => add read to molecule (don't include overlapping reads).
-            if (molecule.stop + window) >= read_start:
-                if molecule.stop >= read_start and not read.query_name in molecule.read_headers:
-                    summary.overlapping_reads_in_pb += 1
+                # Read is within window => add read to molecule (don't include overlapping reads).
+                if (molecule.stop + window) >= read_start:
+                    if molecule.stop >= read_start and not read.query_name in molecule.read_headers:
+                        summary.overlapping_reads_in_pb += 1
+                    else:
+                        molecule.addRead(stop=read_stop, read_header=read.query_name)
+                        allMolecules.cache_dict[BC_id] = molecule
+
+                # Read is not within window => report old and initiate new molecule for that barcode.
                 else:
-                    molecule.addRead(stop=read_stop, read_header=read.query_name)
-                    allMolecules.cache_dict[BC_id] = molecule
+                    allMolecules.report(molecule=molecule)
+                    allMolecules.terminate(molecule=molecule)
+                    molecule = Molecule(barcode=BC_id, start=read_start, stop=read_stop, read_header=read.query_name)
+                    allMolecules.cache_dict[molecule.barcode] = molecule
 
-            # Read is not within window => report old and initiate new molecule for that barcode.
             else:
-                allMolecules.report(molecule=molecule)
-                allMolecules.terminate(molecule=molecule)
                 molecule = Molecule(barcode=BC_id, start=read_start, stop=read_stop, read_header=read.query_name)
                 allMolecules.cache_dict[molecule.barcode] = molecule
 
-        else:
-            molecule = Molecule(barcode=BC_id, start=read_start, stop=read_stop, read_header=read.query_name)
-            allMolecules.cache_dict[molecule.barcode] = molecule
-
     return allMolecules
 
-def fetch_and_format(read, barcode_tag, summary):
+def fetch_bc(pysam_read, barcode_tag, summary=None):
+
+    try: BC_id = pysam_read.get_tag(barcode_tag)
+    except KeyError:
+        BC_id = None
+
+        if summary:
+            summary.non_tagged_reads += 1
+
+    return BC_id
+
+def fetch_and_format(read):
     """
     Fetches barcode tag and turns read positions so read start < read stop
     """
 
-    try: BC_id = read.get_tag(barcode_tag)
-    except KeyError:
-        summary.non_tagged_reads += 1
-        BC_id = None
+    pos = (read.get_reference_positions()[0], read.get_reference_positions()[-1])
+    read_start = min(pos)
+    read_stop = max(pos)
 
-    if not read.is_unmapped:
-        pos = (read.get_reference_positions()[0], read.get_reference_positions()[-1])
-        read_start = min(pos)
-        read_stop = max(pos)
-    else:
-        read_start = None
-        read_stop = None
+    return read_start, read_stop
 
-    return BC_id, read_start, read_stop, summary
+def strip_barcode(read, barcode_tag):
+    """
+    Strips an alignment from its barcode sequence. Keeps information in header but adds FILTERED prior to bc info.
+    """
+
+    # Modify read instance
+    header, bc_info = read.query_name.split("_", maxsplit=1)
+    read.query_name = header + '_' + "FILTERED-" + bc_info
+    read.set_tag(barcode_tag, 'FILTERED', value_type='Z')
+
+    return read
 
 class Molecule:
     """
@@ -201,7 +207,6 @@ class AllMolecules:
         for molecule in self.cache_dict.values():
             self.report(molecule=molecule)
         self.cache_dict = dict()
-
 
 class Summary:
 
