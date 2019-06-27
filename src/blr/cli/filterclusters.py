@@ -34,6 +34,7 @@ def main(args):
     # Writes output bam file if wanted
     with pysam.AlignmentFile(args.x2_bam, 'rb') as openin:
         with pysam.AlignmentFile(args.output, 'wb', template=openin) as openout:
+            logging.info("Writing filtered bam file")
             for read in tqdm(openin.fetch(until_eof=True)):
 
                 # If no bc_id, just write it to out
@@ -59,6 +60,7 @@ def main(args):
     # Stats to output files and stdout
     summary.printStats(barcode_tag=args.barcode_tag, threshold=args.threshold, allMolecules=allMolecules)
     if args.stats_file:
+        logger.info("Writing statistics files")
         summary.writeMoleculeStats(output_prefix=args.stats_file, allMolecules=allMolecules)
 
 def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary):
