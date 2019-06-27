@@ -56,19 +56,11 @@ def main(args):
 
                 openout.write(read)
 
-
-
-        # Stats to output files and stdout
+    # Stats to output files and stdout
+    summary.printStats(barcode_tag=args.barcode_tag, threshold=args.threshold, allMolecules=allMolecules)
     if args.print_stats:
         summary.writeMoleculeStats(output_prefix=args.print_stats, Max_molecules=args.Max_molecules,
                                  allMolecules=allMolecules)
-        summary.printStats(barcode_tag=args.barcode_tag, threshold=args.threshold, allMolecules=allMolecules)
-
-    try:
-        logger.info(f'Reads with barcodes removed:\t{"{:,}".format(summary.reads_with_removed_barcode)}\t'
-                    f'({"%.2f" % ((summary.reads_with_removed_barcode/summary.tot_reads)*100)}%)')
-    except ZeroDivisionError:
-        logger.warning('No reads passing filters found in file.')
 
 def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary):
 
@@ -246,6 +238,12 @@ class Summary:
         logger.info(f'Molecules total (min read {threshold}):\t{"{:,}".format(sum(len(all) for all in allMolecules.final_dict.values()))}')
         logger.info(f'Barcodes removed:\t{len(self.barcode_removal_set)}')
         logger.info(f'Molecules removed:\t{self.number_removed_molecules}')
+
+        try:
+            logger.info(f'Reads with barcodes removed:\t{"{:,}".format(self.reads_with_removed_barcode)}\t'
+                        f'({"%.2f" % ((summary.reads_with_removed_barcode/self.tot_reads)*100)}%)')
+        except ZeroDivisionError:
+            logger.warning('No reads passing filters found in file.')
 
     def writeMoleculeStats(self, output_prefix, Max_molecules, allMolecules):
 
