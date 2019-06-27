@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 def main(args):
     summary = Summary()
-
     logger.info(f'Running analysis with {"{:,}".format(args.window)} bp window size')
 
     # Build allMolecules.final_dict[barcode][moleculeID] = molecule
@@ -33,22 +32,22 @@ def main(args):
         with pysam.AlignmentFile(args.output, 'wb', template=openin) as openout:
             logger.info("Writing filtered bam file")
             for read in tqdm(openin.fetch(until_eof=True)):
-                BC_id = fetch_bc(pysam_read=read, barcode_tag=args.barcode_tag)
+                barcode = fetch_bc(pysam_read=read, barcode_tag=args.barcode_tag)
 
-                # If BC_id is not in allMolecules there the barcode does not have enough proximal reads to make a single molecule
+                # If barcode is not in allMolecules there the barcode does not have enough proximal reads to make a single molecule
                 # If the barcode has too many barcodes, remove it from the read
-                if BC_id in allMolecules.final_dict and len(allMolecules.final_dict[BC_id]) > args.Max_molecules:
-                    read = strip_barcode(read=read ,barcode_tag=args.barcode_tag)
+                if barcode in allMolecules.final_dict and len(allMolecules.final_dict[barcode]) > args.Max_molecules:
+                    read = strip_barcode(pysam_read=read ,barcode_tag=args.barcode_tag)
 
                     summary.reads_with_removed_barcode += 1
-                    if not BC_id in summary.barcode_removal_set:
-                        summary.barcode_removal_set.add(BC_id)
-                        summary.number_removed_molecules += len(allMolecules.final_dict[BC_id])
+                    if not barcode in summary.removed_barcodes:
+                        summary.removed_barcodes.add(barcode)
+                        summary.removed_molecules += len(allMolecules.final_dict[barcode])
 
                 openout.write(read)
 
     # Stats to output files and stdout
-    summary.printStats(barcode_tag=args.barcode_tag, threshold=args.threshold, allMolecules=allMolecules)
+    summary.printStats(barcode_tag=args.barcode_tag, allMolecules=allMolecules)
     if args.stats_file:
         logger.info("Writing statistics files")
         summary.writeMoleculeStats(output_prefix=args.stats_file, allMolecules=allMolecules)
@@ -62,8 +61,8 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
     for read in tqdm(pysam_openfile.fetch(until_eof=True)):
 
         # Fetches barcode and genomic position. Position will be formatted so start < stop.
-        BC_id = fetch_bc(pysam_read=read, barcode_tag=barcode_tag, summary=summary)
-        if BC_id and read.is_unmapped == False:
+        barcode = fetch_bc(pysam_read=read, barcode_tag=barcode_tag, summary=summary)
+        if barcode and read.is_unmapped == False:
             read_start, read_stop = sorted((read.get_reference_positions()[0], read.get_reference_positions()[-1]))
 
             # Commit molecules between chromosomes
@@ -71,8 +70,8 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
                 allMolecules.reportAndRemoveAll()
                 prev_chrom = read.reference_name
 
-            if BC_id in allMolecules.cache_dict:
-                molecule = allMolecules.cache_dict[BC_id]
+            if barcode in allMolecules.cache_dict:
+                molecule = allMolecules.cache_dict[barcode]
 
                 # Read is within window => add read to molecule (don't include overlapping reads).
                 if (molecule.stop + window) >= read_start:
@@ -80,54 +79,43 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
                         summary.overlapping_reads_in_pb += 1
                     else:
                         molecule.addRead(stop=read_stop, read_header=read.query_name)
-                        allMolecules.cache_dict[BC_id] = molecule
+                        allMolecules.cache_dict[barcode] = molecule
 
                 # Read is not within window => report old and initiate new molecule for that barcode.
                 else:
                     allMolecules.report(molecule=molecule)
                     allMolecules.terminate(molecule=molecule)
-                    molecule = Molecule(barcode=BC_id, start=read_start, stop=read_stop, read_header=read.query_name)
+                    molecule = Molecule(barcode=barcode, start=read_start, stop=read_stop, read_header=read.query_name)
                     allMolecules.cache_dict[molecule.barcode] = molecule
 
             else:
-                molecule = Molecule(barcode=BC_id, start=read_start, stop=read_stop, read_header=read.query_name)
+                molecule = Molecule(barcode=barcode, start=read_start, stop=read_stop, read_header=read.query_name)
                 allMolecules.cache_dict[molecule.barcode] = molecule
 
     return allMolecules
 
 def fetch_bc(pysam_read, barcode_tag, summary=None):
 
-    try: BC_id = pysam_read.get_tag(barcode_tag)
+    try: barcode = pysam_read.get_tag(barcode_tag)
     except KeyError:
-        BC_id = None
+        barcode = None
 
         if summary:
             summary.non_tagged_reads += 1
 
-    return BC_id
+    return barcode
 
-def fetch_and_format(read):
-    """
-    Fetches barcode tag and turns read positions so read start < read stop
-    """
-
-    pos = (read.get_reference_positions()[0], read.get_reference_positions()[-1])
-    read_start = min(pos)
-    read_stop = max(pos)
-
-    return read_start, read_stop
-
-def strip_barcode(read, barcode_tag):
+def strip_barcode(pysam_read, barcode_tag):
     """
     Strips an alignment from its barcode sequence. Keeps information in header but adds FILTERED prior to bc info.
     """
 
     # Modify read instance
-    header, bc_info = read.query_name.split("_", maxsplit=1)
-    read.query_name = header + '_' + "FILTERED-" + bc_info
-    read.set_tag(barcode_tag, 'FILTERED', value_type='Z')
+    header, bc_info = pysam_read.query_name.split("_", maxsplit=1)
+    pysam_read.query_name = header + '_' + "FILTERED-" + bc_info
+    pysam_read.set_tag(barcode_tag, 'FILTERED', value_type='Z')
 
-    return read
+    return pysam_read
 
 class Molecule:
     """
@@ -217,14 +205,15 @@ class Summary:
         # Stats
         self.tot_reads = int()
         self.non_tagged_reads = int()
-        self.overlapping_reads_in_pb = int()
-        self.barcode_removal_set = set()
-        self.reads_with_removed_barcode = int()
         self.unmapped_reads = int()
+        self.overlapping_reads_in_pb = int()
         self.non_analyzed_reads = int()
-        self.number_removed_molecules = int()
 
-    def printStats(self, barcode_tag, threshold, allMolecules):
+        self.removed_barcodes = set()
+        self.removed_molecules = int()
+        self.reads_with_removed_barcode = int()
+
+    def printStats(self, barcode_tag, allMolecules):
 
         # Read stats
         logger.info('- Read stats -')
@@ -238,9 +227,9 @@ class Summary:
 
         # Molecule stats
         logger.info('- Molecule stats -')
-        logger.info(f'Molecules total (min read {threshold}):\t{"{:,}".format(sum(len(all) for all in allMolecules.final_dict.values()))}')
-        logger.info(f'Barcodes removed:\t{len(self.barcode_removal_set)}')
-        logger.info(f'Molecules removed:\t{self.number_removed_molecules}')
+        logger.info(f'Molecules total (min read {allMolecules.min_reads}):\t{"{:,}".format(sum(len(all) for all in allMolecules.final_dict.values()))}')
+        logger.info(f'Barcodes removed:\t{len(self.removed_barcodes)}')
+        logger.info(f'Molecules removed:\t{self.removed_molecules}')
 
         try:
             logger.info(f'Reads with barcodes removed:\t{"{:,}".format(self.reads_with_removed_barcode)}\t'
