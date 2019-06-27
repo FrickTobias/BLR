@@ -245,7 +245,7 @@ class Summary:
         except ZeroDivisionError:
             logger.warning('No reads passing filters found in file.')
 
-    def writeMoleculeStats(self, output_prefix, Max_molecules, allMolecules):
+    def writeMoleculeStats(self, output_prefix, allMolecules):
 
         # Opening all files
         molecules_per_bc_out = open((output_prefix + '.molecules_per_bc'), 'w')
