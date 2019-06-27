@@ -14,48 +14,17 @@ logger = logging.getLogger(__name__)
 
 def main(args):
     summary = Summary()
-    allMolecules = AllMolecules(min_reads=args.threshold)
 
+    # Build allMolecules.final_dict[barcode][moleculeID] = molecule
+    # molecule are instances of Molecule, defined as proximal reads if they are more than min_reads argument.
     logger.info(f'Running analysis with {"{:,}".format(args.window)} bp window size')
     logger.info('Fetching reads')
     with pysam.AlignmentFile(args.x2_bam, 'rb') as infile:
-        # Bam file stats
-        prev_chrom = infile.references[0]
+        allMolecules = build_molecule_dict(pysam_openfile=infile, barcode_tag=args.barcode_tag, window=args.window, min_reads=args.threshold, summary=summary)
+
         summary.tot_reads = infile.mapped + infile.unmapped
         summary.unmapped_reads = infile.unmapped
         summary.mapped_reads = infile.mapped
-        for read in tqdm(infile.fetch(until_eof=True)):
-
-            # Fetches barcode and genomic position. Position will be formatted so start < stop.
-            BC_id, read_start, read_stop, summary = fetch_and_format(read, args.barcode_tag, summary=summary)
-            if BC_id == None or read.is_unmapped: continue
-
-            # Commit molecules between chromosomes
-            if not prev_chrom == read.reference_name:
-                allMolecules.reportAndRemoveAll()
-                prev_chrom = read.reference_name
-
-            if BC_id in allMolecules.cache_dict:
-                molecule = allMolecules.cache_dict[BC_id]
-
-                # Read is within args.window => add read to molecule (don't include overlapping reads).
-                if (molecule.stop+args.window) >= read_start:
-                    if molecule.stop >= read_start and not read.query_name in molecule.read_headers:
-                        summary.overlapping_reads_in_pb += 1
-                    else:
-                        molecule.addRead(stop=read_stop, read_header=read.query_name)
-                        allMolecules.cache_dict[BC_id] = molecule
-
-                # Read is not within window => report old and initiate new molecule for that barcode.
-                else:
-                    allMolecules.report(molecule=molecule)
-                    allMolecules.terminate(molecule=molecule)
-                    molecule = Molecule(barcode=BC_id, start=read_start, stop=read_stop, read_header=read.query_name)
-                    allMolecules.cache_dict[molecule.barcode] = molecule
-
-            else:
-                molecule = Molecule(barcode=BC_id, start=read_start, stop=read_stop, read_header=read.query_name)
-                allMolecules.cache_dict[molecule.barcode] = molecule
 
     # Commit last chr molecules and log stats
     allMolecules.reportAndRemoveAll()
@@ -133,6 +102,46 @@ def main(args):
                     f'({"%.2f" % ((summary.reads_with_removed_barcode/summary.tot_reads)*100)}%)')
     except ZeroDivisionError:
         logger.warning('No reads passing filters found in file.')
+
+def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary):
+
+    allMolecules = AllMolecules(min_reads=min_reads)
+
+    prev_chrom = pysam_openfile.references[0]
+    for read in tqdm(pysam_openfile.fetch(until_eof=True)):
+
+        # Fetches barcode and genomic position. Position will be formatted so start < stop.
+        BC_id, read_start, read_stop, summary = fetch_and_format(read, barcode_tag, summary=summary)
+        if BC_id == None or read.is_unmapped: continue
+
+        # Commit molecules between chromosomes
+        if not prev_chrom == read.reference_name:
+            allMolecules.reportAndRemoveAll()
+            prev_chrom = read.reference_name
+
+        if BC_id in allMolecules.cache_dict:
+            molecule = allMolecules.cache_dict[BC_id]
+
+            # Read is within window => add read to molecule (don't include overlapping reads).
+            if (molecule.stop + window) >= read_start:
+                if molecule.stop >= read_start and not read.query_name in molecule.read_headers:
+                    summary.overlapping_reads_in_pb += 1
+                else:
+                    molecule.addRead(stop=read_stop, read_header=read.query_name)
+                    allMolecules.cache_dict[BC_id] = molecule
+
+            # Read is not within window => report old and initiate new molecule for that barcode.
+            else:
+                allMolecules.report(molecule=molecule)
+                allMolecules.terminate(molecule=molecule)
+                molecule = Molecule(barcode=BC_id, start=read_start, stop=read_stop, read_header=read.query_name)
+                allMolecules.cache_dict[molecule.barcode] = molecule
+
+        else:
+            molecule = Molecule(barcode=BC_id, start=read_start, stop=read_stop, read_header=read.query_name)
+            allMolecules.cache_dict[molecule.barcode] = molecule
+
+    return allMolecules
 
 def fetch_and_format(read, barcode_tag, summary):
     """
