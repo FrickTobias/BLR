@@ -21,13 +21,14 @@ def main(args):
     logger.info('Fetching reads')
     with pysam.AlignmentFile(args.x2_bam, 'rb') as infile:
         allMolecules = build_molecule_dict(pysam_openfile=infile, barcode_tag=args.barcode_tag, window=args.window, min_reads=args.threshold, summary=summary)
+        allMolecules.reportAndRemoveAll()
 
         summary.tot_reads = infile.mapped + infile.unmapped
         summary.unmapped_reads = infile.unmapped
         summary.mapped_reads = infile.mapped
 
+
     # Commit last chr molecules and log stats
-    allMolecules.reportAndRemoveAll()
     summary.non_analyzed_reads = summary.unmapped_reads + summary.non_tagged_reads + summary.overlapping_reads_in_pb
     logger.info('Molecules analyzed')
 
