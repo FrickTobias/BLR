@@ -27,70 +27,36 @@ def main(args):
         summary.unmapped_reads = infile.unmapped
         summary.mapped_reads = infile.mapped
 
-
     # Commit last chr molecules and log stats
     summary.non_analyzed_reads = summary.unmapped_reads + summary.non_tagged_reads + summary.overlapping_reads_in_pb
     logger.info('Molecules analyzed')
 
     # Writes output bam file if wanted
     with pysam.AlignmentFile(args.x2_bam, 'rb') as openin:
+        with pysam.AlignmentFile(args.output, 'wb', template=openin) as openout:
+            for read in tqdm(openin.fetch(until_eof=True)):
 
-        # OPEN FILES
-        openfiles = dict()
-        # IF SPLITTING INTO SEVERAL OUTPUTS
-        if args.split:
-            openfiles['no_bc'] = pysam.AlignmentFile(args.output + '.no_bc.bam', 'wb', template=openin)
-            openfiles['not_phased'] = pysam.AlignmentFile(args.output + '.not_phased.bam', 'wb', template=openin)
-            for reads_per_mol in range(1, args.Max_molecules+1):
-                openfiles[reads_per_mol] = pysam.AlignmentFile(
-                    args.output + '.' + str(reads_per_mol) + '_rpm.bam', 'wb', template=openin)
-        # NORMAL FILTERED FILE
-        else:
-            open_file_key = 'all_reads'
-            openfiles[open_file_key] = pysam.AlignmentFile(args.output, 'wb', template=openin)
-            openout = openfiles[open_file_key]
+                # If no bc_id, just write it to out
+                try: BC_id = read.get_tag(args.barcode_tag)
+                except KeyError:
+                    BC_id = False
 
-        for read in tqdm(openin.fetch(until_eof=True)):
+                # If BC_id is not in allMolecules there the barcode does not have enough proximal reads to make a single molecule
+                if BC_id in allMolecules.final_dict:
 
-            # If no bc_id, just write it to out
-            try: BC_id = read.get_tag(args.barcode_tag)
-            except KeyError:
-                BC_id = False
+                    # If too many molecules in cluster, change tag and header of read
+                    if len(allMolecules.final_dict[BC_id]) > args.Max_molecules:
+                        tmp_header_list = read.query_name.split('_')
+                        read.query_name = str(tmp_header_list[0]) + '_' + str(tmp_header_list[1])
+                        read.set_tag(args.barcode_tag, 'FILTERED', value_type='Z')
+                        summary.reads_with_removed_barcode += 1
+                        if not BC_id in summary.barcode_removal_set:
+                            summary.barcode_removal_set.add(BC_id)
+                            summary.number_removed_molecules += len(allMolecules.final_dict[BC_id])
 
-                # IF SPLITTING INTO SEVERAL OUTPUTS
-                if args.split:
-                    openout = openfiles['no_bc']
+                openout.write(read)
 
-            # If BC_id is not in allMolecules there the barcode does not have enough proximal reads to make a single molecule
-            if BC_id in allMolecules.final_dict:
 
-                # If too many molecules in cluster, change tag and header of read
-                if len(allMolecules.final_dict[BC_id]) > args.Max_molecules:
-                    tmp_header_list = read.query_name.split('_')
-                    read.query_name = str(tmp_header_list[0]) + '_' + str(tmp_header_list[1])
-                    read.set_tag(args.barcode_tag, 'FILTERED', value_type='Z')
-                    summary.reads_with_removed_barcode += 1
-                    if not BC_id in summary.barcode_removal_set:
-                        summary.barcode_removal_set.add(BC_id)
-                        summary.number_removed_molecules += len(allMolecules.final_dict[BC_id])
-
-                    # IF SPLITTING INTO SEVERAL OUTPUTS
-                    if args.split:
-                        openout = openfiles['no_bc']
-
-                # IF SPLITTING INTO SEVERAL OUTPUTS
-                elif args.split and BC_id:
-                    if not BC_id in summary.bc_to_numberMolOverReadThreshold:
-                        openout = openfiles['not_phased']
-                    else:
-                        mol_per_barcode = summary.bc_to_numberMolOverReadThreshold[BC_id]
-                        openout = openfiles[mol_per_barcode]
-
-            openout.write(read)
-
-        # CLOSE FILES
-        for openout in openfiles.values():
-            openout.close()
 
         # Stats to output files and stdout
     if args.print_stats:
@@ -324,8 +290,3 @@ def add_arguments(parser):
     parser.add_argument("-M", "--Max_molecules", metavar='<INTEGER>', type=int, default=500,
                         help="When using -f (--filter) this will remove barcode tags for those clusters which have more "
                              "than -M molecules. DEFAULT: 500")
-    parser.add_argument("-s", "--split", action="store_true", help="Will intead of writing one output filtered file "
-                                                                   "split output into separate files based on "
-                                                                   "#mol/bc. The -f (--filter) output file name will instead be "
-                                                                   "used as prefix for the output. -f option "
-                                                                   "required. DEFAULT: None")
