@@ -217,9 +217,6 @@ class Summary:
         self.non_analyzed_reads = int()
         self.number_removed_molecules = int()
 
-        # Stats tracker needed to split bam files into separate according barcode per molecule
-        self.bc_to_numberMolecules = dict()
-
     def printStats(self, barcode_tag, threshold, allMolecules):
 
         # Read stats
@@ -256,9 +253,6 @@ class Summary:
             molecules_per_bc.write(str(number_of_molecules))
             for molecule in (allMolecules.final_dict[barcode]):
                 molecule_stats.write(str(molecule.number_of_reads) + '\t' + str(molecule.length()) + '\t' + barcode + '\t' + str(number_of_molecules) + '\n')
-
-            # Stats tracker needed to split bam files into separate according barcode per molecule
-            self.bc_to_numberMolecules[barcode] = number_of_molecules
 
         # Close files
         for output_file in (molecules_per_bc, molecule_stats):
