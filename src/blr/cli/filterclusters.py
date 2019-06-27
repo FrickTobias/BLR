@@ -18,7 +18,6 @@ def main(args):
     # Build allMolecules.final_dict[barcode][moleculeID] = molecule
     # molecule are instances of Molecule, defined as proximal reads if they are more than min_reads argument.
     logger.info(f'Running analysis with {"{:,}".format(args.window)} bp window size')
-    logger.info('Fetching reads')
     with pysam.AlignmentFile(args.x2_bam, 'rb') as infile:
         allMolecules = build_molecule_dict(pysam_openfile=infile, barcode_tag=args.barcode_tag, window=args.window, min_reads=args.threshold, summary=summary)
         allMolecules.reportAndRemoveAll()
@@ -34,7 +33,7 @@ def main(args):
     # Writes output bam file if wanted
     with pysam.AlignmentFile(args.x2_bam, 'rb') as openin:
         with pysam.AlignmentFile(args.output, 'wb', template=openin) as openout:
-            logging.info("Writing filtered bam file")
+            logger.info("Writing filtered bam file")
             for read in tqdm(openin.fetch(until_eof=True)):
 
                 # If no bc_id, just write it to out
@@ -68,6 +67,7 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
     allMolecules = AllMolecules(min_reads=min_reads)
 
     prev_chrom = pysam_openfile.references[0]
+    logger.info("Dividing barcodes into molecules")
     for read in tqdm(pysam_openfile.fetch(until_eof=True)):
 
         # Fetches barcode and genomic position. Position will be formatted so start < stop.
