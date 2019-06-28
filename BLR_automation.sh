@@ -216,7 +216,7 @@ then
     ln -s $PWD/$ARG1 $path/reads.1.fastq.gz
     ln -s $PWD/$ARG2 $path/reads.2.fastq.gz
 
-    snakemake -j $processors --config option="new"  $path/trimmed-c.1.fastq.gz $path/trimmed-c.2.fastq.gz
+    snakemake --config option="new" -j $processors $path/trimmed-c.1.fastq.gz $path/trimmed-c.2.fastq.gz
     if $remove
     then
         rm $file_name".h1.bc.fastq.gz"
