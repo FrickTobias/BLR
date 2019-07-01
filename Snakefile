@@ -45,11 +45,15 @@ rule compress:
     shell:
         "pigz < {input} > {output}"
 
-rule:
-    """Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed."""
+rule trim_tes:
+    """
+    Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG.
+    Cut 3' TES' from R1 and R2. TES'=CTGTCTCTTATACACATCT
+    Discard untrimmed.
+    """
     output:
-        r1_fastq=temp("{dir}/trimmed-b.1.fastq.gz"),
-        r2_fastq=temp("{dir}/trimmed-b.2.fastq.gz")
+        r1_fastq="{dir}/trimmed-c.1.fastq.gz",
+        r2_fastq="{dir}/trimmed-c.2.fastq.gz"
     input:
         r1_fastq="{dir}/unbarcoded.1.fastq.gz",
         r2_fastq="{dir}/unbarcoded.2.fastq.gz"
@@ -57,17 +61,20 @@ rule:
     threads: 20
     shell:
         "cutadapt"
-        " -g AGATGTGTATAAGAGACAG"
+        " -g AGATGTGTATAAGAGACAG -a CTGTCTCTTATACACATCT"
+        " -A CTGTCTCTTATACACATCT"
         " -e 0.2"
         " --discard-untrimmed"
+        " --pair-filter 'first'"
         " -j {threads}"
+        " -m 25"
         " -o {output.r1_fastq}"
         " -p {output.r2_fastq}"
         " {input.r1_fastq}"
         " {input.r2_fastq}"
         " > {log}"
 
-
+"""
 rule:
     "Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT"
     output:
@@ -89,3 +96,4 @@ rule:
         " {input.r1_fastq}"
         " {input.r2_fastq}"
         " > {log}"
+"""
