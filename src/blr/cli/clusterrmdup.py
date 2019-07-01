@@ -584,9 +584,8 @@ def add_arguments(parser):
     parser.add_argument("input_tagged_bam", help=".bam file tagged with RG tags and duplicates marked (not taking "
                                                  "cluster id into account).")
     parser.add_argument("output_bam", help=".bam file without cluster duplicates")
-    parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
-                                                                       "Not recommended due to different function "
-                                                                       "names in python 2 and 3.")
+    parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if barcode tags are not "
+                                                                       "found for all reads")
     parser.add_argument("-t", "--threshold", metavar="<INTEGER>", type=int, default=0, help="Threshold for how many additional overlaps "
                                                                         "(other than four exact positions from two "
                                                                         "readpairs) is needed for mergin two barcode "
