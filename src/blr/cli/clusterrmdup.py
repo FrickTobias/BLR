@@ -5,11 +5,8 @@ sequences for reads sharing the duplicate positions.
 
 import sys
 import pysam
-import logging
 
 import blr.utils as BLR
-
-logger = logging.getLogger(__name__)
 
 
 def main(args):
@@ -20,7 +17,7 @@ def main(args):
     # Start of script
     #
 
-    logger.info(f'Starting Analysis')
+    BLR.report_progress('Starting Analysis')
 
 
     #######
@@ -111,27 +108,27 @@ def main(args):
     seed_duplicates(duplicate_position_dict=duplicate_position_dict, chromosome=prev_chromosome, force_run=args.force_run, barcode_tag=args.barcode_tag, overlapValues=overlapValues, window=window, duplicates=duplicates, pos_dict=pos_dict)
     duplicate_position_dict = dict()
 
-    logger.info(f'Total reads in file: {tot_read_pair_count:15,}')
-    logger.info(f'Total paired reads: {summaryInstance.intact_read_pairs*2:15,}')
-    logger.info(f'Reads in unmapped read pairs: {summaryInstance.unmapped_read_pair*2:15,}')
-    logger.info(f'Non-primary alignments in file: {summaryInstance.non_primary_alignments:15,}')
+    BLR.report_progress('Total reads in file:\t' + "{:,}".format(tot_read_pair_count))
+    BLR.report_progress('Total paired reads:\t' + "{:,}".format(summaryInstance.intact_read_pairs*2))
+    BLR.report_progress('Reads in unmapped read pairs:\t' + "{:,}".format(summaryInstance.unmapped_read_pair*2))
+    BLR.report_progress('Non-primary alignments in file:\t' + "{:,}".format(summaryInstance.non_primary_alignments))
 
     # Close input file
     infile.close()
 
-    logger.info(f'Removing overlaps under threshold and reducing several step redundancy')
-    logger.info(f'Barcodes seeded for removal: {len(duplicates.seeds):15,}')
+    BLR.report_progress('Removing overlaps under threshold and reducing several step redundancy')
+    BLR.report_progress('Barcodes seeded for removal:\t' + "{:,}".format(len(duplicates.seeds)))
 
     # Fetch all seeds which are above -t (--threshold, default=0) number of overlaps (require readpair overlap for seed)
     for bc_id_set in duplicates.seeds:
         duplicates.reduce_to_significant_overlaps(bc_id_set, overlapValues)
-    logger.info(f'Barcodes over threshold ({args.threshold}): {len(duplicates.translation_dict):15,}')
+    BLR.report_progress('Barcodes over threshold (' + str(args.threshold) +'):\t' + "{:,}".format(len(duplicates.translation_dict.keys())))
 
     # Remove several step redundancy (5 -> 3, 3 -> 1) => (5 -> 1, 3 -> 1)
     duplicates.reduce_several_step_redundancy()
     barcode_ID_merge_dict = duplicates.translation_dict
-    logger.info(f'Barcodes removed: {len(barcode_ID_merge_dict):15,}')
-    logger.info(f'Barcode dict finished')
+    BLR.report_progress('Barcodes removed:\t\t' + "{:,}".format(len(barcode_ID_merge_dict)))
+    BLR.report_progress('Barcode dict finished')
 
     # Option: EXPLICIT MERGE - Writes bc_seq + prev_bc_id + new_bc_id
     if args.explicit_merge:
@@ -171,7 +168,7 @@ def main(args):
     progressBar.terminate()
     out.close()
     if args.explicit_merge: explicit_merge_file.close()
-    logger.info('Finished')
+    BLR.report_progress('Finished')
 
 def update_cache_dict(pos_dict, chromosome, position, window):
     """

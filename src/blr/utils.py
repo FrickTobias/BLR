@@ -1,10 +1,6 @@
 #! /usr/bin python3
 
 import sys, time, gzip, os
-import logging
-
-logger = logging.getLogger(__name__)
-
 global sys, time, gzip, os, scrip_name
 
 script_name = sys.argv[0].split('/')[-1].split('.')[0]
@@ -29,13 +25,13 @@ def pythonVersion(force_run):
     if sys.version_info.major == 3:
         python3 = True
     else:
-        logger.warning(f'You are running python {sys.version_info.major}, this script is written for python 3.')
+        sys.stderr.write('\nWARNING: you are running python ' + str(sys.version_info.major)
+                         + ', this script is written for python 3.')
         if not force_run:
-            logger.warning(f'You are running python {sys.version_info.major}, this script is written for python 3.')
-            logger.warning('Aborting analysis. Use -F (--Force) to run anyway.')
+            sys.stderr.write('\nAborting analysis. Use -F (--Force) to run anyway.\n')
             python3 = False
         else:
-            logger.exception('Forcing run. This might yield inaccurate results.')
+            sys.stderr.write('\nForcing run. This might yield inaccurate results.\n')
             python3 = True
 
     return python3
@@ -146,32 +142,24 @@ class FileReader:
     """
     Reads input files as generator, handles gzip.
     """
-    def __init__(self, filehandle, filehandle2=None, gzipped=False, interleaved=False):
+    def __init__(self, filehandle, filehandle2=None):
 
         """
         Setup function, detects if files are gzipped and saves file handles (generator =
         FileReader(filehandle=args.input_file)). If only one file is to be read, only use first the first argument.
         :param filehandle: string. File handle name. Typically args.input_file.
         :param filehandle2: string OR None. Second file handle name, if only one file should be read leave blank.
-        :param gzipped: boolean. Set to true if file is known to be gzipped
-        :param interleaved. boolean. Set to True if paired-end fastq is interleaved.
         """
         # Init variables setting
         self.filehandle = filehandle
-        self.gzip = gzipped
-        self.interleaved = interleaved
+        self.gzip = bool()
 
-        if self.filehandle == "-":
+        if self.filehandle == "stdin":
             import sys
-            logger.info(f"Reading file from stdin")
-            if self.gzip:
-                self.openfile = gzip.open(sys.stdin.buffer, mode="rb")
-            else:
-                self.openfile = sys.stdin
-
+            self.openfile = sys.stdin
         # Open files as zipped or not not (depending on if they end with .gz)
         elif self.filehandle[-3:] == '.gz':
-            logger.info(f'File detected as gzipped, unzipping when reading')
+            report_progress('File detected as gzipped, unzipping when reading')
             self.openfile = gzip.open(self.filehandle, 'r')
             self.gzip = True
         else:
@@ -183,7 +171,7 @@ class FileReader:
 
             # Open files as zipped or not not (depending on if they end with .gz)
             if self.filehandle2[-3:] == '.gz':
-                logger.info(f'File detected as gzipped, unzipping when reading')
+                report_progress('File detected as gzipped, unzipping when reading')
 
                 self.openfile2 = gzip.open(self.filehandle2, 'r')
             else:
@@ -239,42 +227,6 @@ class FileReader:
                 line_chunk1 = list()
                 line_chunk2 = list()
                 yield read1, read2
-
-    def interleavedFastqReader(self):
-        """
-        Read one interleaved fastq file and yields an pair of two reads.
-        :return: instance, instance. read1 and read2 as instances (see BLR FastqRead object function).
-        """
-        line_chunk = list()
-        read1_name = None
-        read1 = None
-
-        for line in self.openfile:
-            if self.gzip:
-                line = line.decode("utf-8")
-
-            line_chunk.append(line)
-
-            if len(line_chunk) == 4:
-                if not read1_name:
-                    read1 = FastqRead(line_chunk)
-                    read1_name, _ = read1.header.split(maxsplit=1)
-                    line_chunk = list()
-                else:
-                    read2 = FastqRead(line_chunk)
-                    read2_name, _ = read2.header.split(maxsplit=1)
-                    assert read2_name == read1_name, 'Interleaved file appears to have the wrong format. ' \
-                                                     'Read2 should follow read1.'
-                    read1_name = None
-
-                    line_chunk = list()
-                    yield read1, read2
-
-    def reader(self):
-        if self.interleaved:
-            return FileReader.interleavedFastqReader(self)
-        else:
-            return FileReader.fastqPairedReader(self)
 
     def close(self):
         """
