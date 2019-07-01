@@ -4,8 +4,11 @@ and write FASTA files with unique barcodes
 """
 import sys
 import os
+import logging
 
 import blr.utils as BLR
+
+logger = logging.getLogger(__name__)
 
 
 def main(args):
@@ -17,7 +20,8 @@ def main(args):
     #
     # Filtering
     #
-    if not args.filter == 1: BLR.report_progress('Filtering barcodes with less than ' + str(args.filter) + ' reads\n')
+    if not args.filter == 1:
+        logger.info(f'Filtering barcodes with less than {args.filter} reads')
 
     #
     # Data processing
@@ -67,10 +71,12 @@ def main(args):
                 bc_written += 1
 
     # Reporting
-    BLR.report_progress('Unique BC count in input\t' + str(len(bc_dict.keys())))
-    BLR.report_progress('Unique BC count in output\t' + str(bc_written))
-    if args.index: BLR.report_progress('BC count where N was in index (Omitted from tot. BC count):\t' + str(not_ATGC_index))
-    BLR.report_progress('Finished')
+    logger.info(f'Unique BC count in input:\t{len(bc_dict.keys())}')
+    logger.info(f'Unique BC count in output:\t{bc_written}')
+    if args.index:
+        logger.info(f'BC count where N was in index (Omitted from tot. BC count):\t{not_ATGC_index}')
+    logger.info("Finished")
+
 
 def reduceComplexity(bc_dict, index):
     """ Uses r first bases as indexes and divides files accordingly."""

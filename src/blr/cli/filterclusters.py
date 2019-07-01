@@ -4,8 +4,11 @@ which had more than -M molecules).
 """
 
 import pysam
+import logging
 
 import blr.utils as BLR
+
+logger = logging.getLogger(__name__)
 
 
 def main(args):
@@ -14,8 +17,8 @@ def main(args):
     prev_chrom = 'chr1'
 
     # Open file, loop over all reads
-    BLR.report_progress('Running analysis with ' + "{:,}".format(args.window) + ' bp window size')
-    BLR.report_progress('Fetching reads')
+    logger.info(f'Running analysis with {"{:,}".format(args.window)} bp window size')
+    logger.info('Fetching reads')
     progress = BLR.ProgressReporter('Reads processed', 1000000)
     with pysam.AlignmentFile(args.x2_bam, 'rb') as infile:
         for read in infile.fetch(until_eof=True):
@@ -62,7 +65,7 @@ def main(args):
     molecules.reportAndRemoveAll(summary=summary)
     summary.reads = progress.position
     summary.non_analyzed_reads = summary.unmapped_reads + summary.non_tagged_reads + summary.overlapping_reads_in_pb
-    BLR.report_progress('Molecules analyzed')
+    logger.info('Molecules analyzed')
 
     # Stats to output files and stdout
     summary.writeResultFiles(output_prefix=args.output_prefix, threshold=args.threshold, filter_bam=args.filter_bam, Max_molecules=args.Max_molecules)
@@ -130,8 +133,11 @@ def main(args):
         # End progress bar
         progressBar.terminate()
 
-    try: BLR.report_progress('Reads with barcodes removed:\t' + "{:,}".format((summary.reads_with_removed_barcode)) + '\t(' + ("%.2f" % ((summary.reads_with_removed_barcode/summary.reads)*100) + ' %)'))
-    except ZeroDivisionError: BLR.report_progress('No reads passing filters found in file.')
+    try:
+        logger.info(f'Reads with barcodes removed:\t{"{:,}".format(summary.reads_with_removed_barcode)}\t'
+                    f'({"%.2f" % ((summary.reads_with_removed_barcode/summary.reads)*100)}%)')
+    except ZeroDivisionError:
+        logger.warning('No reads passing filters found in file.')
 
 def fetch_and_format(read, barcode_tag, summary):
     """
@@ -255,28 +261,26 @@ class Summary:
     def printStats(self, barcode_tag, threshold, filter_bam):
 
         # Read stats
-        BLR.report_progress('- Read stats -')
-        BLR.report_progress('Total Reads in file:\t' + "{:,}".format(self.reads) + '\n')
-        BLR.report_progress('- Reads skipped in analysis -')
-        BLR.report_progress('Unmapped:\t' + "{:,}".format(self.unmapped_reads))
-        BLR.report_progress('Without ' + barcode_tag + ' tag:\t' + "{:,}".format(self.non_tagged_reads))
-        BLR.report_progress('Overlapping with other reads in molecule:\t' + "{:,}".format(self.overlapping_reads_in_pb) + '\n')
-        BLR.report_progress('- Remaining reads -')
-        BLR.report_progress('Reads analyzed:\t' + "{:,}".format(self.reads-self.non_analyzed_reads))
+        logger.info('- Read stats -')
+        logger.info(f'Total Reads in file:\t{"{:,}".format(self.reads)}')
+        logger.info('- Reads skipped in analysis -')
+        logger.info(f'Unmapped:\t{"{:,}".format(self.unmapped_reads)}')
+        logger.info(f'Without {barcode_tag} tag:\t{"{:,}".format(self.non_tagged_reads)}')
+        logger.info(f'Overlapping with other reads in molecule:\t{"{:,}".format(self.overlapping_reads_in_pb)}')
+        logger.info('- Remaining reads -')
+        logger.info(f'Reads analyzed:\t{"{:,}".format(self.reads-self.non_analyzed_reads)}')
 
         # Molecule stats
-        BLR.report_progress('- Molecule stats -')
-        BLR.report_progress('Molecules total:\t' + "{:,}".format(self.molecules))
-        BLR.report_progress('Molecules kept for stats (min read: ' + str(threshold) + '):\t' + "{:,}".format(
-            self.molecules_over_threshold))
-        BLR.report_progress(
-            'BC consequently removed:\t' + "{:,}".format(self.drops_without_molecules_over_threshold) + '\n')
+        logger.info('- Molecule stats -')
+        logger.info(f'Molecules total:\t{"{:,}".format(self.molecules)}')
+        logger.info(f'Molecules kept for stats (min read: {threshold}):\t{"{:,}".format(self.molecules_over_threshold)}')
+        logger.info(f'BC consequently removed:\t{"{:,}".format(self.drops_without_molecules_over_threshold)}')
 
         # Filtering stats
         if filter_bam:
-            BLR.report_progress('- Bam output stats -')
-            BLR.report_progress('Molecules removed in output:\t' + "{:,}".format(self.mol_rmvd_outbam))
-            BLR.report_progress('BC removed in output:\t' + "{:,}".format(self.bc_rmvd_outbam) + '\n')
+            logger.info('- Bam output stats -')
+            logger.info(f'Molecules removed in output:\t{"{:,}".format(self.mol_rmvd_outbam)}')
+            logger.info(f'BC removed in output:\t{"{:,}".format(self.bc_rmvd_outbam)}')
 
     def writeResultFiles(self, output_prefix, threshold, filter_bam, Max_molecules):
 

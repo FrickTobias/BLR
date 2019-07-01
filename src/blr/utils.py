@@ -1,6 +1,10 @@
 #! /usr/bin python3
 
 import sys, time, gzip, os
+import logging
+
+logger = logging.getLogger(__name__)
+
 global sys, time, gzip, os, scrip_name
 
 script_name = sys.argv[0].split('/')[-1].split('.')[0]
@@ -25,13 +29,13 @@ def pythonVersion(force_run):
     if sys.version_info.major == 3:
         python3 = True
     else:
-        sys.stderr.write('\nWARNING: you are running python ' + str(sys.version_info.major)
-                         + ', this script is written for python 3.')
+        logger.warning(f'You are running python {sys.version_info.major}, this script is written for python 3.')
         if not force_run:
-            sys.stderr.write('\nAborting analysis. Use -F (--Force) to run anyway.\n')
+            logger.warning(f'You are running python {sys.version_info.major}, this script is written for python 3.')
+            logger.warning('Aborting analysis. Use -F (--Force) to run anyway.')
             python3 = False
         else:
-            sys.stderr.write('\nForcing run. This might yield inaccurate results.\n')
+            logger.exception('Forcing run. This might yield inaccurate results.')
             python3 = True
 
     return python3
@@ -159,7 +163,7 @@ class FileReader:
             self.openfile = sys.stdin
         # Open files as zipped or not not (depending on if they end with .gz)
         elif self.filehandle[-3:] == '.gz':
-            report_progress('File detected as gzipped, unzipping when reading')
+            logger.info('File detected as gzipped, unzipping when reading')
             self.openfile = gzip.open(self.filehandle, 'r')
             self.gzip = True
         else:
@@ -171,7 +175,7 @@ class FileReader:
 
             # Open files as zipped or not not (depending on if they end with .gz)
             if self.filehandle2[-3:] == '.gz':
-                report_progress('File detected as gzipped, unzipping when reading')
+                logger.info('File detected as gzipped, unzipping when reading')
 
                 self.openfile2 = gzip.open(self.filehandle2, 'r')
             else:
