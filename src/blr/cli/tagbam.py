@@ -72,12 +72,10 @@ def process_clusters(openInfile, skip_nonclust):
 
     return(cluster_dict)
 
+
 def add_arguments(parser):
     parser.add_argument("input_mapped_bam", help=".bam file with mapped reads which is to be tagged with barcode id:s.")
     parser.add_argument("input_clstr", help=".clstr file from cdhit clustering.")
     parser.add_argument("output_tagged_bam", help=".bam file with barcode cluster id in the bc tag.")
-    parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
-                                                                       "Not recommended due to different function "
-                                                                       "names in python 2 and 3.")
     parser.add_argument("-s", "--skip_nonclust", action="store_true", help="Does not give cluster ID:s to clusters "
                                                                            "made out by only one sequence.")

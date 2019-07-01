@@ -14,9 +14,6 @@ logger = logging.getLogger(__name__)
 def main(args):
     """Takes a fastq file barcode sequences in the header and writes a barcode fasta file with only unique entries. """
 
-    # Check python3 is being run
-    if not BLR.pythonVersion(args.force_run): sys.exit()
-
     #
     # Filtering
     #
@@ -114,9 +111,6 @@ def add_arguments(parser):
 
     parser.add_argument("-f", "--filter", type=int, default=1,
                         help="Filter file for minimum amount of read pairs. DEFAULT: 1")
-    parser.add_argument("-F", "--force_run", action="store_true", help="Run analysis even if not running python 3. "
-                                                                       "Not recommended due to different function "
-                                                                       "names in python 2 and 3.")
     parser.add_argument("-i", "--index", type=int, help="Divide BC sequences into descrete files due to their (-i) "
                                                         "first bases. DEFAULT: None")
     parser.add_argument("-s", "--space_separation", action="store_true", help='If BC is separated by <space> ( ) '
