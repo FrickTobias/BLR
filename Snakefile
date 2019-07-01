@@ -2,8 +2,8 @@
 rule trim_r1_handle:
     "Trim away E handle on R1 5'. Also removes reads shorter than 85 bp."
     output:
-        r1_fastq="{dir}/trimmed-a.1.fastq.gz",
-        r2_fastq="{dir}/trimmed-a.2.fastq.gz"
+        r1_fastq=temp("{dir}/trimmed-a.1.fastq.gz"),
+        r2_fastq=temp("{dir}/trimmed-a.2.fastq.gz")
     input:
         r1_fastq="{dir}/reads.1.fastq.gz",
         r2_fastq="{dir}/reads.2.fastq.gz"
