@@ -215,6 +215,7 @@ then
 
     ln -s $PWD/$ARG1 $path/reads.1.fastq.gz
     ln -s $PWD/$ARG2 $path/reads.2.fastq.gz
+
     snakemake $path/trimmed-c.1.fastq.gz $path/trimmed-c.2.fastq.gz
     if $remove
     then

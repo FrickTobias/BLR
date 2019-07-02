@@ -35,7 +35,7 @@ rule extract_barcodes:
         # BDHVBDVHBDVHBDVH
         "blr extractbarcode"
         " {input.r1_fastq} {input.r2_fastq}"
-        " {output.r1_fastq} {output.r2_fastq}"
+        " -o1 {output.r1_fastq} -o2 {output.r2_fastq}"
         " 2> {log}"
 
 
@@ -45,7 +45,7 @@ rule compress:
     shell:
         "pigz < {input} > {output}"
 
-rule:
+rule cut_5prim_tes_r1:
     """Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG. Discard untrimmed."""
     output:
         r1_fastq=temp("{dir}/trimmed-b.1.fastq.gz"),
@@ -68,7 +68,7 @@ rule:
         " > {log}"
 
 
-rule:
+rule cut_3prim_tes:
     "Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT"
     output:
         r1_fastq="{dir}/trimmed-c.1.fastq.gz",
