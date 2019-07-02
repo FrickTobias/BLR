@@ -68,7 +68,7 @@ rule cut_5prim_tes_r1:
         " > {log}"
 
 
-rule cut_4prim_tes:
+rule cut_3prim_tes:
     "Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT"
     output:
         r1_fastq="{dir}/trimmed-c.1.fastq.gz",
