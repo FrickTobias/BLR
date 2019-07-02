@@ -34,7 +34,7 @@ def main(args):
         for read in tqdm(openin.fetch(until_eof=True)):
             barcode = fetch_bc(pysam_read=read, barcode_tag=args.barcode_tag)
 
-            # If barcode is not in allMolecules the barcode does not have enough proximal reads to make a single
+            # If barcode is not in all_molecules the barcode does not have enough proximal reads to make a single
             # molecule. If the barcode has more than <max_molecules> molecules, remove it from the read.
             if barcode in molecule_dict and len(molecule_dict[barcode]) > args.max_molecules:
                 read = strip_barcode(pysam_read=read ,barcode_tag=args.barcode_tag)
@@ -55,17 +55,17 @@ def main(args):
 
 def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary):
     """
-    Build allMolecules.final_dict, [barcode][moleculeID] = molecule where molecule are instances of Molecule object,
+    Build all_molecules.final_dict, [barcode][moleculeID] = molecule where molecule are instances of Molecule object,
     defined as more than <min_reads> within <window> from each other.
     :param pysam_openfile: Pysam open file instance.
     :param barcode_tag: Tag used to store barcode in bam file (usually BC).
     :param window: Max distance between reads to include in the same molecule.
-    :param min_reads: Minimum reads to include molecule in allMolecules.final_dict
+    :param min_reads: Minimum reads to include molecule in all_molecules.final_dict
     :param summary: Custom summary intsance
     :return: dict[barcode][molecule] = moleculeInstance
     """
 
-    allMolecules = AllMolecules(min_reads=min_reads)
+    all_molecules = AllMolecules(min_reads=min_reads)
 
     prev_chrom = pysam_openfile.references[0]
     logger.info("Dividing barcodes into molecules")
@@ -78,11 +78,11 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
 
             # Commit molecules between chromosomes
             if not prev_chrom == read.reference_name:
-                allMolecules.report_and_remove_all()
+                all_molecules.report_and_remove_all()
                 prev_chrom = read.reference_name
 
-            if barcode in allMolecules.cache_dict:
-                molecule = allMolecules.cache_dict[barcode]
+            if barcode in all_molecules.cache_dict:
+                molecule = all_molecules.cache_dict[barcode]
 
                 # Read is within window => add read to molecule (don't include overlapping reads).
                 if (molecule.stop + window) >= read_start:
@@ -90,22 +90,22 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
                         summary.overlapping_reads_in_pb += 1
                     else:
                         molecule.add_read(stop=read_stop, read_header=read.query_name)
-                        allMolecules.cache_dict[barcode] = molecule
+                        all_molecules.cache_dict[barcode] = molecule
 
                 # Read is not within window => report old and initiate new molecule for that barcode.
                 else:
-                    allMolecules.report(molecule=molecule)
-                    allMolecules.terminate(molecule=molecule)
+                    all_molecules.report(molecule=molecule)
+                    all_molecules.terminate(molecule=molecule)
                     molecule = Molecule(barcode=barcode, start=read_start, stop=read_stop, read_header=read.query_name)
-                    allMolecules.cache_dict[molecule.barcode] = molecule
+                    all_molecules.cache_dict[molecule.barcode] = molecule
 
             else:
                 molecule = Molecule(barcode=barcode, start=read_start, stop=read_stop, read_header=read.query_name)
-                allMolecules.cache_dict[molecule.barcode] = molecule
+                all_molecules.cache_dict[molecule.barcode] = molecule
 
-    allMolecules.report_and_remove_all()
+    all_molecules.report_and_remove_all()
 
-    return allMolecules.final_dict
+    return all_molecules.final_dict
 
 def fetch_bc(pysam_read, barcode_tag, summary=None):
     """
