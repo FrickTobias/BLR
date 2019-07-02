@@ -444,10 +444,10 @@ then
     mkdir -p $path"/cluster_stats"
     # Cluster filtering
     (blr filterclusters \
-        -f $file_name".sort.tag.rmdup.x2.filt.bam" \
         -M 260 \
+        -s $path"/cluster_stats/x2.stats" \
         $file_name".sort.tag.rmdup.x2.bam" \
-        $path"/cluster_stats/x2.stats") 2>>$rmdup_logfile
+        $file_name".sort.tag.rmdup.x2.filt.bam") 2>>$rmdup_logfile
 
     printf "`date`"'\tCluster filtering done\n'
     printf "`date`"'\tFastq generation\n'
