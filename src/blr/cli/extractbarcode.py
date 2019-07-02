@@ -18,7 +18,6 @@ def main(args):
     progress = BLR.ProgressReporter('Read pairs processed', 1000000)
 
     input_interleaved = True if not args.input2 else False
-
     logger.info(f"Input detected as {'interleaved fastq.' if input_interleaved else 'paired fastq.'}")
 
     # If no output1 is given output is sent to stdout
@@ -28,13 +27,10 @@ def main(args):
         args.output2 = None
 
     output_interleaved = True if not args.output2 else False
-
     logger.info(f"Output detected as {'interleaved fastq.' if output_interleaved else 'paired fastq.'}")
 
     reader = dnaio.open(args.input1, file2=args.input2, interleaved=input_interleaved, mode="r", fileformat="fastq")
-
     writer = dnaio.open(args.output1, file2=args.output2, interleaved=output_interleaved, mode="w", fileformat="fastq")
-
     for read1, read2 in reader:
         # Adjusting for BC
         bc_seq = read1.sequence[:20]
