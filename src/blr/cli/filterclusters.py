@@ -46,12 +46,12 @@ def main(args):
 
             openout.write(read)
 
-    summary.printStats(barcode_tag=args.barcode_tag, molecule_dict=molecule_dict)
+    summary.print_stats(barcode_tag=args.barcode_tag, molecule_dict=molecule_dict)
 
     # Write molecule/barcode file stats
     if args.stats_file:
         logger.info("Writing statistics files")
-        summary.writeMoleculeStats(output_prefix=args.stats_file, molecule_dict=molecule_dict)
+        summary.write_molecule_stats(output_prefix=args.stats_file, molecule_dict=molecule_dict)
 
 def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary):
     """
@@ -78,7 +78,7 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
 
             # Commit molecules between chromosomes
             if not prev_chrom == read.reference_name:
-                allMolecules.reportAndRemoveAll()
+                allMolecules.report_and_remove_all()
                 prev_chrom = read.reference_name
 
             if barcode in allMolecules.cache_dict:
@@ -89,7 +89,7 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
                     if molecule.stop >= read_start and not read.query_name in molecule.read_headers:
                         summary.overlapping_reads_in_pb += 1
                     else:
-                        molecule.addRead(stop=read_stop, read_header=read.query_name)
+                        molecule.add_read(stop=read_stop, read_header=read.query_name)
                         allMolecules.cache_dict[barcode] = molecule
 
                 # Read is not within window => report old and initiate new molecule for that barcode.
@@ -103,7 +103,7 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
                 molecule = Molecule(barcode=barcode, start=read_start, stop=read_stop, read_header=read.query_name)
                 allMolecules.cache_dict[molecule.barcode] = molecule
 
-    allMolecules.reportAndRemoveAll()
+    allMolecules.report_and_remove_all()
 
     return allMolecules.final_dict
 
@@ -162,7 +162,7 @@ class Molecule:
     def length(self):
         return(self.stop - self.start)
 
-    def addRead(self, stop, read_header):
+    def add_read(self, stop, read_header):
         """
         Updates molecule's stop position, number of reads and header name set()
         """
@@ -208,7 +208,7 @@ class AllMolecules:
 
         del self.cache_dict[molecule.barcode]
 
-    def reportAndRemoveAll(self):
+    def report_and_remove_all(self):
         """
         Commit all .cache_dict molecules to .final_dict and empty .cache_dict (provided they meet criterias by report
         function).
@@ -237,7 +237,7 @@ class Summary:
         self.removed_molecules = int()
         self.reads_with_removed_barcode = int()
 
-    def printStats(self, barcode_tag, molecule_dict):
+    def print_stats(self, barcode_tag, molecule_dict):
         """
         Prints stats to terminal
         """
@@ -264,7 +264,7 @@ class Summary:
         except ZeroDivisionError:
             logger.warning("No reads passing filters found in file.")
 
-    def writeMoleculeStats(self, output_prefix, molecule_dict):
+    def write_molecule_stats(self, output_prefix, molecule_dict):
         """
         Writes stats file for molecules and barcode with information like how many reads, barcodes, molecules etc they
         have
