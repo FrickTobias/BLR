@@ -47,8 +47,8 @@ rule compress:
 
 rule final_trim:
     """
-    Cut H1691' and TES from 5' of R1. H1691'=CATGACCTCTTGGAACTGTC, TES=AGATGTGTATAAGAGACAG.
-    Cut 3' TES' from R1 and R2. TES'=CTGTCTCTTATACACATCT
+    Cut H1691' + TES sequence from 5' of R1. H1691'=CATGACCTCTTGGAACTGTC, TES=AGATGTGTATAAGAGACAG.
+    Cut 3' TES' sequence from R1 and R2. TES'=CTGTCTCTTATACACATCT
     Discard untrimmed.
     """
     output:
@@ -73,27 +73,3 @@ rule final_trim:
         " {input.r1_fastq}"
         " {input.r2_fastq}"
         " > {log}"
-
-"""
-rule:
-    "Cut TES' from 3' for R1 and R2. TES'=CTGTCTCTTATACACATCT"
-    output:
-        r1_fastq="{dir}/trimmed-c.1.fastq.gz",
-        r2_fastq="{dir}/trimmed-c.2.fastq.gz"
-    input:
-        r1_fastq="{dir}/trimmed-b.1.fastq.gz",
-        r2_fastq="{dir}/trimmed-b.2.fastq.gz"
-    log: "{dir}/trimmed-c.log"
-    threads: 20
-    shell:
-        "cutadapt"
-        " -a CTGTCTCTTATACACATCT -A CTGTCTCTTATACACATCT"
-        " -j {threads}"
-        " -m 25"
-        " -e 0.2"
-        " -o {output.r1_fastq}"
-        " -p {output.r2_fastq}"
-        " {input.r1_fastq}"
-        " {input.r2_fastq}"
-        " > {log}"
-"""
