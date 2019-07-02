@@ -28,23 +28,23 @@ def main(args):
         summary.non_analyzed_reads = summary.unmapped_reads + summary.non_tagged_reads + summary.overlapping_reads_in_pb
 
     # Writes filtered out
-    with pysam.AlignmentFile(args.x2_bam, "rb") as openin:
-        with pysam.AlignmentFile(args.output, "wb", template=openin) as openout:
-            logger.info("Writing filtered bam file")
-            for read in tqdm(openin.fetch(until_eof=True)):
-                barcode = fetch_bc(pysam_read=read, barcode_tag=args.barcode_tag)
+    with pysam.AlignmentFile(args.x2_bam, "rb") as openin, \
+            pysam.AlignmentFile(args.output, "wb", template=openin) as openout:
+        logger.info("Writing filtered bam file")
+        for read in tqdm(openin.fetch(until_eof=True)):
+            barcode = fetch_bc(pysam_read=read, barcode_tag=args.barcode_tag)
 
-                # If barcode is not in allMolecules the barcode does not have enough proximal reads to make a single
-                # molecule. If the barcode has more than <Max_molecules> molecules, remove it from the read.
-                if barcode in molecule_dict and len(molecule_dict[barcode]) > args.Max_molecules:
-                    read = strip_barcode(pysam_read=read ,barcode_tag=args.barcode_tag)
+            # If barcode is not in allMolecules the barcode does not have enough proximal reads to make a single
+            # molecule. If the barcode has more than <max_molecules> molecules, remove it from the read.
+            if barcode in molecule_dict and len(molecule_dict[barcode]) > args.max_molecules:
+                read = strip_barcode(pysam_read=read ,barcode_tag=args.barcode_tag)
 
-                    summary.reads_with_removed_barcode += 1
-                    if not barcode in summary.removed_barcodes:
-                        summary.removed_barcodes.add(barcode)
-                        summary.removed_molecules += len(molecule_dict[barcode])
+                summary.reads_with_removed_barcode += 1
+                if not barcode in summary.removed_barcodes:
+                    summary.removed_barcodes.add(barcode)
+                    summary.removed_molecules += len(molecule_dict[barcode])
 
-                openout.write(read)
+            openout.write(read)
 
     summary.printStats(barcode_tag=args.barcode_tag, molecule_dict=molecule_dict)
 
@@ -301,6 +301,6 @@ def add_arguments(parser):
                         help="Bam file tag where barcode is stored. DEFAULT: BC")
     parser.add_argument("-s", "--stats_file", metavar="<PREFIX>", type=str,
                         help="Write barcode/molecule statistics files. DEFAULT: None")
-    parser.add_argument("-M", "--Max_molecules", metavar="<INTEGER>", type=int, default=500,
+    parser.add_argument("-M", "--max_molecules", metavar="<INTEGER>", type=int, default=500,
                         help="When using -f (--filter) this will remove barcode tags for those clusters which have more "
                              "than -M molecules. DEFAULT: 500")
