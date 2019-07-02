@@ -45,9 +45,9 @@ rule compress:
     shell:
         "pigz < {input} > {output}"
 
-rule trim_tes:
+rule final_trim:
     """
-    Cut TES from 5' of R1. TES=AGATGTGTATAAGAGACAG.
+    Cut H1691' and TES from 5' of R1. H1691'=CATGACCTCTTGGAACTGTC, TES=AGATGTGTATAAGAGACAG.
     Cut 3' TES' from R1 and R2. TES'=CTGTCTCTTATACACATCT
     Discard untrimmed.
     """
@@ -61,8 +61,8 @@ rule trim_tes:
     threads: 20
     shell:
         "cutadapt"
-        " -g AGATGTGTATAAGAGACAG -a CTGTCTCTTATACACATCT"
-        " -A CTGTCTCTTATACACATCT"
+        " -a ^CATGACCTCTTGGAACTGTCAGATGTGTATAAGAGACAG...CTGTCTCTTATACACATCT "
+        " -A CTGTCTCTTATACACATCT "
         " -e 0.2"
         " --discard-untrimmed"
         " --pair-filter 'first'"
