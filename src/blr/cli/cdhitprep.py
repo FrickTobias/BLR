@@ -5,6 +5,7 @@ and write FASTA files with unique barcodes
 import sys
 import os
 import logging
+
 import dnaio
 from collections import defaultdict
 from itertools import product
