@@ -215,6 +215,7 @@ then
 
     ln -s $PWD/$ARG1 $path/reads.1.fastq.gz
     ln -s $PWD/$ARG2 $path/reads.2.fastq.gz
+
     snakemake $path/trimmed-c.1.fastq.gz $path/trimmed-c.2.fastq.gz
     if $remove
     then
@@ -443,10 +444,10 @@ then
     mkdir -p $path"/cluster_stats"
     # Cluster filtering
     (blr filterclusters \
-        -f $file_name".sort.tag.rmdup.x2.filt.bam" \
         -M 260 \
+        -s $path"/cluster_stats/x2.stats" \
         $file_name".sort.tag.rmdup.x2.bam" \
-        $path"/cluster_stats/x2.stats") 2>>$rmdup_logfile
+        $file_name".sort.tag.rmdup.x2.filt.bam") 2>>$rmdup_logfile
 
     printf "`date`"'\tCluster filtering done\n'
     printf "`date`"'\tFastq generation\n'

@@ -35,7 +35,7 @@ rule extract_barcodes:
         # BDHVBDVHBDVHBDVH
         "blr extractbarcode"
         " {input.r1_fastq} {input.r2_fastq}"
-        " {output.r1_fastq} {output.r2_fastq}"
+        " -o1 {output.r1_fastq} -o2 {output.r2_fastq}"
         " 2> {log}"
 
 
