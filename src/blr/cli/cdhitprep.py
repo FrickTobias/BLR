@@ -6,7 +6,9 @@ import sys
 import os
 import logging
 
-import blr.utils as BLR
+import dnaio
+from collections import defaultdict
+from itertools import product
 
 logger = logging.getLogger(__name__)
 
@@ -14,92 +16,91 @@ logger = logging.getLogger(__name__)
 def main(args):
     """Takes a fastq file barcode sequences in the header and writes a barcode fasta file with only unique entries. """
 
-    #
-    # Filtering
-    #
-    if not args.filter == 1:
-        logger.info(f'Filtering barcodes with less than {args.filter} reads')
-
-    #
-    # Data processing
-    #
+    logger.info(f'Filtering barcodes with less than {args.filter} reads')
 
     # Reading file and building initial bc dict with read counts
-    bc_dict = dict()
-    generator = BLR.FileReader(args.input_fastq)
-    for read in generator.fastqReader():
-        bc = read.header.split()[0].split('_')[-1]
-        if bc in bc_dict:
-            bc_dict[bc] += 1
-        else:
-            bc_dict[bc] = 1
-    generator.close()
+    barcode_counts = defaultdict(int)
+    separator = "_" if not args.space_separation else " "
+    with dnaio.open(args.input_fastq, fileformat="fastq", mode="r") as reader:
+        for read in reader:
+            barcode_sequence = read.name.split()[0].split(separator)[-1]
+            barcode_counts[barcode_sequence] += 1
 
     # Indexing mode output writing
-    bc_written = int()
     if args.index:
-        # Make directory to put indexing files in
-        index_dict, not_ATGC_index = reduceComplexity(bc_dict, args.index)
+
+        # Get barcode counts for each index of length=args.index.
+        indexed_barcode_count, not_atcg_index = reduce_complexity(barcode_counts, index_size=args.index)
+
+        # Make directory to put indexing files in unless already present
         try:
             os.mkdir(args.output_fasta)
         except FileExistsError:
             pass
 
         # Write one file per index
-        for index in index_dict.keys():
-            bc_id = int()
-            output = args.output_fasta + '/' + str(index) + '.fa'
-            with open(output, 'w') as openout:
-                for barcode, read_count in index_dict[index].items():
-                    if read_count < args.filter: continue
-                    bc_id += 1
-                    openout.write('>' + str(bc_id) + ':' + str(read_count) + ':' + str(barcode) + '\n' + str(barcode) + '\n')
-                    bc_written += 1
+        for index_sequence in indexed_barcode_count.keys():
+            output = f'{args.output_fasta}/{index_sequence}.fa'
+
+            logger.info(f'Writing output to {output}')
+
+            with dnaio.open(output, fileformat="fasta", mode='w') as openout:
+                for bc_id, (barcode, read_count) in enumerate(indexed_barcode_count[index_sequence].items(), start=1):
+                    if read_count < args.filter:
+                        continue
+
+                    fasta_name = f'>{bc_id}:{read_count}:{barcode}'
+                    fasta_entry = dnaio.Sequence(name=fasta_name, sequence=barcode)
+                    openout.write(fasta_entry)
 
     # Non-indexing mode output writing
     else:
-        bc_id = int()
-        output = args.output_fasta
-        with open(output, 'w') as openout:
-            for barcode, read_count in bc_dict.items():
-                if read_count < args.filter: continue
-                bc_id += 1
-                openout.write('>' + str(bc_id) + ':' + str(read_count) + ':' + str(barcode) + '\n' + str(barcode) + '\n')
-                bc_written += 1
+        # Check if file format matches fasta
+        if any(args.output_fasta.endswith(extension) for extension in ['.fa', '.fasta']):
+            output = args.output_fasta
+        else:
+            output = f'{args.output_fasta}.fasta'
+
+        logger.info(f'Writing output to {output}')
+
+        # Write all output to one file.
+        with dnaio.open(output, fileformat="fasta", mode="w") as openout:
+            for bc_id, (barcode, read_count) in enumerate(barcode_counts.items(), start=1):
+                if read_count < args.filter:
+                    continue
+
+                fasta_name = f'>{bc_id}:{read_count}:{barcode}'
+                fasta_entry = dnaio.Sequence(name=fasta_name, sequence=barcode)
+                openout.write(fasta_entry)
 
     # Reporting
-    logger.info(f'Unique BC count in input:\t{len(bc_dict.keys())}')
-    logger.info(f'Unique BC count in output:\t{bc_written}')
+    logger.info(f'Unique BC count in input:\t{len(barcode_counts)}')
     if args.index:
-        logger.info(f'BC count where N was in index (Omitted from tot. BC count):\t{not_ATGC_index}')
+        logger.info(f'BC count where N was in index (Omitted from tot. BC count):\t{not_atcg_index}')
     logger.info("Finished")
 
 
-def reduceComplexity(bc_dict, index):
-    """ Uses r first bases as indexes and divides files accordingly."""
+def reduce_complexity(barcode_counts, index_size=1):
+    """
+    Uses first bases as indexes and divides files accordingly to reduce complexity.
+    :param barcode_counts: Dictionary containing barcode sequences as key and counts as values
+    :param index_size: Number of bases to use for complexity reduction. Reduction is proportional to 4^(index_size)
+    """
 
     # Generate dict with possibilities indexes
-    bases_list = ['A','T','C','G']
-    index_dict = {'':dict()}
-    not_ATGC_index = int()
+    indeces = product('ATCG', repeat=index_size)
+    indexed_barcode_count = {''.join(index): dict() for index in indeces}
 
-    # Repeat for lenth of i
-    for i in range(index):
-        # Extend every key...
-        for key in index_dict.copy().keys():
-            # ... with one of every base
-            for base in bases_list:
-                index_dict[key+base] = dict()
-            # Remove non-extended key
-            del index_dict[key]
+    not_atcg_index = int()
 
     # Classify reads into indexes
-    for barcode, count in bc_dict.items():
-        try: index_dict[barcode[:index]][barcode] = count
+    for barcode, count in barcode_counts.items():
+        try:
+            indexed_barcode_count[barcode[:index_size]][barcode] = count
         except KeyError:
-            not_ATGC_index += 1
+            not_atcg_index += 1
 
-    return index_dict, not_ATGC_index
+    return indexed_barcode_count, not_atcg_index
 
 
 def add_arguments(parser):
@@ -111,7 +112,7 @@ def add_arguments(parser):
 
     parser.add_argument("-f", "--filter", type=int, default=1,
                         help="Filter file for minimum amount of read pairs. DEFAULT: 1")
-    parser.add_argument("-i", "--index", type=int, help="Divide BC sequences into descrete files due to their (-i) "
-                                                        "first bases. DEFAULT: None")
+    parser.add_argument("-i", "--index", type=int, default=None, help="Divide BC sequences into descrete files due "
+                                                                      "to their (-i) first bases. DEFAULT: None")
     parser.add_argument("-s", "--space_separation", action="store_true", help='If BC is separated by <space> ( ) '
                                                                               'instead of <underline> (_)')
