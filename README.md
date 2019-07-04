@@ -4,7 +4,7 @@
 
 The blr analysis is currently under development.
 
-## Useage
+## Usage
 
     bash BLR_automation [options] <read1> <read2> <output>
 
