@@ -4,7 +4,7 @@ Takes a fastq file barcode sequences in the header and writes a barcode fasta fi
 
 import pysam
 import logging
-import time
+import re
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
@@ -41,9 +41,12 @@ def main(args):
     logger.info(f'Finished')
 
 
-def process_clusters(input_file, skip_nonclust=False):
+def process_clusters(clstr_file, skip_nonclust=False):
     """
-    Builds bc => bc_cluster dict (bc_cluster is given as the consensus sequence).
+    Builds and returns a dictionary of barcode sequences which within the same cluster point to a
+    common cluster id number.
+    :param clstr_file: open input .clstr file from cdhit
+    :param skip_nonclust: boolean.
     """
 
     # For first loop
@@ -52,21 +55,26 @@ def process_clusters(input_file, skip_nonclust=False):
     # Reads cluster file and saves as dict
     cluster_dict = dict()
     cluster_id = int()
-    for line in tqdm(input_file, desc="Reading .clstr"):
+
+    # Assumes lines in format: '0       20nt, >4:1:AACAGTTCTAAATGTGTACA... *'
+    # Extracts barcode with letters A,T,C,G of length 18-22 bp between ':' and '...'.
+    pattern = re.compile(r":([ATCG]{18,22})...")
+
+    for line in tqdm(clstr_file, desc="Reading .clstr"):
 
         # Reports cluster to master dict and start new cluster instance
         if line.startswith('>Cluster'):
 
             # If non-clustered sequences are to be omitted, removes if only one sequence makes out the cluster
             if skip_nonclust and seqs_in_cluster < 2:
-                del cluster_dict[current_key]
+                del cluster_dict[cluster_sequence]
             seqs_in_cluster = 0
 
             cluster_id += 1
-            current_value = cluster_id
+            current_id = cluster_id
         else:
-            current_key = line.split()[2].lstrip('>').rstrip('...').split(':')[2]
-            cluster_dict[current_key] = current_value
+            cluster_sequence = pattern.search(line).group(1)
+            cluster_dict[cluster_sequence] = current_id
             seqs_in_cluster += 1
 
     return cluster_dict
