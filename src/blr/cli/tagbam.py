@@ -1,5 +1,6 @@
 """
-Takes a fastq file barcode sequences in the header and writes a barcode fasta file with only unique entries.
+Merges a BAM file and cdhit .clster file into an output BAM file which
+contains cluster id and barcode sequence under specified BAM tags.
 """
 
 import pysam
@@ -16,7 +17,7 @@ def main(args):
     logger.info(f'Starting analysis')
 
     with open(args.input_clstr, "r") as clstr_file:
-        cluster_dict = process_clusters(clstr_file, skip_nonclust=args.skip_nonclust)
+        cluster_dict = process_clusters(clstr_file)
 
     # Read bam files and translate bc seq to BC cluster ID + write to out
     reads_with_non_clustered_bc = int()
@@ -33,24 +34,21 @@ def main(args):
                 bc_id = cluster_dict[read_bc]
 
                 # Stores as string, makes duplicate removal possible. Can do it as integer as well.
-                read.set_tag('BC', str(bc_id), value_type='Z')
-                read.query_name = f'{read.query_name}_BC:Z:{bc_id}'
-
+                read.set_tag(args.barcode_cluster_tag, str(bc_id), value_type='Z')
+                read.query_name = f'{read.query_name}_{args.barcode_cluster_tag}:Z:{bc_id}'
             out.write(read)
 
+    if reads_with_non_clustered_bc:
+        logger.info(f'Number of reads not clustered: {reads_with_non_clustered_bc:,}')
     logger.info(f'Finished')
 
 
-def process_clusters(clstr_file, skip_nonclust=False):
+def process_clusters(clstr_file):
     """
     Builds and returns a dictionary of barcode sequences which within the same cluster point to a
     common cluster id number.
     :param clstr_file: open input .clstr file from cdhit
-    :param skip_nonclust: boolean.
     """
-
-    # For first loop
-    seqs_in_cluster = 2 if skip_nonclust else int()
 
     # Reads cluster file and saves as dict
     cluster_dict = dict()
@@ -64,25 +62,22 @@ def process_clusters(clstr_file, skip_nonclust=False):
 
         # Reports cluster to master dict and start new cluster instance
         if line.startswith('>Cluster'):
-
-            # If non-clustered sequences are to be omitted, removes if only one sequence makes out the cluster
-            if skip_nonclust and seqs_in_cluster < 2:
-                del cluster_dict[cluster_sequence]
-            seqs_in_cluster = 0
-
             cluster_id += 1
-            current_id = cluster_id
         else:
             cluster_sequence = pattern.search(line).group(1)
-            cluster_dict[cluster_sequence] = current_id
-            seqs_in_cluster += 1
+            cluster_dict[cluster_sequence] = cluster_id
 
     return cluster_dict
 
 
 def add_arguments(parser):
-    parser.add_argument("input_mapped_bam", help=".bam file with mapped reads which is to be tagged with barcode id:s.")
-    parser.add_argument("input_clstr", help=".clstr file from cdhit clustering.")
-    parser.add_argument("output_tagged_bam", help=".bam file with barcode cluster id in the bc tag.")
-    parser.add_argument("-s", "--skip_nonclust", action="store_true", help="Does not give cluster ID:s to clusters "
-                                                                           "made out by only one sequence.")
+    parser.add_argument("input_mapped_bam", metavar="<INPUT_BAM>",
+                        help=".bam file with mapped reads which is to be tagged with barcode id:s.")
+    parser.add_argument("input_clstr",  metavar="<INPUT_CLSTR>",
+                        help=".clstr file from cdhit clustering.")
+    parser.add_argument("output_tagged_bam",  metavar="<OUTPUT_BAM>",
+                        help=".bam file with barcode cluster id in the bc tag.")
+    parser.add_argument("-bc", "--barcode-cluster-tag", metavar="<STRING>", type=str, default="BX",
+                        help="Bam file tag where barcode cluster id is stored. 10x genomics longranger output "
+                             "uses 'BX' for their error corrected barcodes. DEFAULT: BX")
+
