@@ -1,11 +1,12 @@
 """
-Takes a fastq file barcode sequences in the header and writes a barcode fasta file with only unique entries.
+Merges a BAM file and cdhit .clster file into an output BAM file which
+contains cluster id and barcode sequence under specified BAM tags.
 """
 
 import pysam
 import logging
-
-import blr.utils as BLR
+import re
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -13,69 +14,70 @@ logger = logging.getLogger(__name__)
 def main(args):
 
     # Generate dict with bc => bc_cluster consensus sequence
-    logger.info("Starting analysis")
-    clstr_generator = BLR.FileReader(args.input_clstr)
-    cluster_dict = process_clusters(clstr_generator.fileReader(), args.skip_nonclust)
-    clstr_generator.close()
+    logger.info(f'Starting analysis')
+
+    with open(args.input_clstr, "r") as clstr_file:
+        cluster_dict = process_clusters(clstr_file)
 
     # Read bam files and translate bc seq to BC cluster ID + write to out
-    progress = BLR.ProgressReporter('Reads processed', 1000000)
-    infile = pysam.AlignmentFile(args.input_mapped_bam, 'rb')
-    out = pysam.AlignmentFile(args.output_tagged_bam, 'wb', template=infile)
     reads_with_non_clustered_bc = int()
-    for read in infile.fetch(until_eof=True):
-        read_bc = read.query_name.split()[0].split('_')[-1]
+    with pysam.AlignmentFile(args.input_mapped_bam, 'rb') as infile, \
+            pysam.AlignmentFile(args.output_tagged_bam, 'wb', template=infile) as out:
 
-        # Fetch barcode cluster ID based on barcode sequence
-        if not read_bc in cluster_dict:
-            reads_with_non_clustered_bc += 1
-        else:
-            bc_id = cluster_dict[read_bc]
-            read.set_tag('BC', str(bc_id), value_type='Z')  # Stores as string, makes duplicate removal possible. Can do it as integer as well.
-            read.query_name = (read.query_name + '_BC:Z:' + str(bc_id))
+        for read in tqdm(infile.fetch(until_eof=True), desc="Reading .bam"):
+            read_bc = read.query_name.split()[0].split('_')[-1]
 
-        out.write(read)
-        progress.update()
+            # Fetch barcode cluster ID based on barcode sequence
+            if read_bc not in cluster_dict:
+                reads_with_non_clustered_bc += 1
+            else:
+                bc_id = cluster_dict[read_bc]
 
-    infile.close()
-    out.close()
-    logger.info('Finished')
+                # Stores as string, makes duplicate removal possible. Can do it as integer as well.
+                read.set_tag(args.barcode_cluster_tag, str(bc_id), value_type='Z')
+                read.query_name = f'{read.query_name}_{args.barcode_cluster_tag}:Z:{bc_id}'
+            out.write(read)
+
+    if reads_with_non_clustered_bc:
+        logger.info(f'Number of reads not clustered: {reads_with_non_clustered_bc:,}')
+    logger.info(f'Finished')
 
 
-def process_clusters(openInfile, skip_nonclust):
+def process_clusters(clstr_file):
     """
-    Builds bc => bc_cluster dict (bc_cluster is given as the consensus sequence).
+    Builds and returns a dictionary of barcode sequences which within the same cluster point to a
+    common cluster id number.
+    :param clstr_file: open input .clstr file from cdhit
     """
-
-    # For first loop
-    if skip_nonclust: seqs_in_cluster = 2
 
     # Reads cluster file and saves as dict
     cluster_dict = dict()
-    cluster_ID = int()
-    for line in openInfile:
+    cluster_id = int()
+
+    # Assumes lines in format: '0       20nt, >4:1:AACAGTTCTAAATGTGTACA... *'
+    # Extracts barcode with letters A,T,C,G of length 18-22 bp between ':' and '...'.
+    pattern = re.compile(r":([ATCG]{18,22})...")
+
+    for line in tqdm(clstr_file, desc="Reading .clstr"):
 
         # Reports cluster to master dict and start new cluster instance
-        if line.startswith('>'):
-
-            # If non-clustered sequences are to be omitted, removes if only one sequence makes out the cluster
-            if skip_nonclust and seqs_in_cluster < 2:
-                del cluster_dict[current_key]
-            seqs_in_cluster = 0
-
-            cluster_ID += 1
-            current_value = cluster_ID
+        if line.startswith('>Cluster'):
+            cluster_id += 1
         else:
-            current_key = line.split()[2].lstrip('>').rstrip('...').split(':')[2]
-            cluster_dict[current_key] = current_value
-            seqs_in_cluster +=1
+            cluster_sequence = pattern.search(line).group(1)
+            cluster_dict[cluster_sequence] = cluster_id
 
-    return(cluster_dict)
+    return cluster_dict
 
 
 def add_arguments(parser):
-    parser.add_argument("input_mapped_bam", help=".bam file with mapped reads which is to be tagged with barcode id:s.")
-    parser.add_argument("input_clstr", help=".clstr file from cdhit clustering.")
-    parser.add_argument("output_tagged_bam", help=".bam file with barcode cluster id in the bc tag.")
-    parser.add_argument("-s", "--skip_nonclust", action="store_true", help="Does not give cluster ID:s to clusters "
-                                                                           "made out by only one sequence.")
+    parser.add_argument("input_mapped_bam", metavar="<INPUT_BAM>",
+                        help=".bam file with mapped reads which is to be tagged with barcode id:s.")
+    parser.add_argument("input_clstr",  metavar="<INPUT_CLSTR>",
+                        help=".clstr file from cdhit clustering.")
+    parser.add_argument("output_tagged_bam",  metavar="<OUTPUT_BAM>",
+                        help=".bam file with barcode cluster id in the bc tag.")
+    parser.add_argument("-bc", "--barcode-cluster-tag", metavar="<STRING>", type=str, default="BX",
+                        help="Bam file tag where barcode cluster id is stored. 10x genomics longranger output "
+                             "uses 'BX' for their error corrected barcodes. DEFAULT: BX")
+

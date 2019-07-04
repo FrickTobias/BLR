@@ -94,12 +94,12 @@ def main(args):
 
             # Every time a new chromosome is found, send duplicates for processing (seed_duplicates)
             if not read.reference_name == prev_chromosome:
-                seed_duplicates(duplicate_position_dict=duplicate_position_dict, chromosome=prev_chromosome, force_run=args.force_run, barcode_tag=args.barcode_tag, overlapValues=overlapValues, window=window, duplicates=duplicates, pos_dict=pos_dict)
+                seed_duplicates(duplicate_position_dict=duplicate_position_dict, chromosome=prev_chromosome, force_run=args.force_run, barcode_tag=args.barcode_cluster_tag, overlapValues=overlapValues, window=window, duplicates=duplicates, pos_dict=pos_dict)
                 cache_read_tracker = dict()
                 duplicate_position_dict = dict()
 
             # Send chunk of reads to classification function: two duplicates => duplicate_position_dict
-            for the_only_entry in cache_readpair_tracker.values(): process_readpairs(list_of_start_stop_tuples=the_only_entry, barcode_tag=args.barcode_tag, duplicate_position_dict=duplicate_position_dict, singleton_duplicate_position=singleton_duplicate_position, summaryInstance=summaryInstance)
+            for the_only_entry in cache_readpair_tracker.values(): process_readpairs(list_of_start_stop_tuples=the_only_entry, barcode_tag=args.barcode_cluster_tag, duplicate_position_dict=duplicate_position_dict, singleton_duplicate_position=singleton_duplicate_position, summaryInstance=summaryInstance)
             cache_readpair_tracker = dict()
             cache_readpair_tracker[rp_position_tuple] = list()
             cache_readpair_tracker[rp_position_tuple].append((mate, read))
@@ -107,8 +107,8 @@ def main(args):
             prev_chromosome = read.reference_name
 
     # Takes care of the last chunk of reads
-    for the_only_entry in cache_readpair_tracker.values(): process_readpairs(list_of_start_stop_tuples=the_only_entry, barcode_tag=args.barcode_tag, duplicate_position_dict=duplicate_position_dict, singleton_duplicate_position=singleton_duplicate_position, summaryInstance=summaryInstance)
-    seed_duplicates(duplicate_position_dict=duplicate_position_dict, chromosome=prev_chromosome, force_run=args.force_run, barcode_tag=args.barcode_tag, overlapValues=overlapValues, window=window, duplicates=duplicates, pos_dict=pos_dict)
+    for the_only_entry in cache_readpair_tracker.values(): process_readpairs(list_of_start_stop_tuples=the_only_entry, barcode_tag=args.barcode_cluster_tag, duplicate_position_dict=duplicate_position_dict, singleton_duplicate_position=singleton_duplicate_position, summaryInstance=summaryInstance)
+    seed_duplicates(duplicate_position_dict=duplicate_position_dict, chromosome=prev_chromosome, force_run=args.force_run, barcode_tag=args.barcode_cluster_tag, overlapValues=overlapValues, window=window, duplicates=duplicates, pos_dict=pos_dict)
     duplicate_position_dict = dict()
 
     logger.info(f'Total reads in file:\t{"{:,}".format(tot_read_pair_count)}')
@@ -143,15 +143,15 @@ def main(args):
     infile = pysam.AlignmentFile(args.input_tagged_bam, 'rb')
     out = pysam.AlignmentFile(args.output_bam, 'wb', template=infile)
     for read in infile.fetch(until_eof=True):
-        try:previous_barcode_id = int(read.get_tag(args.barcode_tag))
+        try:previous_barcode_id = int(read.get_tag(args.barcode_cluster_tag))
         except KeyError:
             # If read barcode in merge dict, change tag and header to compensate.
             if not previous_barcode_id in barcode_ID_merge_dict:
                 pass
             else:
                 new_barcode_id = str(barcode_ID_merge_dict[previous_barcode_id])
-                read.set_tag(args.barcode_tag, new_barcode_id, value_type='Z')
-                read.query_name = '_'.join(read.query_name.split('_')[:-1]) + '_@' + args.barcode_tag + ':Z:' + new_barcode_id
+                read.set_tag(args.barcode_cluster_tag, new_barcode_id, value_type='Z')
+                read.query_name = '_'.join(read.query_name.split('_')[:-1]) + '_@' + args.barcode_cluster_tag + ':Z:' + new_barcode_id
 
                 # Option: EXPLICIT MERGE - Write bc seq and new + prev bc ID
                 if args.explicit_merge:
@@ -591,4 +591,6 @@ def add_arguments(parser):
                                                                         "readpairs) is needed for mergin two barcode "
                                                                         "clusters. DEFAULT: 0")
     parser.add_argument("-e", "--explicit_merge", metavar="<FILENAME>", type=str, help="Writes a file with new_bc_id \\t original_bc_seq")
-    parser.add_argument("-bc", "--barcode_tag", metavar="<BARCODE_TAG>", type=str, default='BC', help="Bamfile tag in which the barcode is specified in. DEFAULT: BC")
+    parser.add_argument("-bc", "--barcode-cluster-tag", metavar="<STRING>", type=str, default="BX",
+                        help="Bam file tag where barcode cluster id is stored. 10x genomics longranger output "
+                             "uses 'BX' for their error corrected barcodes. DEFAULT: BX")

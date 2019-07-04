@@ -19,7 +19,7 @@ def main(args):
 
     # Build molecule dictionary used for counting #reads/molecule & #molecules/barcode for filtering of bam file
     with pysam.AlignmentFile(args.x2_bam, "rb") as infile:
-        molecule_dict = build_molecule_dict(pysam_openfile=infile, barcode_tag=args.barcode_tag, window=args.window,
+        molecule_dict = build_molecule_dict(pysam_openfile=infile, barcode_tag=args.barcode_cluster_tag, window=args.window,
                                             min_reads=args.threshold, summary=summary)
 
         summary.tot_reads = infile.mapped + infile.unmapped
@@ -32,12 +32,12 @@ def main(args):
             pysam.AlignmentFile(args.output, "wb", template=openin) as openout:
         logger.info("Writing filtered bam file")
         for read in tqdm(openin.fetch(until_eof=True)):
-            barcode = fetch_bc(pysam_read=read, barcode_tag=args.barcode_tag)
+            barcode = fetch_bc(pysam_read=read, barcode_tag=args.barcode_cluster_tag)
 
             # If barcode is not in all_molecules the barcode does not have enough proximal reads to make a single
             # molecule. If the barcode has more than <max_molecules> molecules, remove it from the read.
             if barcode in molecule_dict and len(molecule_dict[barcode]) > args.max_molecules:
-                read = strip_barcode(pysam_read=read ,barcode_tag=args.barcode_tag)
+                read = strip_barcode(pysam_read=read ,barcode_tag=args.barcode_cluster_tag)
 
                 summary.reads_with_removed_barcode += 1
                 if not barcode in summary.removed_barcodes:
@@ -46,7 +46,7 @@ def main(args):
 
             openout.write(read)
 
-    summary.print_stats(barcode_tag=args.barcode_tag, molecule_dict=molecule_dict)
+    summary.print_stats(barcode_tag=args.barcode_cluster_tag, molecule_dict=molecule_dict)
 
     # Write molecule/barcode file stats
     if args.stats_file:
@@ -287,7 +287,7 @@ class Summary:
             output_file.close()
 
 def add_arguments(parser):
-    parser.add_argument("x2_bam", help=".bam file tagged with BC:Z:<int> tags. Needs to be indexed, sorted & have "
+    parser.add_argument("x2_bam", help=".bam file tagged with BX:Z:<int> tags. Needs to be indexed, sorted & have "
                                        "duplicates removed.")
     parser.add_argument("output", help="Output filtered file.")
 
@@ -297,8 +297,9 @@ def add_arguments(parser):
     parser.add_argument("-w", "--window", metavar="<INTEGER>", type=int, default=30000,
                         help="Window size cutoff for maximum distance in between two reads in one molecule. DEFAULT: "
                              "30000")
-    parser.add_argument("-bc", "--barcode_tag", metavar="<STRING>", type=str, default="BC",
-                        help="Bam file tag where barcode is stored. DEFAULT: BC")
+    parser.add_argument("-bc", "--barcode-cluster-tag", metavar="<STRING>", type=str, default="BX",
+                        help="Bam file tag where barcode cluster id is stored. 10x genomics longranger output "
+                             "uses 'BX' for their error corrected barcodes. DEFAULT: BX")
     parser.add_argument("-s", "--stats_file", metavar="<PREFIX>", type=str,
                         help="Write barcode/molecule statistics files. DEFAULT: None")
     parser.add_argument("-M", "--max_molecules", metavar="<INTEGER>", type=int, default=500,

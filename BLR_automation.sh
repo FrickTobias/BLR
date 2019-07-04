@@ -42,6 +42,10 @@ threshold=0
 start_step=1
 end_step=4
 
+# BAM tags used.
+cluster_tag="BC"    # Used to store barcode cluster id in bam file. 'BX' is 10x genomic default
+sequence_tag="RX"    # Used to store original barcode sequence in bam file. 'RX' is 10x genomic default
+
 # Argparsing
 while getopts "hrh:m:p:i:H:s:e:t:" OPTION
 do
@@ -366,7 +370,8 @@ then
     (blr tagbam \
         $file_name".sort.bam" \
         $path"/"$N_string".clstr" \
-        $file_name".sort.tag.bam" ) 2>$path"/tag_bam.stderr"
+        $file_name".sort.tag.bam" \
+        -bc $cluster_tag) 2>$path"/tag_bam.stderr"
 
     printf "`date`"'\tBam tagging done\n'
 
@@ -406,7 +411,7 @@ then
         M=$path"/picard.log" \
         ASSUME_SORT_ORDER=coordinate \
         REMOVE_DUPLICATES=true \
-        BARCODE_TAG=BC) 2>$rmdup_logfile
+        BARCODE_TAG=$cluster_tag) 2>$rmdup_logfile
 
     printf "`date`"'\tDuplicate removal done\n'
     printf "`date`"'\tBarcode duplicate marking\n'
@@ -431,7 +436,8 @@ then
     # Cluster duplicate merging
     (blr clusterrmdup \
         $file_name".sort.tag.rmdup.mkdup.bam" \
-        $file_name".sort.tag.rmdup.x2.bam") 2>>$rmdup_logfile
+        $file_name".sort.tag.rmdup.x2.bam" \
+        -bc $cluster_tag) 2>>$rmdup_logfile
 
     printf "`date`"'\tCluster merging done\n'
     printf "`date`"'\tIndexing\n'
@@ -446,6 +452,7 @@ then
     (blr filterclusters \
         -M 260 \
         -s $path"/cluster_stats/x2.stats" \
+        -bc $cluster_tag \
         $file_name".sort.tag.rmdup.x2.bam" \
         $file_name".sort.tag.rmdup.x2.filt.bam") 2>>$rmdup_logfile
 
