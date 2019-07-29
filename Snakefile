@@ -1,4 +1,8 @@
 # kate: syntax Python;
+
+# Parameters
+index_nucleotides=3
+
 rule trim_r1_handle:
     "Trim away E handle on R1 5'. Also removes reads shorter than 85 bp."
     output:
@@ -73,3 +77,19 @@ rule final_trim:
         " {input.r1_fastq}"
         " {input.r2_fastq}"
         " > {log}"
+
+# TODO Currently this cannot handle 0 index nucleotides.
+rule cdhitprep:
+    output:
+        directory("{dir}/unique_bc")
+    input:
+        r1_fastq = "{dir}/reads.1.fastq.trimmed.fastq.gz"
+    log:
+        stdout = "{dir}/cdhit_prep.stdout",
+        stderr = "{dir}/cdhit_prep.stderr"
+    shell:
+        "blr cdhitprep "
+        " {input.r1_fastq}"
+        " {output}"
+        " -i {index_nucleotides}"
+        " -f 0 > {log.stdout} 2> {log.stderr}"

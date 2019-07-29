@@ -267,11 +267,7 @@ then
     printf "`date`"'\tBarcode fasta generation\n'
 
     # Barcode extraction
-    blr cdhitprep \
-        $file_name".trimmed.fastq.gz" \
-        $path"/unique_bc" \
-        -i $index_nucleotides\
-        -f 0 >$path"/cdhit_prep.stdout" 2>$path"/cdhit_prep.stderr"
+    snakemake  $path"/unique_bc"
 
     printf "`date`"'\tBarcode fasta generation done\n'
     printf "`date`"'\tBarcode clustering\n'
