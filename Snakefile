@@ -1,7 +1,9 @@
 # kate: syntax Python;
+import itertools
 
 # Parameters
-index_nucleotides=3
+index_nucleotides = 3
+indexes = ["".join(tuple) for tuple in itertools.product("ATCG", repeat=index_nucleotides)]
 
 rule trim_r1_handle:
     "Trim away E handle on R1 5'. Also removes reads shorter than 85 bp."
@@ -81,15 +83,42 @@ rule final_trim:
 # TODO Currently this cannot handle 0 index nucleotides.
 rule cdhitprep:
     output:
-        directory("{dir}/unique_bc")
+        expand("{{dir}}/unique_bc/{sample}.fa", sample=indexes)
     input:
         r1_fastq = "{dir}/reads.1.fastq.trimmed.fastq.gz"
+    params:
+        dir = "{dir}/unique_bc/"
     log:
         stdout = "{dir}/cdhit_prep.stdout",
         stderr = "{dir}/cdhit_prep.stderr"
     shell:
         "blr cdhitprep "
         " {input.r1_fastq}"
-        " {output}"
+        " {params.dir}"
         " -i {index_nucleotides}"
         " -f 0 > {log.stdout} 2> {log.stderr}"
+
+rule barcode_clustering:
+    input:
+       "{dir}/unique_bc/{sample}.fa"
+    output:
+        "{dir}/unique_bc/{sample}.clustered",
+        "{dir}/unique_bc/{sample}.clustered.clstr"
+    threads: 20
+    log: "{dir}/unique_bc/{sample}.clustering.log"
+    params:
+        prefix= lambda wc,output: os.path.splitext(output[1])[0]
+    shell:
+        " (cd-hit-454 "
+        " -i {input} "
+        " -o {params.prefix} "
+        " -T {threads} "
+        " -c 0.9 -gap 100 -g 1 -n 3 -M 0) >> {log}"
+
+rule concat_files:
+    output:
+        "{dir}/barcodes.clstr"
+    input:
+        expand("{{dir}}/unique_bc/{sample}.clustered.clstr", sample=indexes)
+    shell:
+        "cat {input} >> {output}"

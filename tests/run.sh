@@ -6,4 +6,4 @@ set -xeuo pipefail
 rm -rf outdir
 bash BLR_automation.sh testdata/reads.1.fastq.gz testdata/reads.2.fastq.gz outdir
 m=$(samtools view outdir/reads.1.fastq.sort.tag.rmdup.x2.filt.bam | md5sum | cut -f1 -d" ")
-test $m == 40de794e718b9c20f18f1857ec74d4c4
+test $m == 424db26031fa6d874da95ad5f023bbce

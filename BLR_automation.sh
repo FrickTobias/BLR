@@ -267,37 +267,20 @@ then
     printf "`date`"'\tBarcode fasta generation\n'
 
     # Barcode extraction
-    snakemake  $path"/unique_bc"
+    snakemake  $path"/barcodes.clstr"
+
+    ln -s $path"/barcodes.clstr" $path/"$N_string".clstr
 
     printf "`date`"'\tBarcode fasta generation done\n'
     printf "`date`"'\tBarcode clustering\n'
 
     # Non-indexing primer run fix
-    if [[ $index_nucleotides == 0 ]]
-    then
-        mv $path"/unique_bc" $path"/unique_bc.fa"
-        mkdir $path"/unique_bc"
-        mv $path"/unique_bc.fa" $path"/unique_bc/unique_bc.fa"
-    fi
-
-    # Barcode clustering
-    touch $path"/cdhit.log"
-    for file in $path"/unique_bc"/*.fa
-    do
-        printf '\n' >> $cluster_logfile
-        wc -l $file >> $cluster_logfile
-        (cd-hit-454 \
-            -i $file \
-            -o $file'.clustered' \
-            -T $processors \
-            -c 0.9 \
-            -gap 100 \
-            -g 1 \
-            -n 3 \
-            -M 0) >> $path"/cdhit.log"
-    done
-
-    cat $path"/unique_bc/"*".clstr" > $path"/"$N_string".clstr"
+#    if [[ $index_nucleotides == 0 ]]
+#    then
+#        mv $path"/unique_bc" $path"/unique_bc.fa"
+#        mkdir $path"/unique_bc"
+#        mv $path"/unique_bc.fa" $path"/unique_bc/unique_bc.fa"
+#    fi
 
     if $remove
     then
