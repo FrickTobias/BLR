@@ -2,8 +2,8 @@
 import itertools
 
 # Parameters
-index_nucleotides = 3
-indexes = ["".join(tuple) for tuple in itertools.product("ATCG", repeat=index_nucleotides)]
+index_nucleotides = 0
+indexes = ["".join(tuple) for tuple in itertools.product("ATCG", repeat=index_nucleotides)] if index_nucleotides > 0 else ["all"]
 
 rule trim_r1_handle:
     "Trim away E handle on R1 5'. Also removes reads shorter than 85 bp."
@@ -80,23 +80,37 @@ rule final_trim:
         " {input.r2_fastq}"
         " > {log}"
 
-# TODO Currently this cannot handle 0 index nucleotides.
-rule cdhitprep:
-    output:
-        expand("{{dir}}/unique_bc/{sample}.fa", sample=indexes)
-    input:
-        r1_fastq = "{dir}/reads.1.fastq.trimmed.fastq.gz"
-    params:
-        dir = "{dir}/unique_bc/"
-    log:
-        stdout = "{dir}/cdhit_prep.stdout",
-        stderr = "{dir}/cdhit_prep.stderr"
-    shell:
-        "blr cdhitprep "
-        " {input.r1_fastq}"
-        " {params.dir}"
-        " -i {index_nucleotides}"
-        " -f 0 > {log.stdout} 2> {log.stderr}"
+if index_nucleotides == 0:
+    rule cdhitprep:
+        output:
+            "{dir}/unique_bc/all.fa"
+        input:
+            r1_fastq = "{dir}/reads.1.fastq.trimmed.fastq.gz"
+        log:
+            stdout = "{dir}/cdhit_prep.stdout",
+            stderr = "{dir}/cdhit_prep.stderr"
+        shell:
+            "blr cdhitprep "
+            " {input.r1_fastq}"
+            " {output}"
+            " -f 0 > {log.stdout} 2> {log.stderr}"
+else:
+    rule cdhitprep:
+        output:
+            expand("{{dir}}/unique_bc/{sample}.fa", sample=indexes)
+        input:
+            r1_fastq = "{dir}/reads.1.fastq.trimmed.fastq.gz"
+        params:
+            dir = "{dir}/unique_bc/"
+        log:
+            stdout = "{dir}/cdhit_prep.stdout",
+            stderr = "{dir}/cdhit_prep.stderr"
+        shell:
+            "blr cdhitprep "
+            " {input.r1_fastq}"
+            " {params.dir}"
+            " -i {index_nucleotides}"
+            " -f 0 > {log.stdout} 2> {log.stderr}"
 
 rule barcode_clustering:
     input:
