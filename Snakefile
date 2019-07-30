@@ -5,7 +5,7 @@ import itertools
 index_nucleotides = 3
 indexes = ["".join(tuple) for tuple in itertools.product("ATCG", repeat=index_nucleotides)] if index_nucleotides > 0 else ["all"]
 cluster_tag="BC"
-
+heap_space=10
 
 # Currently paths are read from a paths.txt file into a dict, possibly we would want a config file for this.
 paths = {}
@@ -95,7 +95,7 @@ if index_nucleotides == 0:
         output:
             "{dir}/unique_bc/all.fa"
         input:
-            r1_fastq = "{dir}/reads.1.fastq.trimmed.fastq.gz"
+            r1_fastq = "{dir}/trimmed-c.1.fastq.gz"
         log:
             stdout = "{dir}/cdhit_prep.stdout",
             stderr = "{dir}/cdhit_prep.stderr"
@@ -109,7 +109,7 @@ else:
         output:
             expand("{{dir}}/unique_bc/{sample}.fa", sample=indexes)
         input:
-            r1_fastq = "{dir}/reads.1.fastq.trimmed.fastq.gz"
+            r1_fastq = "{dir}/trimmed-c.1.fastq.gz"
         params:
             dir = "{dir}/unique_bc/"
         log:
@@ -151,8 +151,8 @@ rule bowtie2_mapping:
     output:
         bam = "{dir}/mapped.bam"
     input:
-        r1_fastq = "{dir}/reads.1.fastq.trimmed.fastq.gz",
-        r2_fastq = "{dir}/reads.2.fastq.trimmed.fastq.gz"
+        r1_fastq = "{dir}/trimmed-c.1.fastq.gz",
+        r2_fastq = "{dir}/trimmed-c.2.fastq.gz"
     threads: 20
     params:
         reference = paths["bowtie2_reference"]
@@ -201,8 +201,11 @@ rule duplicates_removal:
     log:
         metrics = "{dir}/picard_rmdup_metrics.log",
         stderr = "{dir}/4_rmdup.log"
+    params:
+        picard_command = paths['picard_command'],
+        heap_space=heap_space
     shell:
-        "(picard MarkDuplicates "
+        "({params.picard_command} -Xms{heap_space}g MarkDuplicates "
         " I={input.bam} "
         " O={output.bam} "
         " M={log.metrics} "
@@ -218,8 +221,11 @@ rule duplicates_marking:
     log:
         metrics = "{dir}/picard_mkdup_metrics.log",
         stderr = "{dir}/4_rmdup.log"
+    params:
+        picard_command = paths['picard_command'],
+        heap_space=heap_space
     shell:
-        "(picard MarkDuplicates "
+        "({params.picard_command} -Xms{heap_space}g MarkDuplicates "
         " I={input.bam} "
         " O={output.bam} "
         " M={log.metrics} "
@@ -263,8 +269,11 @@ rule bam_to_fastq:
     input:
         bam = "{dir}/mapped.sorted.tag.rmdup.x2.filt.bam"
     log: "{dir}/picard_samtofastq.log"
+    params:
+        picard_command = paths['picard_command'],
+        heap_space=heap_space
     shell:
-        "(picard SamToFastq "
+        "({params.picard_command} -Xms{heap_space}g SamToFastq "
         " I={input.bam} "
         " FASTQ={output.r1_fastq} "
         " VALIDATION_STRINGENCY=SILENT"
