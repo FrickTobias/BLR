@@ -237,3 +237,21 @@ rule clusterrmdup_and_index:
         " {input.bam}"
         " - "
         " -bc {cluster_tag} 2>> {log} | tee {output.bam} | samtools index - {output.bai} "
+
+rule filterclusters:
+    output:
+        bam = "{dir}/mapped.sorted.tag.rmdup.x2.filt.bam",
+        stat1 = "{dir}/cluster_stats/x2.stats.molecules_per_bc",
+        stat2 = "{dir}/cluster_stats/x2.stats.molecule_stats"
+    input:
+        bam = "{dir}/mapped.sorted.tag.rmdup.x2.bam"
+    log: "{dir}/4_rmdup.log"
+    params:
+        stats = "{dir}/cluster_stats/x2.stats"
+    shell:
+        "(blr filterclusters "
+        " -M 260"
+        " -s {params.stats} "
+        " -bc {cluster_tag} "
+        " {input.bam}"
+        " {output.bam}) 2>> {log}"

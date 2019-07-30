@@ -362,10 +362,10 @@ then
 
     printf '\n4. Duplicate removal\n'
     printf "`date`"'\tDuplicate removal\n'
-    # Remove duplicates within clusters, mark duplicates between clusters, cluster duplicate merging
-    snakemake $path/mapped.sorted.tag.rmdup.x2.bam
+    # Remove duplicates within clusters, mark duplicates between clusters, cluster duplicate merging, cluster filtering
+    snakemake $path/mapped.sorted.tag.rmdup.x2.filt.bam $path/cluster_stats/x2.stats.molecules_per_bc $path/cluster_stats/x2.stats.molecule_stats
 
-    ln -s $path/mapped.sorted.tag.rmdup.x2.bam $file_name".sort.tag.rmdup.x2.bam"
+    ln -s $path/mapped.sorted.tag.rmdup.x2.filt.bam $file_name".sort.tag.rmdup.x2.filt.bam"
     ln -s $path/mapped.sorted.tag.rmdup.x2.bam.bai $file_name".sort.tag.rmdup.x2.bam.bai"
 
     printf "`date`"'\tDuplicate removal done\n'
@@ -382,16 +382,6 @@ then
     printf "`date`"'\tIndexing\n'
     printf "`date`"'\tIndexing done\n'
     printf "`date`"'\tCluster filtering\n'
-
-    mkdir -p $path"/cluster_stats"
-    # Cluster filtering
-    (blr filterclusters \
-        -M 260 \
-        -s $path"/cluster_stats/x2.stats" \
-        -bc $cluster_tag \
-        $file_name".sort.tag.rmdup.x2.bam" \
-        $file_name".sort.tag.rmdup.x2.filt.bam") 2>>$rmdup_logfile
-
     printf "`date`"'\tCluster filtering done\n'
     printf "`date`"'\tFastq generation\n'
 
