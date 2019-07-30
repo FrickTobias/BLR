@@ -4,6 +4,8 @@ import itertools
 # Parameters
 index_nucleotides = 3
 indexes = ["".join(tuple) for tuple in itertools.product("ATCG", repeat=index_nucleotides)] if index_nucleotides > 0 else ["all"]
+cluster_tag="BC"
+
 
 # Currently paths are read from a paths.txt file into a dict, possibly we would want a config file for this.
 paths = {}
@@ -177,3 +179,16 @@ rule sort_bam:
         " {input.bam} "
         " -@ {threads} > {output.bam}"
 
+rule tagbam:
+    output:
+        bam = "{dir}/mapped.sorted.tag.bam"
+    input:
+        bam = "{dir}/mapped.sorted.bam"
+        clstr = "{dir}/barcodes.clstr"
+    log: "{dir}/tag_bam.stderr"
+    shell:
+        "(blr tagbam "
+        " {input.bam} "
+        " {input.clstr}"
+        " {output.bam}"
+        " -bc {cluster_tag}) 2> {log} "

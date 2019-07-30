@@ -317,10 +317,10 @@ then
     printf "`date`"'\tMapping\n'
     printf '\n\n Map stats: .sort.bam\n' >> $map_logfile
 
-    # Mapping & bam conversion, Sorting
-    snakemake $path/mapped.sorted.bam
+    # Mapping & bam conversion, Sorting, Tagging
+    snakemake $path/mapped.sorted.tag.bam
 
-    ln -s $path/mapped.sorted.bam $file_name".sort.bam"
+    ln -s $path/mapped.sorted.tag.bam $file_name".sort.tag.bam"
 
     printf "`date`"'\tMapping done\n'
     printf "`date`"'\tSorting\n'
@@ -332,14 +332,6 @@ then
 
     printf "`date`"'\tSorting done\n'
     printf "`date`"'\tBam tagging\n'
-
-    # Tagging bamfile
-    (blr tagbam \
-        $file_name".sort.bam" \
-        $path"/"$N_string".clstr" \
-        $file_name".sort.tag.bam" \
-        -bc $cluster_tag) 2>$path"/tag_bam.stderr"
-
     printf "`date`"'\tBam tagging done\n'
 
 fi
