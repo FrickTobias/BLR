@@ -362,22 +362,13 @@ then
 
     printf '\n4. Duplicate removal\n'
     printf "`date`"'\tDuplicate removal\n'
+    # Remove duplicates within clusters, mark duplicates between clusters.
+    snakemake $path/mapped.sorted.tag.rmdup.mkdup.bam
 
-    snakemake $path/mapped.sorted.tag.rmdup.bam
-
-    ln -s $path/mapped.sorted.tag.rmdup.bam $file_name".sort.tag.rmdup.bam"
+    ln -s $path/mapped.sorted.tag.rmdup.mkdup.bam $file_name".sort.tag.rmdup.mkdup.bam"
 
     printf "`date`"'\tDuplicate removal done\n'
     printf "`date`"'\tBarcode duplicate marking\n'
-
-    # Cluster duplicate marking
-    ($picard_command MarkDuplicates \
-        I=$file_name".sort.tag.rmdup.bam" \
-        O=$file_name".sort.tag.rmdup.mkdup.bam" \
-        M=$path"/mkdup.log" \
-        ASSUME_SORT_ORDER=coordinate) 2>>$rmdup_logfile
-    cat $path/"/mkdup.log" >> $path"/picard.log"
-    rm $path"/mkdup.log"
 
     if $remove
     then

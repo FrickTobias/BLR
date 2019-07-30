@@ -199,7 +199,7 @@ rule duplicates_removal:
     input:
         bam = "{dir}/mapped.sorted.tag.bam"
     log:
-        metrics = "{dir}/picard_metrics.log",
+        metrics = "{dir}/picard_rmdup_metrics.log",
         stderr = "{dir}/4_rmdup.log"
     shell:
         "(picard MarkDuplicates "
@@ -209,3 +209,19 @@ rule duplicates_removal:
         " ASSUME_SORT_ORDER=coordinate "
         " REMOVE_DUPLICATES=true "
         " BARCODE_TAG={cluster_tag}) 2> {log.stderr} "
+
+rule duplicates_marking:
+    output:
+        bam = "{dir}/mapped.sorted.tag.rmdup.mkdup.bam"
+    input:
+        bam = "{dir}/mapped.sorted.tag.rmdup.bam"
+    log:
+        metrics = "{dir}/picard_mkdup_metrics.log",
+        stderr = "{dir}/4_rmdup.log"
+    shell:
+        "(picard MarkDuplicates "
+        " I={input.bam} "
+        " O={output.bam} "
+        " M={log.metrics} "
+        " ASSUME_SORT_ORDER=coordinate) 2> {log.stderr} "
+
