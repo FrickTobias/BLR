@@ -362,10 +362,11 @@ then
 
     printf '\n4. Duplicate removal\n'
     printf "`date`"'\tDuplicate removal\n'
-    # Remove duplicates within clusters, mark duplicates between clusters.
-    snakemake $path/mapped.sorted.tag.rmdup.mkdup.bam
+    # Remove duplicates within clusters, mark duplicates between clusters, cluster duplicate merging
+    snakemake $path/mapped.sorted.tag.rmdup.x2.bam
 
-    ln -s $path/mapped.sorted.tag.rmdup.mkdup.bam $file_name".sort.tag.rmdup.mkdup.bam"
+    ln -s $path/mapped.sorted.tag.rmdup.x2.bam $file_name".sort.tag.rmdup.x2.bam"
+    ln -s $path/mapped.sorted.tag.rmdup.x2.bam.bai $file_name".sort.tag.rmdup.x2.bam.bai"
 
     printf "`date`"'\tDuplicate removal done\n'
     printf "`date`"'\tBarcode duplicate marking\n'
@@ -377,18 +378,8 @@ then
 
     printf "`date`"'\tBarcode duplicate marking done\n'
     printf "`date`"'\tCluster merging\n'
-
-    # Cluster duplicate merging
-    (blr clusterrmdup \
-        $file_name".sort.tag.rmdup.mkdup.bam" \
-        $file_name".sort.tag.rmdup.x2.bam" \
-        -bc $cluster_tag) 2>>$rmdup_logfile
-
     printf "`date`"'\tCluster merging done\n'
     printf "`date`"'\tIndexing\n'
-
-    samtools index $file_name".sort.tag.rmdup.x2.bam"
-
     printf "`date`"'\tIndexing done\n'
     printf "`date`"'\tCluster filtering\n'
 

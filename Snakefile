@@ -225,3 +225,15 @@ rule duplicates_marking:
         " M={log.metrics} "
         " ASSUME_SORT_ORDER=coordinate) 2> {log.stderr} "
 
+rule clusterrmdup_and_index:
+    output:
+        bam = "{dir}/mapped.sorted.tag.rmdup.x2.bam",
+        bai = "{dir}/mapped.sorted.tag.rmdup.x2.bam.bai"
+    input:
+        bam = "{dir}/mapped.sorted.tag.rmdup.mkdup.bam"
+    log: "{dir}/4_rmdup.log"
+    shell:
+        "blr clusterrmdup "
+        " {input.bam}"
+        " - "
+        " -bc {cluster_tag} 2>> {log} | tee {output.bam} | samtools index - {output.bai} "
