@@ -1,0 +1,5 @@
+index_nucleotides: 3
+heap_space: 90
+cluster_tag: BC    # Used to store barcode cluster id in bam file. 'BX' is 10x genomic default
+sequence_tag: RX    # Used to store original barcode sequence in bam file. 'RX' is 10x genomic default
+paths_file: paths.txt

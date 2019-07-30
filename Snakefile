@@ -1,21 +1,25 @@
-# kate: syntax Python;
+from snakemake.utils import validate
 import itertools
+import os
 
-# Parameters
-index_nucleotides = 3
-indexes = ["".join(tuple) for tuple in itertools.product("ATCG", repeat=index_nucleotides)] if index_nucleotides > 0 else ["all"]
-cluster_tag="BC"
-heap_space=10
+configfile: "config.yaml"
+validate(config, "config.schema.yaml")
 
-# Currently paths are read from a paths.txt file into a dict, possibly we would want a config file for this.
+# Create list of files to be created in cdhitprep
+indexes = ["".join(tuple) for tuple in itertools.product("ATCG", repeat=config["index_nucleotides"])] \
+                if config["index_nucleotides"] > 0 else ["all"]
+
+# Currently paths are read from a paths.txt file into a dict, possibly we would want a
+# config file for this.
 paths = {}
-with open("paths.txt","r") as paths_file:
+with open(config["paths_file"],"r") as paths_file:
     for line in paths_file.readlines():
         name, path = line.strip().split("=")
         paths[name] = path
 
+
 rule trim_r1_handle:
-    "Trim away E handle on R1 5'. Also removes reads shorter than 85 bp."
+    #Trim away E handle on R1 5'. Also removes reads shorter than 85 bp.
     output:
         r1_fastq="{dir}/trimmed-a.1.fastq.gz",
         r2_fastq="{dir}/trimmed-a.2.fastq.gz"
@@ -60,12 +64,11 @@ rule compress:
     shell:
         "pigz < {input} > {output}"
 
+
 rule final_trim:
-    """
-    Cut H1691' + TES sequence from 5' of R1. H1691'=CATGACCTCTTGGAACTGTC, TES=AGATGTGTATAAGAGACAG.
-    Cut 3' TES' sequence from R1 and R2. TES'=CTGTCTCTTATACACATCT
-    Discard untrimmed.
-    """
+    # Cut H1691' + TES sequence from 5' of R1. H1691'=CATGACCTCTTGGAACTGTC, TES=AGATGTGTATAAGAGACAG.
+    # Cut 3' TES' sequence from R1 and R2. TES'=CTGTCTCTTATACACATCT
+    # Discard untrimmed.
     output:
         r1_fastq="{dir}/trimmed-c.1.fastq.gz",
         r2_fastq="{dir}/trimmed-c.2.fastq.gz"
@@ -90,10 +93,9 @@ rule final_trim:
         " > {log}"
 
 # If the number of index nucleotide is 0 only on file will be created.
-# TODO this could be implemented in the cdhitprep script instead of here.
-if index_nucleotides == 0:
+if config["index_nucleotides"] == 0:
     rule cdhitprep:
-        "Create fasta containing aggregates barcode sequences from fastq file headers."
+        # Create fasta containing aggregates barcode sequences from fastq file headers.
         output:
             "{dir}/unique_bc/all.fa"
         input:
@@ -108,7 +110,7 @@ if index_nucleotides == 0:
             " -f 0 > {log.stdout} 2> {log.stderr}"
 else:
     rule cdhitprep:
-        "Create fasta containing aggregates barcode sequences from fastq file headers."
+        # Create fasta containing aggregates barcode sequences from fastq file headers.
         output:
             expand("{{dir}}/unique_bc/{sample}.fa", sample=indexes)
         input:
@@ -122,11 +124,12 @@ else:
             "blr cdhitprep "
             " {input.r1_fastq}"
             " {params.dir}"
-            " -i {index_nucleotides}"
+            " -i {config[index_nucleotides]}"
             " -f 0 > {log.stdout} 2> {log.stderr}"
 
+
 rule barcode_clustering:
-    "Barcode clustering using cd-hit-454"
+    # Barcode clustering using cd-hit-454
     input:
        "{dir}/unique_bc/{sample}.fa"
     output:
@@ -144,7 +147,7 @@ rule barcode_clustering:
         " -c 0.9 -gap 100 -g 1 -n 3 -M 0) >> {log}"
 
 rule concat_files:
-    "Concatenate all the .clstr files into one single file."
+    # Concatenate all the .clstr files into one single file.
     output:
         "{dir}/barcodes.clstr"
     input:
@@ -153,7 +156,7 @@ rule concat_files:
         "cat {input} >> {output}"
 
 rule bowtie2_mapping:
-    "Mapping of trimmed fastq to reference using bowtie2"
+    # Mapping of trimmed fastq to reference using bowtie2
     output:
         bam = "{dir}/mapped.bam"
     input:
@@ -175,7 +178,7 @@ rule bowtie2_mapping:
         "        -bh > {output.bam}) 2> {log}"
 
 rule sort_bam:
-    "Sort bam file using samtools"
+    # Sort bam file using samtools
     output:
         bam = "{dir}/mapped.sorted.bam"
     input:
@@ -187,7 +190,7 @@ rule sort_bam:
         " -@ {threads} > {output.bam}"
 
 rule tagbam:
-    "Add barcode information to bam file using custom script"
+    # Add barcode information to bam file using custom script
     output:
         bam = "{dir}/mapped.sorted.tag.bam"
     input:
@@ -199,10 +202,10 @@ rule tagbam:
         " {input.bam} "
         " {input.clstr}"
         " {output.bam}"
-        " -bc {cluster_tag}) 2> {log} "
+        " -bc {config[cluster_tag]}) 2> {log} "
 
 rule duplicates_removal:
-    "Remove duplicates within barcode clusters using picard."
+    # Remove duplicates within barcode clusters using picard.
     output:
         bam = "{dir}/mapped.sorted.tag.rmdup.bam"
     input:
@@ -212,18 +215,18 @@ rule duplicates_removal:
         stderr = "{dir}/4_rmdup.log"
     params:
         picard_command = paths['picard_command'],
-        heap_space=heap_space
+        heap_space=config["heap_space"]
     shell:
-        "({params.picard_command} -Xms{heap_space}g MarkDuplicates "
+        "({params.picard_command} -Xms{params.heap_space}g MarkDuplicates "
         " I={input.bam} "
         " O={output.bam} "
         " M={log.metrics} "
         " ASSUME_SORT_ORDER=coordinate "
         " REMOVE_DUPLICATES=true "
-        " BARCODE_TAG={cluster_tag}) 2> {log.stderr} "
+        " BARCODE_TAG={config[cluster_tag]}) 2> {log.stderr} "
 
 rule duplicates_marking:
-    "Mark duplicates between barcode clusters using picard"
+    # Mark duplicates between barcode clusters using picard
     output:
         bam = "{dir}/mapped.sorted.tag.rmdup.mkdup.bam"
     input:
@@ -233,16 +236,16 @@ rule duplicates_marking:
         stderr = "{dir}/4_rmdup.log"
     params:
         picard_command = paths['picard_command'],
-        heap_space=heap_space
+        heap_space=config["heap_space"]
     shell:
-        "({params.picard_command} -Xms{heap_space}g MarkDuplicates "
+        "({params.picard_command} -Xms{params.heap_space}g MarkDuplicates "
         " I={input.bam} "
         " O={output.bam} "
         " M={log.metrics} "
         " ASSUME_SORT_ORDER=coordinate) 2> {log.stderr} "
 
 rule clusterrmdup_and_index:
-    "Removes cluster duplicates and indexes output"
+    # Removes cluster duplicates and indexes output
     output:
         bam = "{dir}/mapped.sorted.tag.rmdup.x2.bam",
         bai = "{dir}/mapped.sorted.tag.rmdup.x2.bam.bai"
@@ -253,10 +256,10 @@ rule clusterrmdup_and_index:
         "blr clusterrmdup "
         " {input.bam}"
         " - "
-        " -bc {cluster_tag} 2>> {log} | tee {output.bam} | samtools index - {output.bai} "
+        " -bc {config[cluster_tag]} 2>> {log} | tee {output.bam} | samtools index - {output.bai} "
 
 rule filterclusters:
-    "Filter clusters based on parameters"
+    # Filter clusters based on parameters
     output:
         bam = "{dir}/mapped.sorted.tag.rmdup.x2.filt.bam",
         stat1 = "{dir}/cluster_stats/x2.stats.molecules_per_bc",
@@ -270,12 +273,12 @@ rule filterclusters:
         "(blr filterclusters "
         " -M 260"
         " -s {params.stats} "
-        " -bc {cluster_tag} "
+        " -bc {config[cluster_tag]} "
         " {input.bam}"
         " {output.bam}) 2>> {log}"
 
 rule bam_to_fastq:
-    "Convert final bam file to fastq files for read 1 and 2"
+    # Convert final bam file to fastq files for read 1 and 2
     output:
         r1_fastq = "{dir}/reads.1.final.fastq",
         r2_fastq = "{dir}/reads.2.final.fastq"
@@ -284,16 +287,16 @@ rule bam_to_fastq:
     log: "{dir}/picard_samtofastq.log"
     params:
         picard_command = paths['picard_command'],
-        heap_space=heap_space
+        heap_space=config["heap_space"]
     shell:
-        "({params.picard_command} -Xms{heap_space}g SamToFastq "
+        "({params.picard_command} -Xms{params.heap_space}g SamToFastq "
         " I={input.bam} "
         " FASTQ={output.r1_fastq} "
         " VALIDATION_STRINGENCY=SILENT"
         " SECOND_END_FASTQ={output.r2_fastq}) 2>> {log}"
 
 rule compress_fastq:
-    "Compress fastq files."
+    # Compress fastq files.
     output:
         fastq = "{dir}/{read}.final.fastq.gz"
     input:
