@@ -89,9 +89,11 @@ rule final_trim:
         " {input.r2_fastq}"
         " > {log}"
 
-# TODO add description to new rules.
+# If the number of index nucleotide is 0 only on file will be created.
+# TODO this could be implemented in the cdhitprep script instead of here.
 if index_nucleotides == 0:
     rule cdhitprep:
+        "Create fasta containing aggregates barcode sequences from fastq file headers."
         output:
             "{dir}/unique_bc/all.fa"
         input:
@@ -106,6 +108,7 @@ if index_nucleotides == 0:
             " -f 0 > {log.stdout} 2> {log.stderr}"
 else:
     rule cdhitprep:
+        "Create fasta containing aggregates barcode sequences from fastq file headers."
         output:
             expand("{{dir}}/unique_bc/{sample}.fa", sample=indexes)
         input:
@@ -123,6 +126,7 @@ else:
             " -f 0 > {log.stdout} 2> {log.stderr}"
 
 rule barcode_clustering:
+    "Barcode clustering using cd-hit-454"
     input:
        "{dir}/unique_bc/{sample}.fa"
     output:
@@ -140,6 +144,7 @@ rule barcode_clustering:
         " -c 0.9 -gap 100 -g 1 -n 3 -M 0) >> {log}"
 
 rule concat_files:
+    "Concatenate all the .clstr files into one single file."
     output:
         "{dir}/barcodes.clstr"
     input:
@@ -148,6 +153,7 @@ rule concat_files:
         "cat {input} >> {output}"
 
 rule bowtie2_mapping:
+    "Mapping of trimmed fastq to reference using bowtie2"
     output:
         bam = "{dir}/mapped.bam"
     input:
@@ -169,6 +175,7 @@ rule bowtie2_mapping:
         "        -bh > {output.bam}) 2> {log}"
 
 rule sort_bam:
+    "Sort bam file using samtools"
     output:
         bam = "{dir}/mapped.sorted.bam"
     input:
@@ -180,6 +187,7 @@ rule sort_bam:
         " -@ {threads} > {output.bam}"
 
 rule tagbam:
+    "Add barcode information to bam file using custom script"
     output:
         bam = "{dir}/mapped.sorted.tag.bam"
     input:
@@ -194,6 +202,7 @@ rule tagbam:
         " -bc {cluster_tag}) 2> {log} "
 
 rule duplicates_removal:
+    "Remove duplicates within barcode clusters using picard."
     output:
         bam = "{dir}/mapped.sorted.tag.rmdup.bam"
     input:
@@ -214,6 +223,7 @@ rule duplicates_removal:
         " BARCODE_TAG={cluster_tag}) 2> {log.stderr} "
 
 rule duplicates_marking:
+    "Mark duplicates between barcode clusters using picard"
     output:
         bam = "{dir}/mapped.sorted.tag.rmdup.mkdup.bam"
     input:
@@ -232,6 +242,7 @@ rule duplicates_marking:
         " ASSUME_SORT_ORDER=coordinate) 2> {log.stderr} "
 
 rule clusterrmdup_and_index:
+    "Removes cluster duplicates and indexes output"
     output:
         bam = "{dir}/mapped.sorted.tag.rmdup.x2.bam",
         bai = "{dir}/mapped.sorted.tag.rmdup.x2.bam.bai"
@@ -245,6 +256,7 @@ rule clusterrmdup_and_index:
         " -bc {cluster_tag} 2>> {log} | tee {output.bam} | samtools index - {output.bai} "
 
 rule filterclusters:
+    "Filter clusters based on parameters"
     output:
         bam = "{dir}/mapped.sorted.tag.rmdup.x2.filt.bam",
         stat1 = "{dir}/cluster_stats/x2.stats.molecules_per_bc",
@@ -263,6 +275,7 @@ rule filterclusters:
         " {output.bam}) 2>> {log}"
 
 rule bam_to_fastq:
+    "Convert final bam file to fastq files for read 1 and 2"
     output:
         r1_fastq = "{dir}/reads.1.final.fastq",
         r2_fastq = "{dir}/reads.2.final.fastq"
@@ -280,6 +293,7 @@ rule bam_to_fastq:
         " SECOND_END_FASTQ={output.r2_fastq}) 2>> {log}"
 
 rule compress_fastq:
+    "Compress fastq files."
     output:
         fastq = "{dir}/{read}.final.fastq.gz"
     input:
