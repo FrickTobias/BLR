@@ -317,18 +317,13 @@ then
     printf "`date`"'\tMapping\n'
     printf '\n\n Map stats: .sort.bam\n' >> $map_logfile
 
-    # Mapping & bam conversion
-    snakemake $path/mapped.bam
+    # Mapping & bam conversion, Sorting
+    snakemake $path/mapped.sorted.bam
 
-    ln -s $path/mapped.bam $file_name".bam"
+    ln -s $path/mapped.sorted.bam $file_name".sort.bam"
 
     printf "`date`"'\tMapping done\n'
     printf "`date`"'\tSorting\n'
-
-    # Sorting
-    samtools sort \
-        $file_name".bam" \
-        -@ processors > $file_name".sort.bam"
 
     if $remove
     then

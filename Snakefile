@@ -87,6 +87,7 @@ rule final_trim:
         " {input.r2_fastq}"
         " > {log}"
 
+# TODO add description to new rules.
 if index_nucleotides == 0:
     rule cdhitprep:
         output:
@@ -164,3 +165,15 @@ rule bowtie2_mapping:
         "    samtools view  - "
         "        -@ {threads} "
         "        -bh > {output.bam}) 2> {log}"
+
+rule sort_bam:
+    output:
+        bam = "{dir}/mapped.sorted.bam"
+    input:
+        bam = "{dir}/mapped.bam"
+    threads: 20
+    shell:
+        "samtools sort "
+        " {input.bam} "
+        " -@ {threads} > {output.bam}"
+
