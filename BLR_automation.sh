@@ -363,14 +363,9 @@ then
     printf '\n4. Duplicate removal\n'
     printf "`date`"'\tDuplicate removal\n'
 
-    # Read duplicate removal
-    ($picard_command MarkDuplicates \
-        I=$file_name".sort.tag.bam" \
-        O=$file_name".sort.tag.rmdup.bam" \
-        M=$path"/picard.log" \
-        ASSUME_SORT_ORDER=coordinate \
-        REMOVE_DUPLICATES=true \
-        BARCODE_TAG=$cluster_tag) 2>$rmdup_logfile
+    snakemake $path/mapped.sorted.tag.rmdup.bam
+
+    ln -s $path/mapped.sorted.tag.rmdup.bam $file_name".sort.tag.rmdup.bam"
 
     printf "`date`"'\tDuplicate removal done\n'
     printf "`date`"'\tBarcode duplicate marking\n'

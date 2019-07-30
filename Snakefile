@@ -183,7 +183,7 @@ rule tagbam:
     output:
         bam = "{dir}/mapped.sorted.tag.bam"
     input:
-        bam = "{dir}/mapped.sorted.bam"
+        bam = "{dir}/mapped.sorted.bam",
         clstr = "{dir}/barcodes.clstr"
     log: "{dir}/tag_bam.stderr"
     shell:
@@ -192,3 +192,20 @@ rule tagbam:
         " {input.clstr}"
         " {output.bam}"
         " -bc {cluster_tag}) 2> {log} "
+
+rule duplicates_removal:
+    output:
+        bam = "{dir}/mapped.sorted.tag.rmdup.bam"
+    input:
+        bam = "{dir}/mapped.sorted.tag.bam"
+    log:
+        metrics = "{dir}/picard_metrics.log",
+        stderr = "{dir}/4_rmdup.log"
+    shell:
+        "(picard MarkDuplicates "
+        " I={input.bam} "
+        " O={output.bam} "
+        " M={log.metrics} "
+        " ASSUME_SORT_ORDER=coordinate "
+        " REMOVE_DUPLICATES=true "
+        " BARCODE_TAG={cluster_tag}) 2> {log.stderr} "
