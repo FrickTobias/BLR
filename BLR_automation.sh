@@ -362,11 +362,9 @@ then
 
     printf '\n4. Duplicate removal\n'
     printf "`date`"'\tDuplicate removal\n'
-    # Remove duplicates within clusters, mark duplicates between clusters, cluster duplicate merging, cluster filtering
-    snakemake $path/mapped.sorted.tag.rmdup.x2.filt.bam $path/cluster_stats/x2.stats.molecules_per_bc $path/cluster_stats/x2.stats.molecule_stats
-
-    ln -s $path/mapped.sorted.tag.rmdup.x2.filt.bam $file_name".sort.tag.rmdup.x2.filt.bam"
-    ln -s $path/mapped.sorted.tag.rmdup.x2.bam.bai $file_name".sort.tag.rmdup.x2.bam.bai"
+    # Remove duplicates within clusters, mark duplicates between clusters, cluster duplicate merging,
+    # cluster filtering and fastq generation and compression
+    snakemake $path/reads.1.final.fastq.gz $path/reads.2.final.fastq.gz
 
     printf "`date`"'\tDuplicate removal done\n'
     printf "`date`"'\tBarcode duplicate marking\n'
@@ -384,17 +382,6 @@ then
     printf "`date`"'\tCluster filtering\n'
     printf "`date`"'\tCluster filtering done\n'
     printf "`date`"'\tFastq generation\n'
-
-    # Fastq generation
-    ($picard_command SamToFastq \
-        I=$file_name".sort.tag.rmdup.x2.filt.bam" \
-        FASTQ=$file_name".final.fastq" \
-        VALIDATION_STRINGENCY=SILENT \
-        SECOND_END_FASTQ=$file_name2".final.fastq") 2>>$path/cpicard.log
-
-    pigz $file_name".final.fastq"
-    pigz $file_name2".final.fastq"
-
     printf "`date`"'\tFastq generation done\n'
 
 fi

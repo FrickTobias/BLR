@@ -255,3 +255,26 @@ rule filterclusters:
         " -bc {cluster_tag} "
         " {input.bam}"
         " {output.bam}) 2>> {log}"
+
+rule bam_to_fastq:
+    output:
+        r1_fastq = "{dir}/reads.1.final.fastq",
+        r2_fastq = "{dir}/reads.2.final.fastq"
+    input:
+        bam = "{dir}/mapped.sorted.tag.rmdup.x2.filt.bam"
+    log: "{dir}/picard_samtofastq.log"
+    shell:
+        "(picard SamToFastq "
+        " I={input.bam} "
+        " FASTQ={output.r1_fastq} "
+        " VALIDATION_STRINGENCY=SILENT"
+        " SECOND_END_FASTQ={output.r2_fastq}) 2>> {log}"
+
+rule compress_fastq:
+    output:
+        fastq = "{dir}/{read}.final.fastq.gz"
+    input:
+        fastq = "{dir}/{read}.final.fastq"
+    threads: 20
+    shell:
+        "pigz {input.fastq}"
