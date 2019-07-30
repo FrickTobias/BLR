@@ -2,8 +2,15 @@
 import itertools
 
 # Parameters
-index_nucleotides = 0
+index_nucleotides = 3
 indexes = ["".join(tuple) for tuple in itertools.product("ATCG", repeat=index_nucleotides)] if index_nucleotides > 0 else ["all"]
+
+# Currently paths are read from a paths.txt file into a dict, possibly we would want a config file for this.
+paths = {}
+with open("paths.txt","r") as paths_file:
+    for line in paths_file.readlines():
+        name, path = line.strip().split("=")
+        paths[name] = path
 
 rule trim_r1_handle:
     "Trim away E handle on R1 5'. Also removes reads shorter than 85 bp."
@@ -136,3 +143,24 @@ rule concat_files:
         expand("{{dir}}/unique_bc/{sample}.clustered.clstr", sample=indexes)
     shell:
         "cat {input} >> {output}"
+
+rule bowtie2_mapping:
+    output:
+        bam = "{dir}/mapped.bam"
+    input:
+        r1_fastq = "{dir}/reads.1.fastq.trimmed.fastq.gz",
+        r2_fastq = "{dir}/reads.2.fastq.trimmed.fastq.gz"
+    threads: 20
+    params:
+        reference = paths["bowtie2_reference"]
+    log: "{dir}/bowtie2_mapping.log"
+    shell:
+        " (bowtie2 "
+        "    -1 {input.r1_fastq} "
+        "    -2 {input.r2_fastq} "
+        "    -x {params.reference} "
+        "    --maxins 2000 "
+        "    -p {threads} | "
+        "    samtools view  - "
+        "        -@ {threads} "
+        "        -bh > {output.bam}) 2> {log}"

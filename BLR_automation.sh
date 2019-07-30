@@ -318,16 +318,9 @@ then
     printf '\n\n Map stats: .sort.bam\n' >> $map_logfile
 
     # Mapping & bam conversion
-    (bowtie2 \
-        -1 $file_name".trimmed.fastq.gz" \
-        -2 $file_name2".trimmed.fastq.gz" \
-        -x $bowtie2_reference \
-        --maxins 2000 \
-        -p $processors | \
-        samtools view \
-            - \
-            -@ $processors \
-            -bh > $file_name".bam") 2>$map_logfile
+    snakemake $path/mapped.bam
+
+    ln -s $path/mapped.bam $file_name".bam"
 
     printf "`date`"'\tMapping done\n'
     printf "`date`"'\tSorting\n'
