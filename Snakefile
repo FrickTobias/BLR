@@ -59,8 +59,8 @@ rule extract_barcodes:
 
 
 rule compress:
-    output: "{dir}/unbarcoded.{nr}.fastq.gz"
-    input: "{dir}/unbarcoded.{nr}.fastq"
+    output: "{dir}/{sample}.fastq.gz"
+    input: "{dir}/{sample}.fastq"
     shell:
         "pigz < {input} > {output}"
 
@@ -294,13 +294,3 @@ rule bam_to_fastq:
         " FASTQ={output.r1_fastq} "
         " VALIDATION_STRINGENCY=SILENT"
         " SECOND_END_FASTQ={output.r2_fastq}) 2>> {log}"
-
-rule compress_fastq:
-    # Compress fastq files.
-    output:
-        fastq = "{dir}/{read}.final.fastq.gz"
-    input:
-        fastq = "{dir}/{read}.final.fastq"
-    threads: 20
-    shell:
-        "pigz {input.fastq}"
