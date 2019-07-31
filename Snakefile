@@ -9,14 +9,6 @@ validate(config, "config.schema.yaml")
 indexes = ["".join(tuple) for tuple in itertools.product("ATCG", repeat=config["index_nucleotides"])] \
                 if config["index_nucleotides"] > 0 else ["all"]
 
-# Currently paths are read from a paths.txt file into a dict, possibly we would want a
-# config file for this.
-paths = {}
-with open(config["paths_file"],"r") as paths_file:
-    for line in paths_file.readlines():
-        name, path = line.strip().split("=")
-        paths[name] = path
-
 
 rule trim_r1_handle:
     #Trim away E handle on R1 5'. Also removes reads shorter than 85 bp.
@@ -164,7 +156,7 @@ rule bowtie2_mapping:
         r2_fastq = "{dir}/trimmed-c.2.fastq.gz"
     threads: 20
     params:
-        reference = paths["bowtie2_reference"]
+        reference = config["bowtie2_reference"]
     log: "{dir}/bowtie2_mapping.log"
     shell:
         " (bowtie2 "
@@ -214,7 +206,7 @@ rule duplicates_removal:
         metrics = "{dir}/picard_rmdup_metrics.log",
         stderr = "{dir}/4_rmdup.log"
     params:
-        picard_command = paths['picard_command'],
+        picard_command = config["picard_command"],
         heap_space=config["heap_space"]
     shell:
         "({params.picard_command} -Xms{params.heap_space}g MarkDuplicates "
@@ -235,7 +227,7 @@ rule duplicates_marking:
         metrics = "{dir}/picard_mkdup_metrics.log",
         stderr = "{dir}/4_rmdup.log"
     params:
-        picard_command = paths['picard_command'],
+        picard_command = config["picard_command"],
         heap_space=config["heap_space"]
     shell:
         "({params.picard_command} -Xms{params.heap_space}g MarkDuplicates "
@@ -286,7 +278,7 @@ rule bam_to_fastq:
         bam = "{dir}/mapped.sorted.tag.rmdup.x2.filt.bam"
     log: "{dir}/picard_samtofastq.log"
     params:
-        picard_command = paths['picard_command'],
+        picard_command = config["picard_command"],
         heap_space=config["heap_space"]
     shell:
         "({params.picard_command} -Xms{params.heap_space}g SamToFastq "
