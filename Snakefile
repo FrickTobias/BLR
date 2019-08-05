@@ -148,9 +148,9 @@ rule concat_files:
         "cat {input} >> {output}"
 
 rule bowtie2_mapping:
-    # Mapping of trimmed fastq to reference using bowtie2
+    # Mapping of trimmed fastq to reference using bowtie2 and sorting output using samtools.
     output:
-        bam = "{dir}/mapped.bam"
+        bam = "{dir}/mapped.sorted.bam"
     input:
         r1_fastq = "{dir}/trimmed-c.1.fastq.gz",
         r2_fastq = "{dir}/trimmed-c.2.fastq.gz"
@@ -165,21 +165,9 @@ rule bowtie2_mapping:
         "    -x {params.reference} "
         "    --maxins 2000 "
         "    -p {threads} | "
-        "    samtools view  - "
+        "    samtools sort  - "
         "        -@ {threads} "
-        "        -bh > {output.bam}) 2> {log}"
-
-rule sort_bam:
-    # Sort bam file using samtools
-    output:
-        bam = "{dir}/mapped.sorted.bam"
-    input:
-        bam = "{dir}/mapped.bam"
-    threads: 20
-    shell:
-        "samtools sort "
-        " {input.bam} "
-        " -@ {threads} > {output.bam}"
+        "        -O BAM > {output.bam}) 2> {log}"
 
 rule tagbam:
     # Add barcode information to bam file using custom script
