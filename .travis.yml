@@ -28,7 +28,6 @@ before_install:
   - wget https://export.uppmax.uu.se/uppstore2018173/blr-testdata-0.1.tar.gz
   - tar xf blr-testdata-0.1.tar.gz
   - ln -s blr-testdata-0.1 testdata
-  - printf "bowtie2_reference=%s\npicard_command=picard%s\n" "$PWD/testdata/chr1mini" > paths.txt
 
 install:
   - conda env create -n testenv -f environment.yml

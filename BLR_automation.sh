@@ -267,41 +267,20 @@ then
     printf "`date`"'\tBarcode fasta generation\n'
 
     # Barcode extraction
-    blr cdhitprep \
-        $file_name".trimmed.fastq.gz" \
-        $path"/unique_bc" \
-        -i $index_nucleotides\
-        -f 0 >$path"/cdhit_prep.stdout" 2>$path"/cdhit_prep.stderr"
+    snakemake  $path"/barcodes.clstr"
+
+    ln -s $path"/barcodes.clstr" $path/"$N_string".clstr
 
     printf "`date`"'\tBarcode fasta generation done\n'
     printf "`date`"'\tBarcode clustering\n'
 
     # Non-indexing primer run fix
-    if [[ $index_nucleotides == 0 ]]
-    then
-        mv $path"/unique_bc" $path"/unique_bc.fa"
-        mkdir $path"/unique_bc"
-        mv $path"/unique_bc.fa" $path"/unique_bc/unique_bc.fa"
-    fi
-
-    # Barcode clustering
-    touch $path"/cdhit.log"
-    for file in $path"/unique_bc"/*.fa
-    do
-        printf '\n' >> $cluster_logfile
-        wc -l $file >> $cluster_logfile
-        (cd-hit-454 \
-            -i $file \
-            -o $file'.clustered' \
-            -T $processors \
-            -c 0.9 \
-            -gap 100 \
-            -g 1 \
-            -n 3 \
-            -M 0) >> $path"/cdhit.log"
-    done
-
-    cat $path"/unique_bc/"*".clstr" > $path"/"$N_string".clstr"
+#    if [[ $index_nucleotides == 0 ]]
+#    then
+#        mv $path"/unique_bc" $path"/unique_bc.fa"
+#        mkdir $path"/unique_bc"
+#        mv $path"/unique_bc.fa" $path"/unique_bc/unique_bc.fa"
+#    fi
 
     if $remove
     then
@@ -338,25 +317,13 @@ then
     printf "`date`"'\tMapping\n'
     printf '\n\n Map stats: .sort.bam\n' >> $map_logfile
 
-    # Mapping & bam conversion
-    (bowtie2 \
-        -1 $file_name".trimmed.fastq.gz" \
-        -2 $file_name2".trimmed.fastq.gz" \
-        -x $bowtie2_reference \
-        --maxins 2000 \
-        -p $processors | \
-        samtools view \
-            - \
-            -@ $processors \
-            -bh > $file_name".bam") 2>$map_logfile
+    # Mapping & bam conversion, Sorting, Tagging
+    snakemake $path/mapped.sorted.tag.bam
+
+    ln -s $path/mapped.sorted.tag.bam $file_name".sort.tag.bam"
 
     printf "`date`"'\tMapping done\n'
     printf "`date`"'\tSorting\n'
-
-    # Sorting
-    samtools sort \
-        $file_name".bam" \
-        -@ processors > $file_name".sort.bam"
 
     if $remove
     then
@@ -365,14 +332,6 @@ then
 
     printf "`date`"'\tSorting done\n'
     printf "`date`"'\tBam tagging\n'
-
-    # Tagging bamfile
-    (blr tagbam \
-        $file_name".sort.bam" \
-        $path"/"$N_string".clstr" \
-        $file_name".sort.tag.bam" \
-        -bc $cluster_tag) 2>$path"/tag_bam.stderr"
-
     printf "`date`"'\tBam tagging done\n'
 
 fi
@@ -403,27 +362,12 @@ then
 
     printf '\n4. Duplicate removal\n'
     printf "`date`"'\tDuplicate removal\n'
-
-    # Read duplicate removal
-    ($picard_command MarkDuplicates \
-        I=$file_name".sort.tag.bam" \
-        O=$file_name".sort.tag.rmdup.bam" \
-        M=$path"/picard.log" \
-        ASSUME_SORT_ORDER=coordinate \
-        REMOVE_DUPLICATES=true \
-        BARCODE_TAG=$cluster_tag) 2>$rmdup_logfile
+    # Remove duplicates within clusters, mark duplicates between clusters, cluster duplicate merging,
+    # cluster filtering and fastq generation and compression
+    snakemake $path/reads.1.final.fastq.gz $path/reads.2.final.fastq.gz
 
     printf "`date`"'\tDuplicate removal done\n'
     printf "`date`"'\tBarcode duplicate marking\n'
-
-    # Cluster duplicate marking
-    ($picard_command MarkDuplicates \
-        I=$file_name".sort.tag.rmdup.bam" \
-        O=$file_name".sort.tag.rmdup.mkdup.bam" \
-        M=$path"/mkdup.log" \
-        ASSUME_SORT_ORDER=coordinate) 2>>$rmdup_logfile
-    cat $path/"/mkdup.log" >> $path"/picard.log"
-    rm $path"/mkdup.log"
 
     if $remove
     then
@@ -432,43 +376,12 @@ then
 
     printf "`date`"'\tBarcode duplicate marking done\n'
     printf "`date`"'\tCluster merging\n'
-
-    # Cluster duplicate merging
-    (blr clusterrmdup \
-        $file_name".sort.tag.rmdup.mkdup.bam" \
-        $file_name".sort.tag.rmdup.x2.bam" \
-        -bc $cluster_tag) 2>>$rmdup_logfile
-
     printf "`date`"'\tCluster merging done\n'
     printf "`date`"'\tIndexing\n'
-
-    samtools index $file_name".sort.tag.rmdup.x2.bam"
-
     printf "`date`"'\tIndexing done\n'
     printf "`date`"'\tCluster filtering\n'
-
-    mkdir -p $path"/cluster_stats"
-    # Cluster filtering
-    (blr filterclusters \
-        -M 260 \
-        -s $path"/cluster_stats/x2.stats" \
-        -bc $cluster_tag \
-        $file_name".sort.tag.rmdup.x2.bam" \
-        $file_name".sort.tag.rmdup.x2.filt.bam") 2>>$rmdup_logfile
-
     printf "`date`"'\tCluster filtering done\n'
     printf "`date`"'\tFastq generation\n'
-
-    # Fastq generation
-    ($picard_command SamToFastq \
-        I=$file_name".sort.tag.rmdup.x2.filt.bam" \
-        FASTQ=$file_name".final.fastq" \
-        VALIDATION_STRINGENCY=SILENT \
-        SECOND_END_FASTQ=$file_name2".final.fastq") 2>>$path/cpicard.log
-
-    pigz $file_name".final.fastq"
-    pigz $file_name2".final.fastq"
-
     printf "`date`"'\tFastq generation done\n'
 
 fi
