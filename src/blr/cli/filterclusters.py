@@ -279,7 +279,7 @@ class Summary:
             number_of_molecules = len(molecule_dict[barcode])
             print(f"{number_of_molecules}", file=molecules_per_bc)
             for molecule in (molecule_dict[barcode]):
-                print(f"{molecule.number_of_reads}\t{molecule.length()}\t{barcode}\t{number_of_molecules}\n", file=molecule_stats)
+                print(f"{molecule.number_of_reads}\t{molecule.length()}\t{barcode}\t{number_of_molecules}", file=molecule_stats)
                 
         # Close files
         for output_file in (molecules_per_bc, molecule_stats):
