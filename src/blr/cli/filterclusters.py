@@ -277,7 +277,7 @@ class Summary:
         # Writing molecule-dependant stats
         for barcode in tqdm(molecule_dict):
             number_of_molecules = len(molecule_dict[barcode])
-            print(f"{number_of_molecules}", file=molecules_per_bc)
+            print(number_of_molecules, file=molecules_per_bc)
             for molecule in (molecule_dict[barcode]):
                 print(f"{molecule.number_of_reads}\t{molecule.length()}\t{barcode}\t{number_of_molecules}", file=molecule_stats)
                 
