@@ -6,7 +6,7 @@ configfile: "config.yaml"
 validate(config, "config.schema.yaml")
 
 # Create list of files to be created in cdhitprep
-indexes = ["".join(tuple) for tuple in itertools.product("ATCG", repeat=config["index_nucleotides"])] \
+indexes = sorted(["".join(tuple) for tuple in itertools.product("ATCG", repeat=config["index_nucleotides"])]) \
                 if config["index_nucleotides"] > 0 else ["all"]
 
 # Import rules for trimming fastq files.
@@ -78,9 +78,8 @@ rule concat_files:
         "{dir}/barcodes.clstr"
     input:
         expand("{{dir}}/unique_bc/{sample}.clustered.clstr", sample=indexes)
-    params: "{dir}/unique_bc/*.clstr"
     shell:
-        "cat {params} > {output}" # TEST
+        "cat {input} > {output}"
 
 rule bowtie2_mapping:
     # Mapping of trimmed fastq to reference using bowtie2
