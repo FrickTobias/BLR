@@ -1,7 +1,6 @@
-from snakemake.utils import validate, available_cpu_count
+from snakemake.utils import validate
 import itertools
 import os
-import sys
 
 configfile: "config.yaml"
 validate(config, "config.schema.yaml")
