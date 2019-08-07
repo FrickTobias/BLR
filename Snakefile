@@ -41,36 +41,16 @@ if get_jobs_given() >= 3:
             r2_fastq="{dir}/reads.2.fastq.gz"
         log:
             a="{dir}/trimmed-a.log",
-            b="{dir}/extractbarcode.log",
             c="{dir}/trimmed-c.log"
-        threads: 20
+        threads: int(available_cpu_count()/3)
         shell:
             """
-            cutadapt \
-                 -g ^CAGTTGATCATCAGCAGGTAATCTGG \
-                 -e 0.2 \
-                 --discard-untrimmed \
-                 -j {threads} \
-                 -m 65  \
-                 {input.r1_fastq} \
-                 {input.r2_fastq} \
-                 --interleaved 2> {log.a}  
-             | 
-             blr extractbarcode -
-             | 
-             cutadapt \
-                 -a ^CATGACCTCTTGGAACTGTCAGATGTGTATAAGAGACAG...CTGTCTCTTATACACATCT \ 
-                 -A CTGTCTCTTATACACATCT  \
-                 -e 0.2 \
-                 --discard-untrimmed \
-                 --pair-filter 'first' \
-                 -j {threads} \
-                 -m 25 \
-                 -o {output.r1_fastq} \
-                 -p {output.r2_fastq} \
-                 --interleaved -   \
-                 >  \
-                 {log.c}
+            cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG -e 0.2 --discard-untrimmed -j {threads} \
+                 -m 65 {input.r1_fastq} {input.r2_fastq} --interleaved 2> {log.a} | \
+            blr extractbarcode - | \ 
+            cutadapt -a ^CATGACCTCTTGGAACTGTCAGATGTGTATAAGAGACAG...CTGTCTCTTATACACATCT \
+                 -A CTGTCTCTTATACACATCT -e 0.2  --discard-untrimmed --pair-filter 'first' \
+                 -j {threads} -m 25 -o {output.r1_fastq} -p {output.r2_fastq} --interleaved - >  {log.c}
             """
 
 
