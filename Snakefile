@@ -10,55 +10,8 @@ validate(config, "config.schema.yaml")
 indexes = ["".join(tuple) for tuple in itertools.product("ATCG", repeat=config["index_nucleotides"])] \
                 if config["index_nucleotides"] > 0 else ["all"]
 
-def get_jobs_given():
-    """
-    Get the number of jobs/cores specfied in command.
-    :return: integer
-    """
-    arguments = sys.argv
-    for item in ['-j','--jobs','--cores']:
-        try:
-            index = arguments.index(item)
-        except ValueError:
-            continue
-        return int(arguments[index + 1])
-    return 0
-
-if get_jobs_given() >= 3:
-    include: "rules/trim_pipe.smk"
-else:
-    include: "rules/trim.smk"
-
-
-# if get_jobs_given() >= 3:
-#     # Specify that pipe should be prioritized in this case.
-#     ruleorder: trim_pipe > final_trim
-#
-#     # Perform all trim steps in pipe. Trim away E handle on R1 5'. Also removes reads shorter than 85 bp.
-#     # Extracts barcodes. Cut H1691' + TES sequence from 5' of R1. H1691'=CATGACCTCTTGGAACTGTC, TES=AGATGTGTATAAGAGACAG.
-#     # Cut 3' TES' sequence from R1 and R2. TES'=CTGTCTCTTATACACATCT.
-#     rule trim_pipe:
-#         output:
-#             r1_fastq="{dir}/trimmed-c.1.fastq.gz",
-#             r2_fastq="{dir}/trimmed-c.2.fastq.gz"
-#         input:
-#             r1_fastq="{dir}/reads.1.fastq.gz",
-#             r2_fastq="{dir}/reads.2.fastq.gz"
-#         log:
-#             a="{dir}/trimmed-a.log",
-#             c="{dir}/trimmed-c.log"
-#         threads: int(available_cpu_count()/3)
-#         shell:
-#             """
-#             cutadapt -g ^CAGTTGATCATCAGCAGGTAATCTGG -e 0.2 --discard-untrimmed -j {threads} \
-#                  -m 65 {input.r1_fastq} {input.r2_fastq} --interleaved 2> {log.a} | \
-#             blr extractbarcode - | \
-#             cutadapt -a ^CATGACCTCTTGGAACTGTCAGATGTGTATAAGAGACAG...CTGTCTCTTATACACATCT \
-#                  -A CTGTCTCTTATACACATCT -e 0.2  --discard-untrimmed --pair-filter 'first' \
-#                  -j {threads} -m 25 -o {output.r1_fastq} -p {output.r2_fastq} --interleaved - >  {log.c}
-#             """
-#
-#
+# Import rules for trimming fastq files.
+include: "rules/trim.smk"
 
 rule compress:
     output: "{dir}/{sample}.fastq.gz"
@@ -126,8 +79,9 @@ rule concat_files:
         "{dir}/barcodes.clstr"
     input:
         expand("{{dir}}/unique_bc/{sample}.clustered.clstr", sample=indexes)
+    params: "{dir}/unique_bc/*.clstr"
     shell:
-        "cat {input} >> {output}"
+        "cat {params} > {output}" # TEST
 
 rule bowtie2_mapping:
     # Mapping of trimmed fastq to reference using bowtie2
