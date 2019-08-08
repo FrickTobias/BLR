@@ -161,7 +161,7 @@ rule duplicates_removal:
             M={log.metrics} \
             ASSUME_SORT_ORDER=coordinate \
             REMOVE_DUPLICATES=true \
-            BARCODE_TAG={config[cluster_tag]} 2> {log.stderr} 
+            BARCODE_TAG={config[cluster_tag]} 2>> {log.stderr} 
         """
 
 rule duplicates_marking:
@@ -182,7 +182,7 @@ rule duplicates_marking:
             I={input.bam} \
             O={output.bam} \
             M={log.metrics} \
-            ASSUME_SORT_ORDER=coordinate 2> {log.stderr}  
+            ASSUME_SORT_ORDER=coordinate 2>> {log.stderr}  
         """
 rule clusterrmdup_and_index:
     # Removes cluster duplicates and indexes output
@@ -197,7 +197,7 @@ rule clusterrmdup_and_index:
         blr clusterrmdup \
             {input.bam} \
             - \
-            -bc {config[cluster_tag]} 2> {log} | \
+            -bc {config[cluster_tag]} 2>> {log} | \
         tee {output.bam} | \
         samtools index - {output.bai} 
         """
@@ -220,7 +220,7 @@ rule filterclusters:
             -s {params.stats} \
             -bc {config[cluster_tag]} \
             {input.bam} \
-            {output.bam} 2> {log} 
+            {output.bam} 2>> {log} 
         """
 
 rule bam_to_fastq:
