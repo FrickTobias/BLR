@@ -6,7 +6,7 @@ configfile: "config.yaml"
 validate(config, "config.schema.yaml")
 
 # Create list of files to be created in cdhitprep
-indexes = sorted(["".join(tuple) for tuple in itertools.product("ATCG", repeat=config["index_nucleotides"])]) \
+indexes = sorted(["".join(tup) for tup in itertools.product("ATCG", repeat=config["index_nucleotides"])]) \
                 if config["index_nucleotides"] > 0 else ["all"]
 
 # Import rules for trimming fastq files.
