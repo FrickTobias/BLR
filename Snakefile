@@ -30,10 +30,12 @@ if config["index_nucleotides"] == 0:
             stdout = "{dir}/cdhit_prep.stdout",
             stderr = "{dir}/cdhit_prep.stderr"
         shell:
-            "blr cdhitprep "
-            " {input.r1_fastq}"
-            " {output}"
-            " -f 0 > {log.stdout} 2> {log.stderr}"
+            """
+            blr cdhitprep \
+             {input.r1_fastq} \
+             {output} \
+             -f 0 > {log.stdout} 2> {log.stderr}
+            """
 else:
     rule cdhitprep:
         # Create fasta containing aggregates barcode sequences from fastq file headers.
@@ -47,12 +49,13 @@ else:
             stdout = "{dir}/cdhit_prep.stdout",
             stderr = "{dir}/cdhit_prep.stderr"
         shell:
-            "blr cdhitprep "
-            " {input.r1_fastq}"
-            " {params.dir}"
-            " -i {config[index_nucleotides]}"
-            " -f 0 > {log.stdout} 2> {log.stderr}"
-
+            """
+            blr cdhitprep \
+             {input.r1_fastq} \
+             {params.dir} \
+             -i {config[index_nucleotides]} \
+             -f 0 > {log.stdout} 2> {log.stderr} 
+            """
 
 rule barcode_clustering:
     # Barcode clustering using cd-hit-454
@@ -66,11 +69,17 @@ rule barcode_clustering:
     params:
         prefix= lambda wc,output: os.path.splitext(output[1])[0]
     shell:
-        " (cd-hit-454 "
-        " -i {input} "
-        " -o {params.prefix} "
-        " -T {threads} "
-        " -c 0.9 -gap 100 -g 1 -n 3 -M 0) >> {log}"
+        """
+        cd-hit-454 \
+          -i {input} \
+          -o {params.prefix} \
+          -T {threads} \
+          -c 0.9 \
+          -gap 100 \
+          -g 1 \
+          -n 3 \
+          -M 0 > {log}
+        """
 
 rule concat_files:
     # Concatenate all the .clstr files into one single file.
@@ -93,15 +102,17 @@ rule bowtie2_mapping:
         reference = config["bowtie2_reference"]
     log: "{dir}/bowtie2_mapping.log"
     shell:
-        " (bowtie2 "
-        "    -1 {input.r1_fastq} "
-        "    -2 {input.r2_fastq} "
-        "    -x {params.reference} "
-        "    --maxins 2000 "
-        "    -p {threads} | "
-        "    samtools view  - "
-        "        -@ {threads} "
-        "        -bh > {output.bam}) 2> {log}"
+         """
+         bowtie2 \
+          -1 {input.r1_fastq} \
+          -2 {input.r2_fastq} \
+          -x {params.reference} \
+          --maxins 2000 \
+          -p {threads} 2> {log} | \
+         samtools view  - \
+          -@ {threads} \
+          -bh > {output.bam} 
+         """
 
 rule sort_bam:
     # Sort bam file using samtools
@@ -111,9 +122,7 @@ rule sort_bam:
         bam = "{dir}/mapped.bam"
     threads: 20
     shell:
-        "samtools sort "
-        " {input.bam} "
-        " -@ {threads} > {output.bam}"
+         "samtools sort {input.bam} -@ {threads} > {output.bam} "
 
 rule tagbam:
     # Add barcode information to bam file using custom script
@@ -124,11 +133,13 @@ rule tagbam:
         clstr = "{dir}/barcodes.clstr"
     log: "{dir}/tag_bam.stderr"
     shell:
-        "(blr tagbam "
-        " {input.bam} "
-        " {input.clstr}"
-        " {output.bam}"
-        " -bc {config[cluster_tag]}) 2> {log} "
+        """
+        blr tagbam \
+         {input.bam} \
+         {input.clstr} \
+         {output.bam} \
+         -bc {config[cluster_tag]} 2> {log}
+        """
 
 rule duplicates_removal:
     # Remove duplicates within barcode clusters using picard.
@@ -143,13 +154,15 @@ rule duplicates_removal:
         picard_command = config["picard_command"],
         heap_space=config["heap_space"]
     shell:
-        "({params.picard_command} -Xms{params.heap_space}g MarkDuplicates "
-        " I={input.bam} "
-        " O={output.bam} "
-        " M={log.metrics} "
-        " ASSUME_SORT_ORDER=coordinate "
-        " REMOVE_DUPLICATES=true "
-        " BARCODE_TAG={config[cluster_tag]}) 2> {log.stderr} "
+        """
+        {params.picard_command} -Xms{params.heap_space}g MarkDuplicates \
+         I={input.bam} \
+         O={output.bam} \
+         M={log.metrics} \
+         ASSUME_SORT_ORDER=coordinate \
+         REMOVE_DUPLICATES=true \
+         BARCODE_TAG={config[cluster_tag]} 2> {log.stderr} 
+        """
 
 rule duplicates_marking:
     # Mark duplicates between barcode clusters using picard
@@ -164,12 +177,13 @@ rule duplicates_marking:
         picard_command = config["picard_command"],
         heap_space=config["heap_space"]
     shell:
-        "({params.picard_command} -Xms{params.heap_space}g MarkDuplicates "
-        " I={input.bam} "
-        " O={output.bam} "
-        " M={log.metrics} "
-        " ASSUME_SORT_ORDER=coordinate) 2> {log.stderr} "
-
+        """
+        {params.picard_command} -Xms{params.heap_space}g MarkDuplicates \
+          I={input.bam} \
+          O={output.bam} \
+          M={log.metrics} \
+          ASSUME_SORT_ORDER=coordinate 2> {log.stderr}  
+        """
 rule clusterrmdup_and_index:
     # Removes cluster duplicates and indexes output
     output:
@@ -179,10 +193,14 @@ rule clusterrmdup_and_index:
         bam = "{dir}/mapped.sorted.tag.rmdup.mkdup.bam"
     log: "{dir}/4_rmdup.log"
     shell:
-        "blr clusterrmdup "
-        " {input.bam}"
-        " - "
-        " -bc {config[cluster_tag]} 2>> {log} | tee {output.bam} | samtools index - {output.bai} "
+        """
+        blr clusterrmdup \
+         {input.bam} \
+         - \
+         -bc {config[cluster_tag]} 2> {log} | \
+        tee {output.bam} | \
+        samtools index - {output.bai} 
+        """
 
 rule filterclusters:
     # Filter clusters based on parameters
@@ -196,12 +214,14 @@ rule filterclusters:
     params:
         stats = "{dir}/cluster_stats/x2.stats"
     shell:
-        "(blr filterclusters "
-        " -M 260"
-        " -s {params.stats} "
-        " -bc {config[cluster_tag]} "
-        " {input.bam}"
-        " {output.bam}) 2>> {log}"
+        """
+        blr filterclusters \
+          -M 260 \
+          -s {params.stats} \
+          -bc {config[cluster_tag]} \
+          {input.bam} \
+          {output.bam} 2> {log} 
+        """
 
 rule bam_to_fastq:
     # Convert final bam file to fastq files for read 1 and 2
@@ -215,8 +235,10 @@ rule bam_to_fastq:
         picard_command = config["picard_command"],
         heap_space=config["heap_space"]
     shell:
-        "({params.picard_command} -Xms{params.heap_space}g SamToFastq "
-        " I={input.bam} "
-        " FASTQ={output.r1_fastq} "
-        " VALIDATION_STRINGENCY=SILENT"
-        " SECOND_END_FASTQ={output.r2_fastq}) 2>> {log}"
+        """
+        {params.picard_command} -Xms{params.heap_space}g SamToFastq \
+          I={input.bam} \
+          FASTQ={output.r1_fastq} \
+          VALIDATION_STRINGENCY=SILENT \
+          SECOND_END_FASTQ={output.r2_fastq} 2> {log} 
+        """

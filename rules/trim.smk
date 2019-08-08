@@ -17,17 +17,18 @@ rule trim_r1_handle_pipe:
     log: "{dir}/trimmed-a.log"
     threads: int(available_cpu_count()/3)
     shell:
-        "cutadapt"
-        " -g ^CAGTTGATCATCAGCAGGTAATCTGG"
-        " -e 0.2"
-        " --discard-untrimmed"
-        " -j {threads}"
-        " -m 65"
-        " -o {output.interleaved_fastq}"
-        " --interleaved "
-        " {input.r1_fastq}"
-        " {input.r2_fastq}"
-        " > {log}"
+        """
+        cutadapt \
+         -g ^CAGTTGATCATCAGCAGGTAATCTGG \
+         -e 0.2 \
+         --discard-untrimmed \
+         -j {threads} \
+         -m 65 \
+         -o {output.interleaved_fastq} \
+         --interleaved \
+         {input.r1_fastq} \
+         {input.r2_fastq} > {log} 
+        """
 
 rule extract_barcodes_pipe:
     output:
@@ -36,9 +37,11 @@ rule extract_barcodes_pipe:
         interleaved_fastq="{dir}/trimmed-a.fastq"
     shell:
         # BDHVBDVHBDVHBDVH
-        "blr extractbarcode"
-        " {input.interleaved_fastq}"
-        " -o1 {output.interleaved_fastq}"
+        """
+        blr extractbarcode \
+         -o1 {output.interleaved_fastq} \
+         {input.interleaved_fastq}
+        """
 
 rule final_trim_pipe:
     # Cut H1691' + TES sequence from 5' of R1. H1691'=CATGACCTCTTGGAACTGTC, TES=AGATGTGTATAAGAGACAG.
@@ -52,16 +55,17 @@ rule final_trim_pipe:
     log: "{dir}/trimmed-b.log"
     threads: int(available_cpu_count()/3)
     shell:
-        "cutadapt"
-        " -a ^CATGACCTCTTGGAACTGTCAGATGTGTATAAGAGACAG...CTGTCTCTTATACACATCT "
-        " -A CTGTCTCTTATACACATCT "
-        " -e 0.2"
-        " --discard-untrimmed"
-        " --pair-filter 'first'"
-        " -j {threads}"
-        " -m 25"
-        " -o {output.r1_fastq}"
-        " -p {output.r2_fastq}"
-        " {input.interleaved_fastq}"
-        " --interleaved"
-        " > {log}"
+        """
+        cutadapt \
+          -a ^CATGACCTCTTGGAACTGTCAGATGTGTATAAGAGACAG...CTGTCTCTTATACACATCT \
+          -A CTGTCTCTTATACACATCT \
+          -e 0.2 \
+          --discard-untrimmed \
+          --pair-filter 'first' \
+          -j {threads} \
+          -m 25 \
+          -o {output.r1_fastq} \
+          -p {output.r2_fastq} \
+          --interleaved \
+          {input.interleaved_fastq} > {log} 
+        """
