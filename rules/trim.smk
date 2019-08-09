@@ -1,4 +1,5 @@
 from snakemake.utils import available_cpu_count
+from math import ceil
 
 # Piped trimming of reads, executed if -j/--jobs/--cores is given with number larger
 # then or equal to 3 as there are 3 processes in the pipe. Intermediate fastqs are interleaved.
@@ -15,7 +16,7 @@ rule trim_r1_handle_pipe:
         r1_fastq="{dir}/reads.1.fastq.gz",
         r2_fastq="{dir}/reads.2.fastq.gz"
     log: "{dir}/trimmed-a.log"
-    threads: int(available_cpu_count()/3)
+    threads: ceil((available_cpu_count()-1)/2)
     shell:
         """
         cutadapt \
@@ -53,7 +54,7 @@ rule final_trim_pipe:
     input:
         interleaved_fastq="{dir}/unbarcoded.fastq"
     log: "{dir}/trimmed-b.log"
-    threads: int(available_cpu_count()/3)
+    threads: int((available_cpu_count()-1)/2)
     shell:
         """
         cutadapt \
