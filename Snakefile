@@ -203,3 +203,19 @@ rule bam_to_fastq:
         " I={input.bam}"
         " FASTQ={output.r1_fastq}"
         " SECOND_END_FASTQ={output.r2_fastq} 2>> {log}"
+
+rule call_variants_freebayes:
+    output:
+         vcf = "{dir}/mapped.sorted.tag.rmdup.x2.filt.vcf"
+    input:
+         bam = "{dir}/mapped.sorted.tag.rmdup.x2.filt.bam"
+    log: "{dir}/call_variants_freebayes.log"
+    params:
+        reference = config["bowtie2_reference"] + ".fasta" # I am unsure if this is a good solution, but it works.
+    shell:
+         "freebayes"
+         " -f {params.reference}"
+         " {input.bam} 1> {output.vcf} 2> {log}"
+
+
+
