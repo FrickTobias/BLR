@@ -12,7 +12,7 @@ properties:
   cluster_tag:
     type: string
     description: SAM tag to use for store barcode cluster id in bam file. 'BX' is 10x genomic default
-    default: BC
+    default: BX
   molecule_tag:
     type: string
     description: SAM flag used to store molecule ID, same as 10x default.
