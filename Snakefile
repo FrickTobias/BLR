@@ -167,6 +167,7 @@ rule clusterrmdup_and_index:
     output:
         bam = "{dir}/mapped.sorted.tag.rmdup.x2.bam",
         bai = "{dir}/mapped.sorted.tag.rmdup.x2.bam.bai"
+        merges = "{dir}/barcode-merges.csv"
     input:
         bam = "{dir}/mapped.sorted.tag.rmdup.mkdup.bam"
     log: "{dir}/4_rmdup.log"
@@ -174,6 +175,7 @@ rule clusterrmdup_and_index:
         "blr clusterrmdup"
         " {input.bam}"
         " -"
+        " {output.merges}"
         " -bc {config[cluster_tag]} 2>> {log} |"
         "tee {output.bam} |"
         "samtools index - {output.bai}"
