@@ -114,7 +114,7 @@ def main(args):
                 # Merge file writing
                 if not new_barcode_id in bc_seq_already_written:
                     bc_seq_already_written.add(new_barcode_id)
-                    bc_merge_file.write(f"{previous_barcode_id}\t{new_barcode_id}\n")
+                    bc_merge_file.write(f"{previous_barcode_id},{new_barcode_id}\n")
 
             out.write(read)
 
