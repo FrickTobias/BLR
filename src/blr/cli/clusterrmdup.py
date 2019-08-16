@@ -22,10 +22,8 @@ def main(args):
     chrom_prev = None
     merge_dict = dict()
     with pysam.AlignmentFile(args.input_tagged_bam, "rb") as openin:
-        summary.tot_reads = openin.mapped + openin.unmapped
-        summary.unmapped_reads = openin.unmapped
-        summary.mapped_reads = openin.mapped
-        for read in tqdm(openin.fetch(until_eof=True), desc="Processing reads", total=summary.tot_reads):
+        for read in tqdm(openin.fetch(until_eof=True), desc="Processing reads"):
+            summary.tot_reads += 1
 
             # Wait for mate of read until process
             if not read.query_name in cache_reads:
@@ -79,6 +77,8 @@ def main(args):
                                                                    bc=bc_new)
                 pos_prev = pos_new
                 chrom_prev = chrom_new
+
+        summary.unmapped_reads += (len(cache_reads))
 
         # Last chunk
         if cache_read_pair_tracker.duplicate_read_pair():
@@ -135,6 +135,9 @@ def meet_requirements(read, mate, summary, barcode_tag):
     if read.is_unmapped or mate.is_unmapped:
         if read.is_unmapped != mate.is_unmapped:
             summary.unmapped_mates += 1
+            summary.unmapped_reads += 1
+        else:
+            summary.unmapped_reads += 2
         rp_meet_requirements = False
 
     try:
