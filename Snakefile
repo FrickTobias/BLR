@@ -166,7 +166,7 @@ rule clusterrmdup_and_index:
     # Removes cluster duplicates and indexes output
     output:
         bam = "{dir}/mapped.sorted.tag.rmdup.x2.bam",
-        bai = "{dir}/mapped.sorted.tag.rmdup.x2.bam.bai"
+        bai = "{dir}/mapped.sorted.tag.rmdup.x2.bam.bai",
         merges = "{dir}/barcode-merges.csv"
     input:
         bam = "{dir}/mapped.sorted.tag.rmdup.mkdup.bam"
