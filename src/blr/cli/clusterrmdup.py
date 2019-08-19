@@ -109,7 +109,7 @@ def main(args):
                 new_barcode_id = str(merge_dict[previous_barcode_id])
                 read.set_tag(args.barcode_tag, new_barcode_id, value_type="Z")
                 read.query_name = "_".join(
-                    read.query_name.split("_")[:-1]) + "_@" + args.barcode_tag + ":Z:" + new_barcode_id
+                    read.query_name.split("_", maxsplit=1)[:-1]) + "_" + args.barcode_tag + ":Z:" + new_barcode_id
 
                 # Merge file writing
                 if not new_barcode_id in bc_seq_already_written:
