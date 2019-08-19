@@ -40,7 +40,7 @@ def main(args):
                 chrom_new = read.reference_name
                 summary.reads_analyzed += 2
 
-                pos_new = (read.reference_start, read.reference_end)
+                pos_new = (read.reference_start)
                 rp_pos_tuple = (mate.reference_start, mate.reference_end, read.reference_start, read.reference_end)
 
                 # Save all rp until position is new to know if any are marked as duplicates.
