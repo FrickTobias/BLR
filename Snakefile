@@ -1,4 +1,4 @@
-from snakemake.utils import validate
+from snakemake.utils import validate, WorkflowError
 import itertools
 import os
 
@@ -204,25 +204,33 @@ rule bam_to_fastq:
         " FASTQ={output.r1_fastq}"
         " SECOND_END_FASTQ={output.r2_fastq} 2>> {log}"
 
-rule call_variants_freebayes:
-    output:
-         vcf = "{dir}/mapped.sorted.tag.rmdup.x2.filt.vcf"
-    input:
-         bam = "{dir}/mapped.sorted.tag.rmdup.x2.filt.bam"
-    log: "{dir}/call_variants_freebayes.log"
-    params:
-        reference = config["bowtie2_reference"] + ".fasta" # I am unsure if this is a good solution, but it works.
-    shell:
-         "freebayes"
-         " -f {params.reference}"
-         " {input.bam} 1> {output.vcf} 2> {log}"
+if config['call_variants']:
+    rule call_variants_freebayes:
+        output:
+             vcf = "{dir}/reference.vcf"
+        input:
+             bam = "{dir}/mapped.sorted.tag.rmdup.x2.filt.bam"
+        log: "{dir}/call_variants_freebayes.log"
+        params:
+            reference = config["bowtie2_reference"] + ".fasta" # I am unsure if this is a good solution, but it works.
+        shell:
+             "freebayes"
+             " -f {params.reference}"
+             " {input.bam} 1> {output.vcf} 2> {log}"
+elif os.path.exists(config['reference_variants']):
+    rule link:
+        output: "{dir}/reference.vcf"
+        params: config['reference_variants']
+        shell: "ln -hfs {params} {output}"
+else:
+    raise WorkflowError("Either call_variants must be set to true or path to reference_variants be supplied.")
 
 rule HAPCUT2_extractHAIRS:
     output:
         unlinked = "{dir}/mapped.sorted.tag.rmdup.x2.filt.unlinked"
     input:
         bam = "{dir}/mapped.sorted.tag.rmdup.x2.filt.bam",
-        vcf = "{dir}/mapped.sorted.tag.rmdup.x2.filt.vcf"
+        vcf = "{dir}/reference.vcf"
     log: "{dir}/hapcut2_extracthairs.log"
     shell:
          "{HAPCUT2}/build/extractHAIRS"
@@ -236,7 +244,7 @@ rule HAPCUT2_LinkFragments:
         linked = "{dir}/mapped.sorted.tag.rmdup.x2.filt.linked"
     input:
         bam = "{dir}/mapped.sorted.tag.rmdup.x2.filt.bam",
-        vcf = "{dir}/mapped.sorted.tag.rmdup.x2.filt.vcf",
+        vcf = "{dir}/reference.vcf",
         unlinked = "{dir}/mapped.sorted.tag.rmdup.x2.filt.unlinked"
     log: "{dir}/hapcut2_linkfragments.log"
     shell:
@@ -251,8 +259,8 @@ rule HAPCUT2_phasing:
         phase = "{dir}/mapped.sorted.tag.rmdup.x2.filt.phase",
         phased_vcf = "{dir}/mapped.sorted.tag.rmdup.x2.filt.phase.phased.vcf"
     input:
-        vcf = "{dir}/mapped.sorted.tag.rmdup.x2.filt.vcf",
-        linked = "{dir}/mapped.sorted.tag.rmdup.x2.filt.linked"
+        linked = "{dir}/mapped.sorted.tag.rmdup.x2.filt.linked",
+        vcf = "{dir}/reference.vcf"
     log: "{dir}/hapcut2_phasing.log"
     shell:
          "{HAPCUT2}/build/HAPCUT2"

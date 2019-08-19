@@ -33,3 +33,11 @@ properties:
     type: string
     description: Picard command to be used.
     default: picard
+  call_variants:
+    type: boolean
+    description: Call variants for dataset.
+    default: true
+  reference_variants:
+    type: string
+    description: Path to reference variants
+    default: .
