@@ -19,7 +19,7 @@ rule trimming:
         b = "{dir}/trimmed-b.log"
     threads: 20
     shell:
-        "cutadapt"
+        "cutadapt" #Initial trim
         " -g ^CAGTTGATCATCAGCAGGTAATCTGG"
         " -e 0.2"
         " --discard-untrimmed"
@@ -30,10 +30,10 @@ rule trimming:
         " {input.r1_fastq}"
         " {input.r2_fastq}"
         " 2> {log.a} |"
-        " blr extractbarcode"
+        " blr extractbarcode" #Extract barcodes
         " -"
         " -o1 - |" 
-        " cutadapt"
+        " cutadapt" # Final trim
         " -a ^CATGACCTCTTGGAACTGTCAGATGTGTATAAGAGACAG...CTGTCTCTTATACACATCT"
         " -A CTGTCTCTTATACACATCT"
         " -e 0.2"
