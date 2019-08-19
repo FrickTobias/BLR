@@ -2,7 +2,7 @@
 Rules connected to trimming of fastq files.
 """
 
-rule trimming:
+rule trim:
     # Trim away E handle on R1 5'. Also removes reads shorter than 85 bp.
     # Extract barcode sequence and place in header.
     # Cut H1691' + TES sequence from 5' of R1. H1691'=CATGACCTCTTGGAACTGTC, TES=AGATGTGTATAAGAGACAG.
