@@ -194,36 +194,36 @@ def seed_duplicates(merge_dict, cache_dup_pos, pos_new, bc_new, window):
     :return: updated merge_dict & updated cache_dup_pos
     """
 
-    pos_start_new = min(pos_new)
-    for pos_prev, bc_prev in cache_dup_pos.copy().items():
-        pos_stop_prev = max(pos_prev)
-        if pos_stop_prev + window >= pos_start_new:
-            bc_union = bc_new & bc_prev
+    if len(bc_new) >= 2:
+        pos_start_new = min(pos_new)
+        for pos_prev, bc_prev in cache_dup_pos.copy().items():
+            pos_stop_prev = max(pos_prev)
+            if pos_stop_prev + window >= pos_start_new:
+                bc_union = bc_new & bc_prev
 
-            # If two or more unique bc ID:s are found, add [big_clust_ID] = smallest_clust_ID to merge dict
-            if len(bc_union) >= 2:
+                # If two or more unique bc ID:s are found, add [big_clust_ID] = smallest_clust_ID to merge dict
+                if len(bc_union) >= 2:
 
-                bc_union_sort = sorted(bc_union)
-                bc_union_min = bc_union_sort[0]
-                for bc_other in bc_union_sort[1:]:
+                    bc_union_sort = sorted(bc_union)
+                    bc_union_min = bc_union_sort[0]
+                    for bc_other in bc_union_sort[1:]:
 
-                    # Never add give one key multiple values (connect the prev/new values instead)
-                    if bc_other in merge_dict:
-                        bc_min_prev = find_min_bc(bc_other, merge_dict)
-                        bc_union_real_min = find_min_bc(bc_union_min, merge_dict)
-                        if not bc_min_prev == bc_union_real_min:
-                            if min(bc_union_real_min, bc_min_prev) == bc_union_real_min:
-                                merge_dict[bc_min_prev] = bc_union_real_min
-                            else:
-                                merge_dict[bc_union_real_min] = bc_min_prev
+                        # Never add give one key multiple values (connect the prev/new values instead)
+                        if bc_other in merge_dict:
+                            bc_min_prev = find_min_bc(bc_other, merge_dict)
+                            bc_union_real_min = find_min_bc(bc_union_min, merge_dict)
+                            if not bc_min_prev == bc_union_real_min:
+                                if min(bc_union_real_min, bc_min_prev) == bc_union_real_min:
+                                    merge_dict[bc_min_prev] = bc_union_real_min
+                                else:
+                                    merge_dict[bc_union_real_min] = bc_min_prev
 
-                    # Normal case, just add high_bc_id => min_bc_id
-                    else:
-                        merge_dict[bc_other] = bc_union_min
-        else:
-            del cache_dup_pos[pos_prev]  # remove positions outside of window since pos are sorted
-
-    cache_dup_pos[pos_new] = bc_new
+                        # Normal case, just add high_bc_id => min_bc_id
+                        else:
+                            merge_dict[bc_other] = bc_union_min
+            else:
+                del cache_dup_pos[pos_prev]  # remove positions outside of window since pos are sorted
+        cache_dup_pos[pos_new] = bc_new
 
     return merge_dict, cache_dup_pos
 
