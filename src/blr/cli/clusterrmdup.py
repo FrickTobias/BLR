@@ -297,4 +297,4 @@ def add_arguments(parser):
     parser.add_argument("-bc", "--barcode_tag", metavar="<BARCODE_TAG>", type=str, default="BC",
                         help=".bam file tag in which the barcode is specified in. DEFAULT: BC")
     parser.add_argument("-w", "--window", metavar="<INTEGER>", type=int, default=100000,
-                        help="Window size. Duplicate positions within this distance will be used to find cluster duplicates. ")
+                        help="Window size. Duplicate positions within this distance will be used to find cluster duplicates.")
