@@ -16,7 +16,6 @@ def main(args):
     summary = Summary()
 
     current_cache_rp = dict()
-    cache_read_pair_tracker = CacheReadPairTracker(None, None, None, None, None)
     cache_dup_pos = dict()
     cache_reads = dict()
     chrom_prev = None
@@ -166,8 +165,7 @@ class CacheReadPairTracker():
         self.read_pos_has_duplicates = bool()
         self.mate_pos_has_duplciates = bool()
 
-        if read and mate:
-            self.add_read_pair(read=read, mate=mate, bc=bc)
+        self.add_read_pair(read=read, mate=mate, bc=bc)
 
     def add_read_pair(self, read, mate, bc):
 
