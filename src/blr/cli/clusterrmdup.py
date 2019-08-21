@@ -1,6 +1,12 @@
 """
-Removes barcode cluster duplicates (two different barcode sequences tagging the same original molecule) by merging barcode
-sequences for reads sharing the duplicate positions.
+Removes barcode duplicates (two different barcode sequences origin to the same droplet, tagging the same tagmented long molecule) by merging barcode
+sequences for reads sharing duplicates.
+
+Condition to call barcode duplicate:
+
+Two positions (positions defined as a unique set of read_start, read_stop, mate_start, mate_stop))
+at a maximum of W (--window, default 100kbp, between = max(downstream_pos)-max(downstream_pos)) bp apart
+sharing more than one barcode (share = union(bc_set_pos1, bc_set_pos2)).
 """
 
 import pysam
