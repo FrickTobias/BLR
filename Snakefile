@@ -5,6 +5,8 @@ import os
 configfile: "config.yaml"
 validate(config, "config.schema.yaml")
 
+HAPCUT2="/Users/pontus.hojer/Applications/HapCUT2"
+
 # Create list of files to be created in cdhitprep
 indexes = sorted(["".join(tup) for tup in itertools.product("ATCG", repeat=config["index_nucleotides"])]) \
                 if config["index_nucleotides"] > 0 else ["all"]
