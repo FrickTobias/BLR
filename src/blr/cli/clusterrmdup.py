@@ -247,7 +247,7 @@ def find_min_bc(bc_minimum, merge_dict):
 
 def reduce_several_step_redundancy(merge_dict):
     """
-    Takes translation  dict saved in object and makes sure 5->3, 3->1 becomes 5->1, 3->5
+    Takes translation  dict saved in object and makes sure 5->3, 3->1 becomes 5->1, 3->1
     :param merge_dict: "messy" merge_dict
     :return: "clean" merge_dict
     """
