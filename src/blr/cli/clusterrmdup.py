@@ -295,7 +295,7 @@ class Summary:
 def add_arguments(parser):
     parser.add_argument("input_tagged_bam", help="Sorted .bam file tagged with barcodes (-bc).")
     parser.add_argument("output_bam", help="Sorted .bam file without barcode duplicates.")
-    parser.add_argument("merge_log", help=".csv log file containing all merges done.")
+    parser.add_argument("merge_log", help=".csv log file containing all merges done. File is in format: {old barcode id},{new barcode id}")
     parser.add_argument("-bc", "--barcode_tag", metavar="<BARCODE_TAG>", type=str, default="BC",
                         help=".bam file tag in which the barcode is specified in. DEFAULT: BC")
     parser.add_argument("-w", "--window", metavar="<INTEGER>", type=int, default=100000,
