@@ -151,7 +151,7 @@ def meet_requirements(read, mate, summary, barcode_tag):
     return rp_meet_requirements, bc_new, summary
 
 
-class CacheReadPairTracker():
+class CacheReadPairTracker:
     """
     Stores read pairs and keeps track is reads/mates are marked as duplicate for that set of reads.
     """
@@ -179,7 +179,7 @@ class CacheReadPairTracker():
 
     def duplicate_read_pair(self):
 
-        return True if self.read_pos_has_duplicates and self.mate_pos_has_duplciates else False
+        return self.read_pos_has_duplicates and self.mate_pos_has_duplciates
 
 
 def seed_duplicates(merge_dict, cache_dup_pos, pos_new, bc_new, window):
