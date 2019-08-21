@@ -233,7 +233,7 @@ rule HAPCUT2_extractHAIRS:
         vcf = "{dir}/reference.vcf"
     log: "{dir}/hapcut2_extracthairs.log"
     shell:
-         "{HAPCUT2}/build/extractHAIRS"
+         "config[hapcut2]/build/extractHAIRS"
          " --10X 1"
          " --bam {input.bam}"
          " --VCF {input.vcf}"
@@ -248,7 +248,7 @@ rule HAPCUT2_LinkFragments:
         unlinked = "{dir}/mapped.sorted.tag.rmdup.x2.filt.unlinked"
     log: "{dir}/hapcut2_linkfragments.log"
     shell:
-         "python {HAPCUT2}/utilities/LinkFragments.py"
+         "python config[hapcut2]/utilities/LinkFragments.py"
          " --bam {input.bam}"
          " -v {input.vcf}"
          " --fragments {input.unlinked}"
@@ -263,7 +263,7 @@ rule HAPCUT2_phasing:
         vcf = "{dir}/reference.vcf"
     log: "{dir}/hapcut2_phasing.log"
     shell:
-         "{HAPCUT2}/build/HAPCUT2"
+         "{config[hapcut2]}/build/HAPCUT2"
          " --nf 1"
          " --fragments {input.linked}"
          " --vcf {input.vcf}"

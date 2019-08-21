@@ -33,6 +33,10 @@ properties:
     type: string
     description: Picard command to be used.
     default: picard
+  hapcut2:
+    type: string
+    description: Hapcut2 command to be used.
+    default: .
   call_variants:
     type: boolean
     description: Call variants for dataset.
