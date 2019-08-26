@@ -52,7 +52,7 @@ def main(args):
                 if chrom_new == chrom_prev and pos_new == pos_prev:
 
                     if rp_pos_tuple in current_cache_rp:
-                        current_cache_rp[rp_pos_tuple].add_read_pair(read=read, mate=mate, bc=bc_new)
+                        current_cache_rp[rp_pos_tuple].add_read_pair_and_bc(read=read, mate=mate, bc=bc_new)
                     else:
                         current_cache_rp[rp_pos_tuple] = CacheReadPairTracker(rp_pos_tuple=rp_pos_tuple,
                                                                               chromosome=chrom_new, read=read,
@@ -171,9 +171,9 @@ class CacheReadPairTracker:
         self.read_pos_has_duplicates = bool()
         self.mate_pos_has_duplciates = bool()
 
-        self.add_read_pair(read=read, mate=mate, bc=bc)
+        self.add_read_pair_and_bc(read=read, mate=mate, bc=bc)
 
-    def add_read_pair(self, read, mate, bc):
+    def add_read_pair_and_bc(self, read, mate, bc):
 
         if read.is_duplicate:
             self.read_pos_has_duplicates = True
