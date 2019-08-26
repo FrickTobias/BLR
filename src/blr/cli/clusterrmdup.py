@@ -58,7 +58,7 @@ def main(args):
                                                                               mate=mate, bc=bc_new)
 
                 # New pos tuple => Reset rp cache tracker
-                elif chrom_new == chrom_prev:
+                else:
                     # If duplicates are found, try and find bc duplicates
                     for cache_read_pair_tracker in current_cache_rp.values():
                         if cache_read_pair_tracker.duplicate_read_pair():
@@ -73,13 +73,10 @@ def main(args):
                                                                           chromosome=chrom_new, read=read, mate=mate,
                                                                           bc=bc_new)
 
-                # New chr => reset dup pos cache and rp cache tracker
-                else:
-                    cache_dup_pos = dict()
-                    current_cache_rp = dict()
-                    current_cache_rp[rp_pos_tuple] = CacheReadPairTracker(rp_pos_tuple=rp_pos_tuple,
-                                                                          chromosome=chrom_new, read=read, mate=mate,
-                                                                          bc=bc_new)
+                    # New chr => reset dup pos cache and rp cache tracker
+                    if not chrom_new == chrom_prev:
+                        cache_dup_pos = dict()
+
                 pos_prev = pos_new
                 chrom_prev = chrom_new
 
