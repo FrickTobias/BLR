@@ -1,6 +1,12 @@
 """
-Removes barcode cluster duplicates (two different barcode sequences tagging the same original molecule) by merging barcode
-sequences for reads sharing the duplicate positions.
+Removes barcode duplicates (two different barcode sequences origin to the same droplet, tagging the same tagmented long molecule) by merging barcode
+sequences for reads sharing duplicates.
+
+Condition to call barcode duplicate:
+
+Two positions (positions defined as a unique set of read_start, read_stop, mate_start, mate_stop))
+at a maximum of W (--window, default 100kbp, between = max(downstream_pos)-max(downstream_pos)) bp apart
+sharing more than one barcode (share = union(bc_set_pos1, bc_set_pos2)).
 """
 
 import pysam
@@ -16,8 +22,6 @@ def main(args):
     summary = Summary()
 
     current_cache_rp = dict()
-    cache_read_pair_tracker = CacheReadPairTracker(None, None, None, None, None)
-    cache_dup_pos = dict()
     cache_reads = dict()
     chrom_prev = None
     merge_dict = dict()
@@ -26,7 +30,7 @@ def main(args):
             summary.tot_reads += 1
 
             # Wait for mate of read until process
-            if not read.query_name in cache_reads:
+            if read.query_name not in cache_reads:
                 cache_reads[read.query_name] = read
                 continue
             else:
@@ -40,16 +44,18 @@ def main(args):
                 chrom_new = read.reference_name
                 summary.reads_analyzed += 2
 
-                pos_new = (read.reference_start)
+                pos_new = read.reference_start
                 rp_pos_tuple = (mate.reference_start, mate.reference_end, read.reference_start, read.reference_end)
 
                 # Save all rp until position is new to know if any are marked as duplicates.
                 if chrom_new == chrom_prev and pos_new == pos_prev:
 
                     if rp_pos_tuple in current_cache_rp:
-                        current_cache_rp[rp_pos_tuple].add_read_pair(read=read, mate=mate, bc=bc_new)
+                        current_cache_rp[rp_pos_tuple].add_read_pair_and_bc(read=read, mate=mate, bc=bc_new)
                     else:
-                        current_cache_rp[rp_pos_tuple] = CacheReadPairTracker(rp_pos_tuple=rp_pos_tuple,chromosome=chrom_new, read=read, mate=mate, bc=bc_new)
+                        current_cache_rp[rp_pos_tuple] = CacheReadPairTracker(rp_pos_tuple=rp_pos_tuple,
+                                                                              chromosome=chrom_new, read=read,
+                                                                              mate=mate, bc=bc_new)
 
                 # New pos tuple => Reset rp cache tracker
                 elif chrom_new == chrom_prev:
@@ -57,36 +63,36 @@ def main(args):
                     for cache_read_pair_tracker in current_cache_rp.values():
                         if cache_read_pair_tracker.duplicate_read_pair():
                             summary.reads_at_analyzed_dup_position += len(cache_read_pair_tracker.current_reads) * 2
-                            merge_dict, cache_dup_pos = seed_duplicates(merge_dict=merge_dict, cache_dup_pos=cache_dup_pos,
+                            merge_dict, cache_dup_pos = seed_duplicates(merge_dict=merge_dict,
+                                                                        cache_dup_pos=cache_dup_pos,
                                                                         pos_new=cache_read_pair_tracker.position_tuple_ID,
                                                                         bc_new=cache_read_pair_tracker.barcodes,
                                                                         window=args.window)
                     current_cache_rp = dict()
                     current_cache_rp[rp_pos_tuple] = CacheReadPairTracker(rp_pos_tuple=rp_pos_tuple,
-                                                                   chromosome=chrom_new, read=read, mate=mate,
-                                                                   bc=bc_new)
+                                                                          chromosome=chrom_new, read=read, mate=mate,
+                                                                          bc=bc_new)
 
                 # New chr => reset dup pos cache and rp cache tracker
                 else:
                     cache_dup_pos = dict()
-                    for cache_read_pair_tracker in current_cache_rp.values():
-                        summary.reads_at_analyzed_dup_position += len(cache_read_pair_tracker.current_reads) * 2
                     current_cache_rp = dict()
                     current_cache_rp[rp_pos_tuple] = CacheReadPairTracker(rp_pos_tuple=rp_pos_tuple,
-                                                                   chromosome=chrom_new, read=read, mate=mate,
-                                                                   bc=bc_new)
+                                                                          chromosome=chrom_new, read=read, mate=mate,
+                                                                          bc=bc_new)
                 pos_prev = pos_new
                 chrom_prev = chrom_new
 
         summary.unmapped_reads += (len(cache_reads))
 
         # Last chunk
-        if cache_read_pair_tracker.duplicate_read_pair():
-            summary.reads_at_analyzed_dup_position += len(cache_read_pair_tracker.current_reads) * 2
-            merge_dict, cache_dup_pos = seed_duplicates(merge_dict=merge_dict, cache_dup_pos=cache_dup_pos,
-                                                        pos_new=cache_read_pair_tracker.position_tuple_ID,
-                                                        bc_new=cache_read_pair_tracker.barcodes,
-                                                        window=args.window)
+        for cache_read_pair_tracker in current_cache_rp.values():
+            if cache_read_pair_tracker.duplicate_read_pair():
+                summary.reads_at_analyzed_dup_position += len(cache_read_pair_tracker.current_reads) * 2
+                merge_dict, cache_dup_pos = seed_duplicates(merge_dict=merge_dict, cache_dup_pos=cache_dup_pos,
+                                                            pos_new=cache_read_pair_tracker.position_tuple_ID,
+                                                            bc_new=cache_read_pair_tracker.barcodes,
+                                                            window=args.window)
 
     # Remove several step redundancy (5 -> 3, 3 -> 1) => (5 -> 1, 3 -> 1)
     reduce_several_step_redundancy(merge_dict)
@@ -112,7 +118,7 @@ def main(args):
                     read.query_name.split("_")[:-1]) + "_" + args.barcode_tag + ":Z:" + new_barcode_id
 
                 # Merge file writing
-                if not new_barcode_id in bc_seq_already_written:
+                if new_barcode_id not in bc_seq_already_written:
                     bc_seq_already_written.add(new_barcode_id)
                     bc_merge_file.write(f"{previous_barcode_id},{new_barcode_id}\n")
 
@@ -131,6 +137,7 @@ def meet_requirements(read, mate, summary, barcode_tag):
     """
 
     rp_meet_requirements = True
+    bc_new = None
 
     if read.is_unmapped or mate.is_unmapped:
         if read.is_unmapped != mate.is_unmapped:
@@ -149,7 +156,7 @@ def meet_requirements(read, mate, summary, barcode_tag):
     return rp_meet_requirements, bc_new, summary
 
 
-class CacheReadPairTracker():
+class CacheReadPairTracker:
     """
     Stores read pairs and keeps track is reads/mates are marked as duplicate for that set of reads.
     """
@@ -163,10 +170,9 @@ class CacheReadPairTracker():
         self.read_pos_has_duplicates = bool()
         self.mate_pos_has_duplciates = bool()
 
-        if read and mate:
-            self.add_read_pair(read=read, mate=mate, bc=bc)
+        self.add_read_pair_and_bc(read=read, mate=mate, bc=bc)
 
-    def add_read_pair(self, read, mate, bc):
+    def add_read_pair_and_bc(self, read, mate, bc):
 
         if read.is_duplicate:
             self.read_pos_has_duplicates = True
@@ -178,7 +184,7 @@ class CacheReadPairTracker():
 
     def duplicate_read_pair(self):
 
-        return True if self.read_pos_has_duplicates and self.mate_pos_has_duplciates else False
+        return self.read_pos_has_duplicates and self.mate_pos_has_duplciates
 
 
 def seed_duplicates(merge_dict, cache_dup_pos, pos_new, bc_new, window):
@@ -246,7 +252,7 @@ def find_min_bc(bc_minimum, merge_dict):
 
 def reduce_several_step_redundancy(merge_dict):
     """
-    Takes translation  dict saved in object and makes sure 5->3, 3->1 becomes 5->1, 3->5
+    Takes translation  dict saved in object and makes sure 5->3, 3->1 becomes 5->1, 3->1
     :param merge_dict: "messy" merge_dict
     :return: "clean" merge_dict
     """
@@ -290,16 +296,11 @@ class Summary:
 
 
 def add_arguments(parser):
-    parser.add_argument("input_tagged_bam", help=".bam file tagged with RG tags and duplicates marked (not taking "
-                                                 "cluster id into account).")
-    parser.add_argument("output_bam", help=".bam file without cluster duplicates")
-    parser.add_argument("merge_log", help=".tsv log file containing all merges done.")
-    parser.add_argument("-t", "--threshold", metavar="<INTEGER>", type=int, default=0,
-                        help="Threshold for how many additional overlaps "
-                             "(other than four exact positions from two "
-                             "readpairs) is needed for mergin two barcode "
-                             "clusters. DEFAULT: 0")
+    parser.add_argument("input_tagged_bam", help="Sorted .bam file tagged with barcodes (-bc).")
+    parser.add_argument("output_bam", help="Sorted .bam file without barcode duplicates.")
+    parser.add_argument("merge_log",
+                        help=".csv log file containing all merges done. File is in format: {old barcode id},{new barcode id}")
     parser.add_argument("-bc", "--barcode_tag", metavar="<BARCODE_TAG>", type=str, default="BC",
-                        help="Bamfile tag in which the barcode is specified in. DEFAULT: BC")
+                        help=".bam file tag in which the barcode is specified in. DEFAULT: BC")
     parser.add_argument("-w", "--window", metavar="<INTEGER>", type=int, default=100000,
-                        help="Window size. DEFAULT: 100000")
+                        help="Window size. Duplicate positions within this distance will be used to find cluster duplicates.")
