@@ -138,6 +138,7 @@ def meet_requirements(read, mate, summary, barcode_tag):
     """
 
     rp_meet_requirements = True
+    bc_new = None
 
     if read.is_unmapped or mate.is_unmapped:
         if read.is_unmapped != mate.is_unmapped:
