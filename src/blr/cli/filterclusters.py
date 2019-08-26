@@ -71,6 +71,9 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
     logger.info("Dividing barcodes into molecules")
     for read in tqdm(pysam_openfile.fetch(until_eof=True)):
 
+        if read.is_duplicate:
+            continue
+
         # Fetches barcode and genomic position. Position will be formatted so start < stop.
         barcode = fetch_bc(pysam_read=read, barcode_tag=barcode_tag, summary=summary)
         if barcode and read.is_unmapped == False:

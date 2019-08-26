@@ -12,5 +12,5 @@ ln -s $PWD/testdata/reads.2.fastq.gz outdir/reads.2.fastq.gz
 snakemake --configfile tests/test_config.yaml outdir/reads.1.final.fastq.gz \
     outdir/reads.2.final.fastq.gz -j 3
 
-m=$(samtools sort -n outdir/mapped.sorted.tag.rmdup.x2.filt.bam | samtools view - | md5sum | cut -f1 -d" ")
-test $m == ed01044fce9984087c5a8f015e9e1bd2
+m=$(samtools sort -n outdir/mapped.sorted.tag.mkdup.bcmerge.filt.bam | samtools view - | md5sum | cut -f1 -d" ")
+test $m == faccb608e13c184c7ff0625c65dca78f

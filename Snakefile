@@ -122,33 +122,12 @@ rule tagbam:
         " {output.bam}"
         " -bc {config[cluster_tag]} 2> {log}"
 
-rule duplicates_removal:
-    # Remove duplicates within barcode clusters using picard.
-    output:
-        bam = "{dir}/mapped.sorted.tag.rmdup.bam"
-    input:
-        bam = "{dir}/mapped.sorted.tag.bam"
-    log:
-        metrics = "{dir}/picard_rmdup_metrics.log",
-        stderr = "{dir}/4_rmdup.log"
-    params:
-        picard_command = config["picard_command"],
-        heap_space=config["heap_space"]
-    shell:
-        "{params.picard_command} -Xms{params.heap_space}g MarkDuplicates"
-        " I={input.bam}"
-        " O={output.bam}"
-        " M={log.metrics}"
-        " ASSUME_SORT_ORDER=coordinate"
-        " REMOVE_DUPLICATES=true"
-        " BARCODE_TAG={config[cluster_tag]} 2> {log.stderr}"
-
 rule duplicates_marking:
     # Mark duplicates between barcode clusters using picard
     output:
-        bam = "{dir}/mapped.sorted.tag.rmdup.mkdup.bam"
+        bam = "{dir}/mapped.sorted.tag.mkdup.bam"
     input:
-        bam = "{dir}/mapped.sorted.tag.rmdup.bam"
+        bam = "{dir}/mapped.sorted.tag.bam"
     log:
         metrics = "{dir}/picard_mkdup_metrics.log",
         stderr = "{dir}/4_rmdup.log"
@@ -165,15 +144,17 @@ rule duplicates_marking:
 rule clusterrmdup_and_index:
     # Removes cluster duplicates and indexes output
     output:
-        bam = "{dir}/mapped.sorted.tag.rmdup.x2.bam",
-        bai = "{dir}/mapped.sorted.tag.rmdup.x2.bam.bai"
+        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.bam",
+        bai = "{dir}/mapped.sorted.tag.mkdup.bcmerge.bam.bai",
+        merges = "{dir}/barcode-merges.csv"
     input:
-        bam = "{dir}/mapped.sorted.tag.rmdup.mkdup.bam"
+        bam = "{dir}/mapped.sorted.tag.mkdup.bam"
     log: "{dir}/4_rmdup.log"
     shell:
         "blr clusterrmdup"
         " {input.bam}"
         " -"
+        " {output.merges}"
         " -bc {config[cluster_tag]} 2>> {log} |"
         "tee {output.bam} |"
         "samtools index - {output.bai}"
@@ -181,14 +162,14 @@ rule clusterrmdup_and_index:
 rule filterclusters:
     # Filter clusters based on parameters
     output:
-        bam = "{dir}/mapped.sorted.tag.rmdup.x2.filt.bam",
-        stat1 = "{dir}/cluster_stats/x2.stats.molecules_per_bc",
-        stat2 = "{dir}/cluster_stats/x2.stats.molecule_stats"
+        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.bam",
+        stat1 = "{dir}/cluster_stats/bcmerge.stats.molecules_per_bc",
+        stat2 = "{dir}/cluster_stats/bcmerge.stats.molecule_stats"
     input:
-        bam = "{dir}/mapped.sorted.tag.rmdup.x2.bam"
+        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.bam"
     log: "{dir}/4_rmdup.log"
     params:
-        stats = "{dir}/cluster_stats/x2.stats"
+        stats = "{dir}/cluster_stats/bcmerge.stats"
     shell:
         "blr filterclusters"
         " -M 260"
@@ -203,7 +184,7 @@ rule bam_to_fastq:
         r1_fastq = "{dir}/reads.1.final.fastq",
         r2_fastq = "{dir}/reads.2.final.fastq"
     input:
-        bam = "{dir}/mapped.sorted.tag.rmdup.x2.filt.bam"
+        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.bam"
     log: "{dir}/picard_samtofastq.log"
     params:
         picard_command = config["picard_command"],
