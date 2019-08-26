@@ -22,7 +22,6 @@ def main(args):
     summary = Summary()
 
     current_cache_rp = dict()
-    cache_dup_pos = dict()
     cache_reads = dict()
     chrom_prev = None
     merge_dict = dict()
@@ -31,7 +30,7 @@ def main(args):
             summary.tot_reads += 1
 
             # Wait for mate of read until process
-            if not read.query_name in cache_reads:
+            if read.query_name not in cache_reads:
                 cache_reads[read.query_name] = read
                 continue
             else:
@@ -120,7 +119,7 @@ def main(args):
                     read.query_name.split("_")[:-1]) + "_" + args.barcode_tag + ":Z:" + new_barcode_id
 
                 # Merge file writing
-                if not new_barcode_id in bc_seq_already_written:
+                if new_barcode_id not in bc_seq_already_written:
                     bc_seq_already_written.add(new_barcode_id)
                     bc_merge_file.write(f"{previous_barcode_id},{new_barcode_id}\n")
 
