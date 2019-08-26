@@ -13,4 +13,4 @@ snakemake --configfile tests/test_config.yaml outdir/reads.1.final.fastq.gz \
     outdir/reads.2.final.fastq.gz -j 3
 
 m=$(samtools sort -n outdir/mapped.sorted.tag.mkdup.bcmerge.filt.bam | samtools view - | md5sum | cut -f1 -d" ")
-test $m == 2a20e39bc55aaa5d579cbda1990da8ff
+test $m == faccb608e13c184c7ff0625c65dca78f
