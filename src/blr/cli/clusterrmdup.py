@@ -86,12 +86,13 @@ def main(args):
         summary.unmapped_reads += (len(cache_reads))
 
         # Last chunk
-        if cache_read_pair_tracker.duplicate_read_pair():
-            summary.reads_at_analyzed_dup_position += len(cache_read_pair_tracker.current_reads) * 2
-            merge_dict, cache_dup_pos = seed_duplicates(merge_dict=merge_dict, cache_dup_pos=cache_dup_pos,
-                                                        pos_new=cache_read_pair_tracker.position_tuple_ID,
-                                                        bc_new=cache_read_pair_tracker.barcodes,
-                                                        window=args.window)
+        for cache_read_pair_tracker in current_cache_rp.values():
+            if cache_read_pair_tracker.duplicate_read_pair():
+                summary.reads_at_analyzed_dup_position += len(cache_read_pair_tracker.current_reads) * 2
+                merge_dict, cache_dup_pos = seed_duplicates(merge_dict=merge_dict, cache_dup_pos=cache_dup_pos,
+                                                            pos_new=cache_read_pair_tracker.position_tuple_ID,
+                                                            bc_new=cache_read_pair_tracker.barcodes,
+                                                            window=args.window)
 
     # Remove several step redundancy (5 -> 3, 3 -> 1) => (5 -> 1, 3 -> 1)
     reduce_several_step_redundancy(merge_dict)
