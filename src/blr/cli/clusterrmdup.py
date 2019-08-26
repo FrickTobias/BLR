@@ -76,8 +76,6 @@ def main(args):
                 # New chr => reset dup pos cache and rp cache tracker
                 else:
                     cache_dup_pos = dict()
-                    for cache_read_pair_tracker in current_cache_rp.values():
-                        summary.reads_at_analyzed_dup_position += len(cache_read_pair_tracker.current_reads) * 2
                     current_cache_rp = dict()
                     current_cache_rp[rp_pos_tuple] = CacheReadPairTracker(rp_pos_tuple=rp_pos_tuple,
                                                                           chromosome=chrom_new, read=read, mate=mate,
