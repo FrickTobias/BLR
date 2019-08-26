@@ -1,6 +1,6 @@
 """
-Removes barcode duplicates (two different barcode sequences origin to the same droplet, tagging the same tagmented long molecule) by merging barcode
-sequences for reads sharing duplicates.
+Removes barcode duplicates (two different barcode sequences origin to the same droplet, tagging the same tagmented long
+molecule) by merging barcode sequences for reads sharing duplicates.
 
 Condition to call barcode duplicate:
 
