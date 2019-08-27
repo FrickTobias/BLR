@@ -15,8 +15,8 @@ m=$(samtools sort -n outdir/mapped.sorted.tag.mkdup.bcmerge.filt.bam | samtools 
 test $m == be2dbe2f5a2ab660a949e1944e077a79
 
 # Test phasing
-snakemake --configfile tests/test_config.yaml outdir/mapped.sorted.tag.rmdup.x2.filt.phase \
-    outdir/mapped.sorted.tag.rmdup.x2.filt.phase.phased.vcf
+snakemake --configfile tests/test_config.yaml outdir/mapped.sorted.tag.mkdup.bcmerge.filt.phase \
+    outdir/mapped.sorted.tag.mkdup.bcmerge.filt.phase.phased.vcf
 
-m2=$(md5sum outdir/mapped.sorted.tag.rmdup.x2.filt.phase.phased.vcf | cut -f1 -d" ")
+m2=$(md5sum outdir/mapped.sorted.tag.mkdup.bcmerge.filt.phase.phased.vcf | cut -f1 -d" ")
 test $m2 == deaa1f8820fdd0d75fd358fffa0bb4ec
