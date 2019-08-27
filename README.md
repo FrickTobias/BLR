@@ -1,16 +1,38 @@
 ![Travis CI badge](https://api.travis-ci.org/FrickTobias/BLR.svg)
 
+:exclamation:**NB! This is currently under heavy development.**:exclamation:
+
 # Barcode-Linked Reads Analysis
 
-The blr analysis is currently under development.
-
 ## Usage
+Create a working directory in which to run the analysis. 
 
-    bash BLR_automation [options] <read1> <read2> <output>
+    mkdir workdir
 
-## Setup
+Create soft links for the gzipped fastq files to analyze in the `workdir` folder for read 1 and 2. Note that the  must have the names 
+`reads.1.fastq.gz` and `reads.2.fastq.gz`
+
+    ln -s $PWD/path/to/sample.R1.fastq.gz workdir/reads.1.fastq.gz
+    ln -s $PWD/path/to/sample.R2.fastq.gz workdir/reads.2.fastq.gz
+
+Make a copy of the `config.yaml` file and enter the path to your reference genome.
+  
+    cp config.yaml workdir/my_config.yaml
+    
+Activate your enviroment
+
+    conda activate blr
+
+Run the pipeline using snakemake and indicate your intended target. In this example the full pipeline is run.  
+
+    snakemake --snakefile path/to/Snakefile --configfile workdir/my_config.yaml workdir/reads.1.final.fastq.gz workdir/reads.2.final.fastq.gz 
+
+## Install and Setup
 
 One-time installation:
+- Clone the current repository
+
+        git clone https://github.com/FrickTobias/BLR.git
 
 - [Install miniconda](https://docs.conda.io/en/latest/miniconda.html)
 - Enable the [bioconda channel](http://bioconda.github.io/)
@@ -25,12 +47,6 @@ One-time installation:
 
 This will install blr in such a way that you can still modify the source code
 and get any changes immediately without re-installing.
-
-To run the program, run `blr`.
-
-Subsequently, you will only need to activate the environment with
-
-    conda activate blr
 
 ## Pre-print version
 
