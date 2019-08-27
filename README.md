@@ -1,8 +1,8 @@
 ![Travis CI badge](https://api.travis-ci.org/FrickTobias/BLR.svg)
 
-# Barcode-Linked Reads Analysis
+:exclamation:**OBS! This is currently under heavy development.**:exclamation:
 
-**OBS! The blr analysis is currently under heavy development.**
+# Barcode-Linked Reads Analysis
 
 ## Usage
 Create a working directory in which to run the analysis. 
