@@ -193,5 +193,4 @@ rule bam_to_fastq:
         "{params.picard_command} -Xms{params.heap_space}g SamToFastq"
         " I={input.bam}"
         " FASTQ={output.r1_fastq}"
-        " VALIDATION_STRINGENCY=SILENT"
         " SECOND_END_FASTQ={output.r2_fastq} 2>> {log}"
