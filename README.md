@@ -1,6 +1,6 @@
 ![Travis CI badge](https://api.travis-ci.org/FrickTobias/BLR.svg)
 
-:exclamation:**OBS! This is currently under heavy development.**:exclamation:
+:exclamation:**NB! This is currently under heavy development.**:exclamation:
 
 # Barcode-Linked Reads Analysis
 
