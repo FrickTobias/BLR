@@ -12,10 +12,10 @@ Create a working directory in which to run the analysis.
 Create soft links for the gzipped fastq files to analyze in the `workdir` folder for read 1 and 2. Note that the  must have the names 
 `reads.1.fastq.gz` and `reads.2.fastq.gz`
 
-    ln -s path/to/sample.R1.fastq.gz workdir/reads.1.fastq.gz
-    ln -s path/to/sample.R2.fastq.gz workdir/reads.2.fastq.gz
+    ln -s $PWD/path/to/sample.R1.fastq.gz workdir/reads.1.fastq.gz
+    ln -s $PWD/path/to/sample.R2.fastq.gz workdir/reads.2.fastq.gz
 
-Make a copy of the `config.yaml` file and modify it to your needs.
+Make a copy of the `config.yaml` file and enter the path to your reference genome.
   
     cp config.yaml workdir/my_config.yaml
     
@@ -25,7 +25,7 @@ Activate your enviroment
 
 Run the pipeline using snakemake and indicate your intended target. In this example the full pipeline is run.  
 
-    snakemake --configfile workdir/my_config.yaml workdir/reads.1.final.fastq.gz workdir/reads.2.final.fastq.gz 
+    snakemake --snakefile path/to/Snakefile --configfile workdir/my_config.yaml workdir/reads.1.final.fastq.gz workdir/reads.2.final.fastq.gz 
 
 ## Install and Setup
 
