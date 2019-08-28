@@ -198,6 +198,9 @@ class AllMolecules:
         self.cache_dict = dict()
         self.final_dict = dict()
 
+        # Dict for writing out
+        self.header_to_mol
+
     def report(self, molecule):
         """
         Commit molecule to .final_dict, if molecule.reads >= min_reads
@@ -207,6 +210,9 @@ class AllMolecules:
             if not molecule.barcode in self.final_dict:
                 self.final_dict[molecule.barcode] = set()
             self.final_dict[molecule.barcode].add(molecule)
+
+            for header in molecule.read_headers:
+                self.header_to_mol[header] = molecule.ID
 
     def terminate(self, molecule):
         """
