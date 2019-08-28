@@ -59,7 +59,7 @@ def build_molecules(pysam_openfile, barcode_tag, window, min_reads, summary):
     :param window: Max distance between reads to include in the same molecule.
     :param min_reads: Minimum reads to include molecule in all_molecules.final_dict
     :param summary: Custom summary intsance
-    :return: dict[barcode][molecule] = moleculeInstance
+    :return: dict[barcode][molecule] = moleculeInstance, dict[read_name] = mol_ID
     """
 
     all_molecules = AllMolecules(min_reads=min_reads)
@@ -185,9 +185,11 @@ class AllMolecules:
 
         # Molecule tracking system
         self.cache_dict = dict()
+
+        # Dict for finding mols belonging to the same BC
         self.final_dict = dict()
 
-        # Dict for writing out
+        # Dict for finding mol ID when writing out
         self.header_to_mol = dict()
 
     def report(self, molecule):
