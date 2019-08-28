@@ -7,6 +7,6 @@ sequence_tag: RX    # Used to store original barcode sequence in bam file. 'RX' 
 bowtie2_reference: ./testdata/chr1mini
 picard_command: picard
 hapcut2: HapCUT2 #Path to Hapcut2 command.
-call_variants: true # Call variants for dataset, this means that reference variants will not be used.
-reference_variants: . # Path to reference variants
+call_variants: false # Call variants for dataset, this means that reference variants will not be used.
+reference_variants: ./testdata/HG002_GRCh38_GIAB_highconf.chr1mini.vcf # Path to reference variants
 

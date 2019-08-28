@@ -18,5 +18,5 @@ test $m == be2dbe2f5a2ab660a949e1944e077a79
 snakemake --configfile tests/test_config.yaml outdir/mapped.sorted.tag.mkdup.bcmerge.filt.phase \
     outdir/mapped.sorted.tag.mkdup.bcmerge.filt.phase.phased.vcf
 
-m2=$(md5sum outdir/mapped.sorted.tag.mkdup.bcmerge.filt.phase.phased.vcf | cut -f1 -d" ")
-test $m2 == deaa1f8820fdd0d75fd358fffa0bb4ec
+m2=$(md5sum outdir/mapped.sorted.tag.mkdup.bcmerge.filt.phase | cut -f1 -d" ")
+test $m2 == 5959009bb88bee382932a4080954cdb3
