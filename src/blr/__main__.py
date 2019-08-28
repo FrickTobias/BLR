@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> int:
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+    logging.basicConfig(level=logging.INFO, format="%(module)s - %(levelname)s: %(message)s")
     parser = ArgumentParser(description=__doc__, prog="blr")
     parser.add_argument("--version", action="version", version="%(prog)s 0.1")
     subparsers = parser.add_subparsers()
