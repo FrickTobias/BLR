@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 def main(args):
     summary = Summary()
-    logger.info(f"Running analysis with {args.window:,} bp window size")
 
     # Build molecules from BCs and reads
     with pysam.AlignmentFile(args.bam, "rb") as infile:
