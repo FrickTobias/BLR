@@ -33,7 +33,9 @@ def main(args):
 
             # If barcode is not in all_molecules the barcode does not have enough proximal reads to make a single
             # molecule. If the barcode has more than <max_molecules> molecules, remove it from the read.
-            if barcode in molecule_dict and len(molecule_dict[barcode]) > args.max_molecules:
+            if barcode in molecule_dict:
+                molecule = molecule_dict[barcode]
+                read.set_tag(args.molecule_tag, molecule)
                 read = strip_barcode(pysam_read=read, barcode_tag=args.barcode_cluster_tag)
 
                 summary.reads_with_removed_barcode += 1
@@ -75,7 +77,7 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
         # Fetches barcode and genomic position. Position will be formatted so start < stop.
         barcode = fetch_bc(pysam_read=read, barcode_tag=barcode_tag, summary=summary)
         if barcode and read.is_unmapped == False:
-            read_start, read_stop = sorted((read.get_reference_positions()[0], read.get_reference_positions()[-1]))
+            read_start, read_stop = sorted((read.reference_start, read.reference_end()))
 
             # Commit molecules between chromosomes
             if not prev_chrom == read.reference_name:
@@ -312,4 +314,6 @@ def add_arguments(parser):
     parser.add_argument("-M", "--max_molecules", metavar="<INTEGER>", type=int, default=500,
                         help="When using -f (--filter) this will remove barcode tags for those clusters which have more "
                              "than -M molecules. DEFAULT: 500")
+    parser.add_argument("-m", "--molecule_tag", metavar="<TAG-STRING>", type=str, default="MX",
+                        help=".bam file flag to put molecule information in.")
 
