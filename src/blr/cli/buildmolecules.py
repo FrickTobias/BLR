@@ -18,14 +18,14 @@ def main(args):
     logger.info(f"Running analysis with {args.window:,} bp window size")
 
     # Build molecules from BCs and reads
-    with pysam.AlignmentFile(args.x2_bam, "rb") as infile:
+    with pysam.AlignmentFile(args.bam, "rb") as infile:
         bc_to_mol_dict, header_to_mol_dict = build_molecules(pysam_openfile=infile,
                                                              barcode_tag=args.barcode_tag,
                                                              window=args.window, min_reads=args.threshold,
                                                              summary=summary)
 
     # Writes filtered out
-    with pysam.AlignmentFile(args.x2_bam, "rb") as openin, \
+    with pysam.AlignmentFile(args.bam, "rb") as openin, \
             pysam.AlignmentFile(args.output, "wb", template=openin) as openout:
         logger.info("Writing filtered bam file")
         for read in tqdm(openin.fetch(until_eof=True)):
@@ -279,9 +279,9 @@ class Summary:
 
 
 def add_arguments(parser):
-    parser.add_argument("x2_bam", help=".bam file tagged with BX:Z:<int> tags. Needs to be indexed, sorted & have "
-                                       "duplicates removed.")
-    parser.add_argument("output", help="Output filtered file.")
+    parser.add_argument("bam",
+                        help=".bam file tagged with barcode in the --barcode-tag bamfile tag. REQUIREMENTS: Sorted.")
+    parser.add_argument("output", help=".bam file with molecule tags in the --molecule-tag bamfile tag.")
 
     parser.add_argument("-t", "--threshold", metavar="<INTEGER>", type=int, default=4,
                         help="Threshold for how many reads are required for including given molecule in statistics "
