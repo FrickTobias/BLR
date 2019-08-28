@@ -224,7 +224,9 @@ elif os.path.exists(config['reference_variants']):
     rule link:
         output: "{dir}/reference.vcf"
         params: config['reference_variants']
-        shell: "ln -hfs {params} {output}"
+        run:
+            cmd = "ln -s " + os.path.abspath(config['reference_variants']) + " " + str(output)
+            shell(cmd)
 else:
     raise WorkflowError("Either call_variants must be set to true or path to reference_variants be supplied.")
 
