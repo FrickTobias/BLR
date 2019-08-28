@@ -17,11 +17,12 @@ def main(args):
     summary = Summary()
     logger.info(f"Running analysis with {args.window:,} bp window size")
 
-    # Build molecule dictionary used for counting #reads/molecule & #molecules/barcode for filtering of bam file
+    # Build molecules from BCs and reads
     with pysam.AlignmentFile(args.x2_bam, "rb") as infile:
-        bc_to_mol_dict, header_to_mol_dict = build_molecules(pysam_openfile=infile, barcode_tag=args.barcode_cluster_tag,
-                                                            window=args.window, min_reads=args.threshold,
-                                                            summary=summary)
+        bc_to_mol_dict, header_to_mol_dict = build_molecules(pysam_openfile=infile,
+                                                             barcode_tag=args.barcode_cluster_tag,
+                                                             window=args.window, min_reads=args.threshold,
+                                                             summary=summary)
 
     # Writes filtered out
     with pysam.AlignmentFile(args.x2_bam, "rb") as openin, \
