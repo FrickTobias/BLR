@@ -320,6 +320,6 @@ def add_arguments(parser):
     parser.add_argument("-M", "--max_molecules", metavar="<INTEGER>", type=int, default=500,
                         help="When using -f (--filter) this will remove barcode tags for those clusters which have more "
                              "than -M molecules. DEFAULT: 500")
-    parser.add_argument("-m", "--molecule_tag", metavar="<TAG-STRING>", type=str, default="MX",
+    parser.add_argument("-m", "--molecule_tag", metavar="<TAG-STRING>", type=str, default="MI",
                         help=".bam file flag to put molecule information in.")
 
