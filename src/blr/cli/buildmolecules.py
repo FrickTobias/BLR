@@ -24,11 +24,6 @@ def main(args):
                                                                 window=args.window,
                                                                 min_reads=args.threshold, summary=summary)
 
-        summary.tot_reads = infile.mapped + infile.unmapped
-        summary.unmapped_reads = infile.unmapped
-        summary.mapped_reads = infile.mapped
-        summary.non_analyzed_reads = summary.unmapped_reads + summary.non_tagged_reads + summary.overlapping_reads_in_pb
-
     # Writes filtered out
     with pysam.AlignmentFile(args.x2_bam, "rb") as openin, \
             pysam.AlignmentFile(args.output, "wb", template=openin) as openout:
@@ -39,6 +34,7 @@ def main(args):
             # If barcode is not in all_molecules the barcode does not have enough proximal reads to make a single
             # molecule. If the barcode has more than <max_molecules> molecules, remove it from the read.
             if name in header_to_mol_dict:
+                summary.reads_tagged += 1
 
                 # Set tags
                 molecule_ID = header_to_mol_dict[name]
@@ -46,11 +42,9 @@ def main(args):
                 bc_num_molecules = len(molecule_dict[read.get_tag(args.barcode_cluster_tag)])
                 read.set_tag(args.number_tag, bc_num_molecules)
 
-                read = strip_barcode(pysam_read=read, barcode_tag=args.barcode_cluster_tag)
-
             openout.write(read)
 
-    summary.print_stats(barcode_tag=args.barcode_cluster_tag, molecule_dict=molecule_dict)
+    summary.print_stats()
 
     # Write molecule/barcode file stats
     if args.stats_file:
@@ -71,12 +65,14 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
     """
 
     all_molecules = AllMolecules(min_reads=min_reads)
+    reads_in_mols = int()
 
     prev_chrom = pysam_openfile.references[0]
     logger.info("Dividing barcodes into molecules")
     for read in tqdm(pysam_openfile.fetch(until_eof=True)):
-
+        summary.tot_reads += 1
         if read.is_duplicate:
+            summary.duplicates += 1
             continue
 
         # Fetches barcode and genomic position. Position will be formatted so start < stop.
@@ -95,8 +91,9 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
                 # Read is within window => add read to molecule (don't include overlapping reads).
                 if (molecule.stop + window) >= read_start:
                     if molecule.stop >= read_start and not read.query_name in molecule.read_headers:
-                        summary.overlapping_reads_in_pb += 1
+                        summary.overlapping_reads_in_molecule += 1
                     else:
+                        reads_in_mols += 1
                         molecule.add_read(stop=read_stop, read_header=read.query_name)
                         all_molecules.cache_dict[barcode] = molecule
 
@@ -111,8 +108,12 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
                 molecule = Molecule(barcode=barcode, start=read_start, stop=read_stop, read_header=read.query_name)
                 all_molecules.cache_dict[molecule.barcode] = molecule
 
+        elif read.is_unmapped:
+            summary.unmapped_reads += 1
+
     all_molecules.report_and_remove_all()
 
+    print(reads_in_mols)
     return all_molecules.final_dict, all_molecules.header_to_mol
 
 
@@ -244,43 +245,29 @@ class Summary:
     def __init__(self):
 
         self.tot_reads = int()
-        self.mapped_reads = int()
+        self.reads_tagged = int()
 
+        self.overlapping_reads_in_molecule = int()
+        self.reads_without_barcode = int()
         self.unmapped_reads = int()
-        self.non_tagged_reads = int()
-        self.overlapping_reads_in_pb = int()
-        self.non_analyzed_reads = int()  # Sum of the three int() above
+        self.duplicates = int()
 
-        self.removed_barcodes = set()
-        self.removed_molecules = int()
-        self.reads_with_removed_barcode = int()
+    def non_analyzed_reads(self):
 
-    def print_stats(self, barcode_tag, molecule_dict):
+        return self.overlapping_reads_in_molecule + self.reads_without_barcode + self.unmapped_reads + self.duplicates
+
+    def print_stats(self):
         """
         Prints stats to terminal
         """
 
-        # Read stats
-        logger.info("- Read stats -")
-        logger.info(f"Total Reads in file:\t{self.tot_reads:,}")
-        logger.info("- Reads skipped in analysis -")
-        logger.info(f"Unmapped:\t{self.unmapped_reads:,}")
-        logger.info(f"Without {barcode_tag} tag:\t{self.non_tagged_reads:,}")
-        logger.info(f"Overlapping with other reads in molecule:\t{self.overlapping_reads_in_pb:,}")
-        logger.info("- Remaining reads -")
-        logger.info(f"Reads analyzed:\t{self.tot_reads - self.non_analyzed_reads:,}")
-
-        # Molecule stats
-        logger.info("- Molecule stats -")
-        logger.info(f"Molecules total:\t{sum(len(all) for all in molecule_dict.values()):,}")
-        logger.info(f"Barcodes removed:\t{len(self.removed_barcodes)}")
-        logger.info(f"Molecules removed:\t{self.removed_molecules}")
-
-        try:
-            logger.info(f"Reads with barcodes removed:\t{self.reads_with_removed_barcode:,}"
-                        f"({self.reads_with_removed_barcode/self.tot_reads:.2%})")
-        except ZeroDivisionError:
-            logger.warning("No reads passing filters found in file.")
+        logger.info(f"Non-analyzed reads: {self.non_analyzed_reads()}")
+        logger.info(f"  Reads overlapping within molecule: {self.overlapping_reads_in_molecule}")
+        logger.info(f"  Reads without barcode: {self.reads_without_barcode}")
+        logger.info(f"  Unmapped reads: {self.unmapped_reads}")
+        logger.info(f"  Duplicate reads: {self.duplicates}")
+        logger.info(f"Tot reads in file: {self.tot_reads}")
+        logger.info(f"Reads tagged: {self.reads_tagged}")
 
     def write_molecule_stats(self, output_prefix, molecule_dict):
         """
