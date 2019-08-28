@@ -34,6 +34,8 @@ def main() -> int:
     if not hasattr(args, "module"):
         parser.error("Please provide the name of a subcommand to run")
     else:
+        for object_variable, value in vars(args).items():
+            logger.info(f"{object_variable}: {value}")
         module = args.module
         del args.module
         module.main(args)
