@@ -20,7 +20,7 @@ def main(args):
     # Build molecules from BCs and reads
     with pysam.AlignmentFile(args.x2_bam, "rb") as infile:
         bc_to_mol_dict, header_to_mol_dict = build_molecules(pysam_openfile=infile,
-                                                             barcode_tag=args.barcode_cluster_tag,
+                                                             barcode_tag=args.barcode_tag,
                                                              window=args.window, min_reads=args.threshold,
                                                              summary=summary)
 
@@ -39,7 +39,7 @@ def main(args):
                 # Set tags
                 molecule_ID = header_to_mol_dict[name]
                 read.set_tag(args.molecule_tag, molecule_ID)
-                bc_num_molecules = len(bc_to_mol_dict[read.get_tag(args.barcode_cluster_tag)])
+                bc_num_molecules = len(bc_to_mol_dict[read.get_tag(args.barcode_tag)])
                 read.set_tag(args.number_tag, bc_num_molecules)
 
             openout.write(read)
@@ -289,15 +289,15 @@ def add_arguments(parser):
     parser.add_argument("-w", "--window", metavar="<INTEGER>", type=int, default=30000,
                         help="Window size cutoff for maximum distance in between two reads in one molecule. DEFAULT: "
                              "30000")
-    parser.add_argument("-bc", "--barcode-cluster-tag", metavar="<STRING>", type=str, default="BX",
+    parser.add_argument("-bc", "--barcode-tag", metavar="<STRING>", type=str, default="BX",
                         help="Bam file tag where barcode cluster id is stored. 10x genomics longranger output "
                              "uses 'BX' for their error corrected barcodes. DEFAULT: BX")
-    parser.add_argument("-s", "--stats_file", metavar="<PREFIX>", type=str,
+    parser.add_argument("-s", "--stats-file", metavar="<PREFIX>", type=str,
                         help="Write barcode/molecule statistics files. DEFAULT: None")
-    parser.add_argument("-M", "--max_molecules", metavar="<INTEGER>", type=int, default=500,
+    parser.add_argument("-M", "--max-molecules", metavar="<INTEGER>", type=int, default=500,
                         help="When using -f (--filter) this will remove barcode tags for those clusters which have more "
                              "than -M molecules. DEFAULT: 500")
-    parser.add_argument("-m", "--molecule_tag", metavar="<TAG-STRING>", type=str, default="MI",
-                        help=".bam file tag to put molecule ID in.")
-    parser.add_argument("-n", "--number_tag", metavar="<TAG-STRING>", type=str, default="MN",
-                        help=".bam file tag to put number of molecules (in that barcode) in.")
+    parser.add_argument("-m", "--molecule-tag", metavar="<TAG-STRING>", type=str, default="MI",
+                        help=".bam file tag to put molecule ID in. DEFAULT: MI")
+    parser.add_argument("-n", "--number-tag", metavar="<TAG-STRING>", type=str, default="MN",
+                        help=".bam file tag to put number of molecules (in that barcode) in. DEFAULT: MN")
