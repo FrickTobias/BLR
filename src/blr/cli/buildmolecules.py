@@ -1,5 +1,8 @@
 """
+Tags .bam file with molecule information based on barcode sequence and genomic proximity.
 
+A molecule is defined by having a) minimum --threshold reads and including all reads with the same barcode which are b)
+a maximum distance of --window between any given reads.
 """
 
 import pysam
@@ -16,9 +19,10 @@ def main(args):
 
     # Build molecule dictionary used for counting #reads/molecule & #molecules/barcode for filtering of bam file
     with pysam.AlignmentFile(args.x2_bam, "rb") as infile:
-        molecule_dict, header_to_mol_dict = build_molecule_dict(pysam_openfile=infile, barcode_tag=args.barcode_cluster_tag,
-                                            window=args.window,
-                                            min_reads=args.threshold, summary=summary)
+        molecule_dict, header_to_mol_dict = build_molecule_dict(pysam_openfile=infile,
+                                                                barcode_tag=args.barcode_cluster_tag,
+                                                                window=args.window,
+                                                                min_reads=args.threshold, summary=summary)
 
         summary.tot_reads = infile.mapped + infile.unmapped
         summary.unmapped_reads = infile.unmapped
@@ -325,4 +329,3 @@ def add_arguments(parser):
                         help=".bam file tag to put molecule ID in.")
     parser.add_argument("-n", "--number_tag", metavar="<TAG-STRING>", type=str, default="MN",
                         help=".bam file tag to put number of molecules (in that barcode) in.")
-
