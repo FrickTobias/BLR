@@ -39,8 +39,13 @@ def main(args):
             # If barcode is not in all_molecules the barcode does not have enough proximal reads to make a single
             # molecule. If the barcode has more than <max_molecules> molecules, remove it from the read.
             if name in header_to_mol_dict:
+
+                # Set tags
                 molecule = molecule_dict[name]
                 read.set_tag(args.molecule_tag, molecule)
+                bc_num_molecules = len(molecule_dict[barcode])
+                read.set_tag(args.number_tag, bc_num_molecules)
+
                 read = strip_barcode(pysam_read=read, barcode_tag=args.barcode_cluster_tag)
 
                 summary.reads_with_removed_barcode += 1
