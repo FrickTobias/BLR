@@ -53,11 +53,11 @@ def main(args):
 
 def build_molecules(pysam_openfile, barcode_tag, window, min_reads, summary):
     """
-    Builds all_molecules.final_dict ([barcode][moleculeID] = molecule) and all_molecules.header_to_mol ([read_name]=mol_ID)
+    Builds all_molecules.bc_to_mol ([barcode][moleculeID] = molecule) and all_molecules.header_to_mol ([read_name]=mol_ID)
     :param pysam_openfile: Pysam open file instance.
     :param barcode_tag: Tag used to store barcode in bam file (usually BC).
     :param window: Max distance between reads to include in the same molecule.
-    :param min_reads: Minimum reads to include molecule in all_molecules.final_dict
+    :param min_reads: Minimum reads to include molecule in all_molecules.bc_to_mol
     :param summary: Custom summary intsance
     :return: dict[barcode][molecule] = moleculeInstance, dict[read_name] = mol_ID
     """
@@ -110,7 +110,7 @@ def build_molecules(pysam_openfile, barcode_tag, window, min_reads, summary):
 
     all_molecules.report_and_remove_all()
 
-    return all_molecules.final_dict, all_molecules.header_to_mol
+    return all_molecules.bc_to_mol, all_molecules.header_to_mol
 
 
 def fetch_bc(pysam_read, barcode_tag, summary=None):
@@ -171,13 +171,13 @@ class Molecule:
 
 class AllMolecules:
     """
-    Tracks all molecule information, with finished molecules in .final_dict, and molecules which still might get more
+    Tracks all molecule information, with finished molecules in .bc_to_mol, and molecules which still might get more
     reads in .cache_dict.
     """
 
     def __init__(self, min_reads):
         """
-        :param min_reads: Minimum reads required to add molecule to .final_dict from .cache_dict
+        :param min_reads: Minimum reads required to add molecule to .bc_to_mol from .cache_dict
         """
 
         # Min required reads for calling proximal reads a molecule
@@ -187,20 +187,20 @@ class AllMolecules:
         self.cache_dict = dict()
 
         # Dict for finding mols belonging to the same BC
-        self.final_dict = dict()
+        self.bc_to_mol = dict()
 
         # Dict for finding mol ID when writing out
         self.header_to_mol = dict()
 
     def report(self, molecule):
         """
-        Commit molecule to .final_dict, if molecule.reads >= min_reads
+        Commit molecule to .bc_to_mol, if molecule.reads >= min_reads
         """
 
         if molecule.number_of_reads >= self.min_reads:
-            if not molecule.barcode in self.final_dict:
-                self.final_dict[molecule.barcode] = set()
-            self.final_dict[molecule.barcode].add(molecule)
+            if not molecule.barcode in self.bc_to_mol:
+                self.bc_to_mol[molecule.barcode] = set()
+            self.bc_to_mol[molecule.barcode].add(molecule)
             for header in molecule.read_headers:
                 self.header_to_mol[header] = molecule.ID
 
@@ -213,7 +213,7 @@ class AllMolecules:
 
     def report_and_remove_all(self):
         """
-        Commit all .cache_dict molecules to .final_dict and empty .cache_dict (provided they meet criterias by report
+        Commit all .cache_dict molecules to .bc_to_mol and empty .cache_dict (provided they meet criterias by report
         function).
         """
 
