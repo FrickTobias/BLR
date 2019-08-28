@@ -41,17 +41,12 @@ def main(args):
             if name in header_to_mol_dict:
 
                 # Set tags
-                molecule = molecule_dict[name]
-                read.set_tag(args.molecule_tag, molecule)
-                bc_num_molecules = len(molecule_dict[barcode])
+                molecule_ID = header_to_mol_dict[name]
+                read.set_tag(args.molecule_tag, molecule_ID)
+                bc_num_molecules = len(molecule_dict[read.get_tag(args.barcode_cluster_tag)])
                 read.set_tag(args.number_tag, bc_num_molecules)
 
                 read = strip_barcode(pysam_read=read, barcode_tag=args.barcode_cluster_tag)
-
-                summary.reads_with_removed_barcode += 1
-                if not barcode in summary.removed_barcodes:
-                    summary.removed_barcodes.add(barcode)
-                    summary.removed_molecules += len(molecule_dict[barcode])
 
             openout.write(read)
 
@@ -87,7 +82,7 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
         # Fetches barcode and genomic position. Position will be formatted so start < stop.
         barcode = fetch_bc(pysam_read=read, barcode_tag=barcode_tag, summary=summary)
         if barcode and read.is_unmapped == False:
-            read_start, read_stop = sorted((read.reference_start, read.reference_end()))
+            read_start, read_stop = sorted((read.reference_start, read.reference_end))
 
             # Commit molecules between chromosomes
             if not prev_chrom == read.reference_name:
@@ -220,7 +215,6 @@ class AllMolecules:
             if not molecule.barcode in self.final_dict:
                 self.final_dict[molecule.barcode] = set()
             self.final_dict[molecule.barcode].add(molecule)
-
             for header in molecule.read_headers:
                 self.header_to_mol[header] = molecule.ID
 
