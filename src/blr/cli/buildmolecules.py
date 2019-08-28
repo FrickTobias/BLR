@@ -19,10 +19,9 @@ def main(args):
 
     # Build molecule dictionary used for counting #reads/molecule & #molecules/barcode for filtering of bam file
     with pysam.AlignmentFile(args.x2_bam, "rb") as infile:
-        molecule_dict, header_to_mol_dict = build_molecule_dict(pysam_openfile=infile,
-                                                                barcode_tag=args.barcode_cluster_tag,
-                                                                window=args.window,
-                                                                min_reads=args.threshold, summary=summary)
+        bc_to_mols_dict, header_to_mol_dict = build_molecules(pysam_openfile=infile, barcode_tag=args.barcode_cluster_tag,
+                                                            window=args.window, min_reads=args.threshold,
+                                                            summary=summary)
 
     # Writes filtered out
     with pysam.AlignmentFile(args.x2_bam, "rb") as openin, \
@@ -39,7 +38,7 @@ def main(args):
                 # Set tags
                 molecule_ID = header_to_mol_dict[name]
                 read.set_tag(args.molecule_tag, molecule_ID)
-                bc_num_molecules = len(molecule_dict[read.get_tag(args.barcode_cluster_tag)])
+                bc_num_molecules = len(bc_to_mols_dict[read.get_tag(args.barcode_cluster_tag)])
                 read.set_tag(args.number_tag, bc_num_molecules)
 
             openout.write(read)
@@ -49,10 +48,10 @@ def main(args):
     # Write molecule/barcode file stats
     if args.stats_file:
         logger.info("Writing statistics files")
-        summary.write_molecule_stats(output_prefix=args.stats_file, molecule_dict=molecule_dict)
+        summary.write_molecule_stats(output_prefix=args.stats_file, molecule_dict=bc_to_mols_dict)
 
 
-def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary):
+def build_molecules(pysam_openfile, barcode_tag, window, min_reads, summary):
     """
     Build all_molecules.final_dict, [barcode][moleculeID] = molecule where molecule are instances of Molecule object,
     defined as more than <min_reads> within <window> from each other.
