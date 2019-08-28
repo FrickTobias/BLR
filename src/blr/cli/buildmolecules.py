@@ -15,7 +15,7 @@ def main(args):
 
     # Build molecule dictionary used for counting #reads/molecule & #molecules/barcode for filtering of bam file
     with pysam.AlignmentFile(args.x2_bam, "rb") as infile:
-        molecule_dict = build_molecule_dict(pysam_openfile=infile, barcode_tag=args.barcode_cluster_tag,
+        molecule_dict, header_to_mol_dict = build_molecule_dict(pysam_openfile=infile, barcode_tag=args.barcode_cluster_tag,
                                             window=args.window,
                                             min_reads=args.threshold, summary=summary)
 
@@ -29,12 +29,12 @@ def main(args):
             pysam.AlignmentFile(args.output, "wb", template=openin) as openout:
         logger.info("Writing filtered bam file")
         for read in tqdm(openin.fetch(until_eof=True)):
-            barcode = fetch_bc(pysam_read=read, barcode_tag=args.barcode_cluster_tag)
+            name = read.query_name
 
             # If barcode is not in all_molecules the barcode does not have enough proximal reads to make a single
             # molecule. If the barcode has more than <max_molecules> molecules, remove it from the read.
-            if barcode in molecule_dict:
-                molecule = molecule_dict[barcode]
+            if name in header_to_mol_dict:
+                molecule = molecule_dict[name]
                 read.set_tag(args.molecule_tag, molecule)
                 read = strip_barcode(pysam_read=read, barcode_tag=args.barcode_cluster_tag)
 
@@ -108,7 +108,7 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
 
     all_molecules.report_and_remove_all()
 
-    return all_molecules.final_dict
+    return all_molecules.final_dict, all_molecules.header_to_mol
 
 
 def fetch_bc(pysam_read, barcode_tag, summary=None):
