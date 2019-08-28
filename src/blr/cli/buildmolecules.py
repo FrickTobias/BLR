@@ -133,19 +133,6 @@ def fetch_bc(pysam_read, barcode_tag, summary=None):
     return barcode
 
 
-def strip_barcode(pysam_read, barcode_tag):
-    """
-    Strips an alignment from its barcode sequence. Keeps information in header but adds FILTERED prior to bc info.
-    """
-
-    # Modify read instance
-    header, bc_info = pysam_read.query_name.split("_", maxsplit=1)
-    pysam_read.query_name = header + "_" + "FILTERED-" + bc_info
-    pysam_read.set_tag(barcode_tag, "FILTERED", value_type="Z")
-
-    return pysam_read
-
-
 class Molecule:
     """
     A Splitting of barcode read groups into several molecules based on mapping proximity. Equivalent to several
