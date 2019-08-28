@@ -1,6 +1,4 @@
 """
-Removes barcode tags present at more than -M loci (corresponding to removing barcode tags from reads origin to droplets
-which had more than -M molecules in one and the same droplet).
 """
 
 import pysam
