@@ -35,7 +35,7 @@ def main() -> int:
         parser.error("Please provide the name of a subcommand to run")
     else:
         for object_variable, value in vars(args).items():
-            logger.info(f"{object_variable}: {value}")
+            sys.stderr.write(f"main - SETTINGS: {object_variable}: {value}\n")
         module = args.module
         del args.module
         module.main(args)
