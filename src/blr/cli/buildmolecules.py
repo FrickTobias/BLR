@@ -1,4 +1,5 @@
 """
+
 """
 
 import pysam
@@ -321,5 +322,7 @@ def add_arguments(parser):
                         help="When using -f (--filter) this will remove barcode tags for those clusters which have more "
                              "than -M molecules. DEFAULT: 500")
     parser.add_argument("-m", "--molecule_tag", metavar="<TAG-STRING>", type=str, default="MI",
-                        help=".bam file flag to put molecule information in.")
+                        help=".bam file tag to put molecule ID in.")
+    parser.add_argument("-n", "--number_tag", metavar="<TAG-STRING>", type=str, default="MN",
+                        help=".bam file tag to put number of molecules (in that barcode) in.")
 
