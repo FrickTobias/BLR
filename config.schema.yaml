@@ -45,3 +45,7 @@ properties:
     type: string
     description: Path to reference variants
     default: .
+  phasing_ground_truth:
+    type: string
+    description: Path to phased variants used to compute phasing stats.
+    default: .

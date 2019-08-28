@@ -6,6 +6,11 @@ num_mol_tag: MN # Used to store number of molecules per barcode
 sequence_tag: RX    # Used to store original barcode sequence in bam file. 'RX' is 10x genomic default
 bowtie2_reference: .   #Fill in /path/to/bowtie2_reference
 picard_command: picard #Picard run command.
+
+####################
+# Phasing settings #
+####################
 hapcut2: HapCUT2 #Path to Hapcut2 command.
 call_variants: true #Call variants for dataset, this means that reference variants will not be used.
-reference_variants: . #Path to reference variants
+reference_variants: #Path to reference variants used for phasing
+phasing_ground_truth: #Path to phased variants used for calculating stats

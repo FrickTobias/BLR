@@ -44,3 +44,16 @@ rule HAPCUT2_phasing:
          " --vcf {input.vcf}"
          " --out {output.phase}"
          " --outvcf 1 2> {log}"
+
+rule HapCUT2_stats:
+    output:
+        stats = "{dir}/phasing_stats.txt"
+    input:
+         vcf1 = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.phase.phased.vcf",
+    params:
+          vcf2 = config["phasing_ground_truth"]
+    shell:
+         "python {HAPCUT2}/utilities/calculate_haplotype_statistics.py"
+         " -v1 {input.vcf1}"
+         " -v2 {params.vcf2}"
+         " > {output.stats}"
