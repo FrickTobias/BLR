@@ -65,7 +65,6 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
     """
 
     all_molecules = AllMolecules(min_reads=min_reads)
-    reads_in_mols = int()
 
     prev_chrom = pysam_openfile.references[0]
     logger.info("Dividing barcodes into molecules")
@@ -93,7 +92,6 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
                     if molecule.stop >= read_start and not read.query_name in molecule.read_headers:
                         summary.overlapping_reads_in_molecule += 1
                     else:
-                        reads_in_mols += 1
                         molecule.add_read(stop=read_stop, read_header=read.query_name)
                         all_molecules.cache_dict[barcode] = molecule
 
@@ -101,6 +99,7 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
                 else:
                     all_molecules.report(molecule=molecule)
                     all_molecules.terminate(molecule=molecule)
+
                     molecule = Molecule(barcode=barcode, start=read_start, stop=read_stop, read_header=read.query_name)
                     all_molecules.cache_dict[molecule.barcode] = molecule
 
@@ -113,7 +112,6 @@ def build_molecule_dict(pysam_openfile, barcode_tag, window, min_reads, summary)
 
     all_molecules.report_and_remove_all()
 
-    print(reads_in_mols)
     return all_molecules.final_dict, all_molecules.header_to_mol
 
 
