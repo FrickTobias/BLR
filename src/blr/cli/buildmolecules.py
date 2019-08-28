@@ -209,7 +209,7 @@ class AllMolecules:
         self.final_dict = dict()
 
         # Dict for writing out
-        self.header_to_mol
+        self.header_to_mol = dict()
 
     def report(self, molecule):
         """
