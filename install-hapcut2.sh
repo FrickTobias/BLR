@@ -10,6 +10,12 @@ cd HapCUT2
 
 make
 
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+    sudo make install-hairs
+
+    sudo make install-hapcut2
+fi
+
 # Test install
 
 ./build/extractHAIRS
