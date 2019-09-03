@@ -34,10 +34,14 @@ def main() -> int:
     if not hasattr(args, "module"):
         parser.error("Please provide the name of a subcommand to run")
     else:
-        for object_variable, value in vars(args).items():
-            sys.stderr.write(f"main - SETTINGS: {object_variable}: {value}\n")
         module = args.module
         del args.module
+
+        # Print settings for module
+        sys.stderr.write(f"SETTINGS FOR: {module.__name__.split('.')[-1]}")
+        for object_variable, value in vars(args).items():
+            sys.stderr.write(f" {object_variable}: {value}\n")
+
         module.main(args)
 
     return 0
