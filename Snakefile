@@ -130,7 +130,7 @@ rule duplicates_marking:
         bam = "{dir}/mapped.sorted.tag.bam"
     log:
         metrics = "{dir}/picard_mkdup_metrics.log",
-        stderr = "{dir}/4_rmdup.log"
+        stderr = "{dir}/picard_mkdup.log"
     params:
         picard_command = config["picard_command"],
         heap_space=config["heap_space"]
@@ -149,7 +149,7 @@ rule clusterrmdup_and_index:
         merges = "{dir}/barcode-merges.csv"
     input:
         bam = "{dir}/mapped.sorted.tag.mkdup.bam"
-    log: "{dir}/4_rmdup.log"
+    log: "{dir}/clusterrmdup.log"
     shell:
         "blr clusterrmdup"
         " {input.bam}"
@@ -167,7 +167,7 @@ rule filterclusters:
         stat2 = "{dir}/cluster_stats/bcmerge.stats.molecule_stats"
     input:
         bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.bam"
-    log: "{dir}/4_rmdup.log"
+    log: "{dir}/filterclusters.log"
     params:
         stats = "{dir}/cluster_stats/bcmerge.stats"
     shell:

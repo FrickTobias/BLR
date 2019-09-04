@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> int:
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+    logging.basicConfig(level=logging.INFO, format="%(module)s - %(levelname)s: %(message)s")
     parser = ArgumentParser(description=__doc__, prog="blr")
     parser.add_argument("--version", action="version", version="%(prog)s 0.1")
     subparsers = parser.add_subparsers()
@@ -36,6 +36,12 @@ def main() -> int:
     else:
         module = args.module
         del args.module
+
+        # Print settings for module
+        sys.stderr.write(f"SETTINGS FOR: {module.__name__.split('.')[-1]}")
+        for object_variable, value in vars(args).items():
+            sys.stderr.write(f" {object_variable}: {value}\n")
+
         module.main(args)
 
     return 0
