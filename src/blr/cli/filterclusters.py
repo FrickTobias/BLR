@@ -16,7 +16,7 @@ def main(args):
     logger.info(f"Starting")
 
     # Writes filtered out
-    with pysam.AlignmentFile(args.x2_bam, "rb") as openin, \
+    with pysam.AlignmentFile(args.input, "rb") as openin, \
             pysam.AlignmentFile(args.output, "wb", template=openin) as openout:
         logger.info("Writing filtered bam file")
         for read in tqdm(openin.fetch(until_eof=True)):
@@ -96,7 +96,7 @@ class Summary:
         logger.info(f"Reads with barcodes removed:\t{self.reads_with_removed_tags} ({self.reads_with_removed_tags/self.tot_reads:.2%})")
 
 def add_arguments(parser):
-    parser.add_argument("x2_bam", help=".bam file tagged with BX:Z:<int> tags. Needs to be indexed, sorted & have "
+    parser.add_argument("input", help=".bam file tagged with BX:Z:<int> tags. Needs to be indexed, sorted & have "
                                        "duplicates removed.")
     parser.add_argument("output", help="Output filtered file.")
 
