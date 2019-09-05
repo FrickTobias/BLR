@@ -159,7 +159,6 @@ rule clusterrmdup_and_index:
     # Removes cluster duplicates and indexes output
     output:
         bam = "{dir}/mapped.sorted.tag.mol.mkdup.bcmerge.bam",
-        bai = "{dir}/mapped.sorted.tag.mol.mkdup.bcmerge.bam.bai",
         merges = "{dir}/barcode-merges.csv"
     input:
         bam = "{dir}/mapped.sorted.tag.mol.mkdup.bam"
@@ -167,11 +166,9 @@ rule clusterrmdup_and_index:
     shell:
         "blr clusterrmdup"
         " {input.bam}"
-        " -"
+        " {output.bam}"
         " {output.merges}"
-        " -bc {config[cluster_tag]} 2>> {log} |"
-        "tee {output.bam} |"
-        "samtools index - {output.bai}"
+        " -bc {config[cluster_tag]} 2>> {log}"
 
 rule filterclusters:
     # Filter clusters based on parameters
