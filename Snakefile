@@ -176,7 +176,7 @@ rule clusterrmdup_and_index:
 rule filterclusters:
     # Filter clusters based on parameters
     output:
-        bam = "{dir}/mapped.sorted.tag.mol.mkdup.bcmerge.filt.bam"
+        bam = "{dir}/mapped.sorted.tag.mol.mkdup.bcmerge.filt.bam",
     input:
         bam = "{dir}/mapped.sorted.tag.mol.mkdup.bcmerge.bam"
     log: "{dir}/filterclusters.log"
@@ -185,7 +185,7 @@ rule filterclusters:
         " {input.bam}"
         " {output.bam}"
         " -M 260"
-        " -bc {config[cluster_tag]} 2>> {log}"
+        " -t {config[cluster_tag]} 2> {log}"
 
 rule bam_to_fastq:
     # Convert final bam file to fastq files for read 1 and 2
