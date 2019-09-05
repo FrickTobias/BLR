@@ -155,7 +155,7 @@ rule duplicates_marking:
         " M={log.metrics}"
         " ASSUME_SORT_ORDER=coordinate 2> {log.stderr}"
 
-rule clusterrmdup_and_index:
+rule clusterrmdup:
     # Removes cluster duplicates and indexes output
     output:
         bam = "{dir}/mapped.sorted.tag.mol.mkdup.bcmerge.bam",
