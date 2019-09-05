@@ -177,20 +177,15 @@ rule filterclusters:
     # Filter clusters based on parameters
     output:
         bam = "{dir}/mapped.sorted.tag.mol.mkdup.bcmerge.filt.bam",
-        stat1 = "{dir}/cluster_stats/bcmerge.stats.molecules_per_bc",
-        stat2 = "{dir}/cluster_stats/bcmerge.stats.molecule_stats"
     input:
         bam = "{dir}/mapped.sorted.tag.mol.mkdup.bcmerge.bam"
-    log: "{dir}/4_rmdup.log"
-    params:
-        stats = "{dir}/cluster_stats/bcmerge.stats"
+    log: "{dir}/filterclusters.log"
     shell:
         "blr filterclusters"
-        " -M 260"
-        " -s {params.stats}"
-        " -bc {config[cluster_tag]}"
         " {input.bam}"
-        " {output.bam} 2>> {log}"
+        " {output.bam}"
+        " -M 260"
+        " -t {config[cluster_tag]} 2> {log}"
 
 rule bam_to_fastq:
     # Convert final bam file to fastq files for read 1 and 2
