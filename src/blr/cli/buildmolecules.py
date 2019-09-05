@@ -105,8 +105,8 @@ def build_molecules(pysam_openfile, barcode_tag, window, min_reads, summary):
                 molecule = Molecule(barcode=barcode, start=read_start, stop=read_stop, read_header=read.query_name)
                 all_molecules.cache_dict[molecule.barcode] = molecule
 
-        elif read.is_unmapped:
-            summary.unmapped_reads += 1
+        elif barcode and read.is_unmapped:
+            summary.unmapped_bc_tagged_read += 1
 
     all_molecules.report_and_remove_all()
 
@@ -233,25 +233,25 @@ class Summary:
         self.reads_tagged = int()
 
         self.overlapping_reads_in_molecule = int()
+        self.unmapped_bc_tagged_read = int()
         self.reads_without_barcode = int()
-        self.unmapped_reads = int()
         self.duplicates = int()
 
     def non_analyzed_reads(self):
 
-        return self.overlapping_reads_in_molecule + self.reads_without_barcode + self.unmapped_reads + self.duplicates
+        return self.overlapping_reads_in_molecule + self.reads_without_barcode + self.unmapped_bc_tagged_read + self.duplicates
 
     def print_stats(self):
         """
         Prints stats to terminal
         """
 
+        logger.info(f"Tot reads in file: {self.tot_reads}")
         logger.info(f"Non-analyzed reads: {self.non_analyzed_reads()}")
         logger.info(f"  Reads overlapping within molecule: {self.overlapping_reads_in_molecule}")
         logger.info(f"  Reads without barcode: {self.reads_without_barcode}")
-        logger.info(f"  Unmapped reads: {self.unmapped_reads}")
+        logger.info(f"  Unmapped reads with barcode {self.unmapped_bc_tagged_read}")
         logger.info(f"  Duplicate reads: {self.duplicates}")
-        logger.info(f"Tot reads in file: {self.tot_reads}")
         logger.info(f"Reads tagged: {self.reads_tagged}")
 
     def write_molecule_stats(self, output_prefix, molecule_dict):
@@ -293,9 +293,6 @@ def add_arguments(parser):
                              "uses 'BX' for their error corrected barcodes. DEFAULT: BX")
     parser.add_argument("-s", "--stats-file", metavar="<PREFIX>", type=str,
                         help="Write barcode/molecule statistics files. DEFAULT: None")
-    parser.add_argument("-M", "--max-molecules", metavar="<INTEGER>", type=int, default=500,
-                        help="When using -f (--filter) this will remove barcode tags for those clusters which have more "
-                             "than -M molecules. DEFAULT: 500")
     parser.add_argument("-m", "--molecule-tag", metavar="<TAG-STRING>", type=str, default="MI",
                         help=".bam file tag to put molecule ID in. DEFAULT: MI")
     parser.add_argument("-n", "--number-tag", metavar="<TAG-STRING>", type=str, default="MN",
