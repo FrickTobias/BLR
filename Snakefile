@@ -122,12 +122,26 @@ rule tagbam:
         " {output.bam}"
         " -bc {config[cluster_tag]} 2> {log}"
 
+rule buildmolecules:
+    # Groups reads into molecules depending on their genomic position and barcode
+    output:
+        bam = "{dir}/mapped.sorted.tag.mol.bam"
+    input:
+        bam = "{dir}/mapped.sorted.tag.bam"
+    log: "{dir}/buildmolecules.log"
+    shell:
+        "blr buildmolecules"
+        " {input.bam}"
+        " {output.bam}"
+        " -bc {config[cluster_tag]}"
+        " 2> {log}"
+
 rule duplicates_marking:
     # Mark duplicates between barcode clusters using picard
     output:
-        bam = "{dir}/mapped.sorted.tag.mkdup.bam"
+        bam = "{dir}/mapped.sorted.tag.mol.mkdup.bam"
     input:
-        bam = "{dir}/mapped.sorted.tag.bam"
+        bam = "{dir}/mapped.sorted.tag.mol.bam"
     log:
         metrics = "{dir}/picard_mkdup_metrics.log",
         stderr = "{dir}/picard_mkdup.log"
@@ -144,11 +158,11 @@ rule duplicates_marking:
 rule clusterrmdup_and_index:
     # Removes cluster duplicates and indexes output
     output:
-        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.bam",
-        bai = "{dir}/mapped.sorted.tag.mkdup.bcmerge.bam.bai",
+        bam = "{dir}/mapped.sorted.tag.mol.mkdup.bcmerge.bam",
+        bai = "{dir}/mapped.sorted.tag.mol.mkdup.bcmerge.bam.bai",
         merges = "{dir}/barcode-merges.csv"
     input:
-        bam = "{dir}/mapped.sorted.tag.mkdup.bam"
+        bam = "{dir}/mapped.sorted.tag.mol.mkdup.bam"
     log: "{dir}/clusterrmdup.log"
     shell:
         "blr clusterrmdup"
@@ -162,21 +176,16 @@ rule clusterrmdup_and_index:
 rule filterclusters:
     # Filter clusters based on parameters
     output:
-        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.bam",
-        stat1 = "{dir}/cluster_stats/bcmerge.stats.molecules_per_bc",
-        stat2 = "{dir}/cluster_stats/bcmerge.stats.molecule_stats"
+        bam = "{dir}/mapped.sorted.tag.mol.mkdup.bcmerge.filt.bam"
     input:
-        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.bam"
+        bam = "{dir}/mapped.sorted.tag.mol.mkdup.bcmerge.bam"
     log: "{dir}/filterclusters.log"
-    params:
-        stats = "{dir}/cluster_stats/bcmerge.stats"
     shell:
         "blr filterclusters"
-        " -M 260"
-        " -s {params.stats}"
-        " -bc {config[cluster_tag]}"
         " {input.bam}"
-        " {output.bam} 2>> {log}"
+        " {output.bam}"
+        " -M 260"
+        " -bc {config[cluster_tag]} 2>> {log}"
 
 rule bam_to_fastq:
     # Convert final bam file to fastq files for read 1 and 2
@@ -184,7 +193,7 @@ rule bam_to_fastq:
         r1_fastq = "{dir}/reads.1.final.fastq",
         r2_fastq = "{dir}/reads.2.final.fastq"
     input:
-        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.bam"
+        bam = "{dir}/mapped.sorted.tag.mol.mkdup.bcmerge.filt.bam"
     log: "{dir}/picard_samtofastq.log"
     params:
         picard_command = config["picard_command"],
