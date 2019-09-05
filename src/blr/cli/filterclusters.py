@@ -26,7 +26,8 @@ def main(args):
             # If barcode is not in all_molecules the barcode does not have enough proximal reads to make a single
             # molecule. If the barcode has more than <max_molecules> molecules, remove it from the read.
             if no_mols > args.max_molecules:
-                read, summary = strip_barcode(pysam_read=read, tags_to_be_removed=args.tags_to_be_removed, summary=summary)
+                read, summary = strip_barcode(pysam_read=read, tags_to_be_removed=args.tags_to_be_removed,
+                                              summary=summary)
 
             openout.write(read)
 
@@ -59,7 +60,6 @@ def strip_barcode(pysam_read, tags_to_be_removed, summary):
 
     # Remove tags
     for bam_tag in tags_to_be_removed:
-
         # Stats
         removed_tag = pysam_read.get_tag(bam_tag)
         summary.removal_dict[bam_tag].add(removed_tag)
@@ -93,16 +93,19 @@ class Summary:
         logger.info(f"Total Reads in file:\t{self.tot_reads:,}")
         for bam_tag, removed_set in self.removal_dict.items():
             logger.info(f"Unique {bam_tag} tags removed: {len(removed_set)}")
-        logger.info(f"Reads with barcodes removed:\t{self.reads_with_removed_tags} ({self.reads_with_removed_tags/self.tot_reads:.2%})")
+        logger.info(f"Reads with barcodes removed:\t{self.reads_with_removed_tags} "
+                    f"({self.reads_with_removed_tags / self.tot_reads:.2%})")
+
 
 def add_arguments(parser):
     parser.add_argument("input", help=".bam file tagged with BX:Z:<int> tags. Needs to be indexed, sorted & have "
-                                       "duplicates removed.")
+                                      "duplicates removed.")
     parser.add_argument("output", help="Output filtered file.")
 
     parser.add_argument("-M", "--max_molecules", metavar="<INTEGER>", type=int, default=500,
                         help="Maximum number of molecules allowed to keep barcode. DEFAULT: 500")
     parser.add_argument("-mn", "--molecule_number_tag", metavar="<STRING>", type=str, default="MN",
                         help=".bam file tag where number of molecules for that barcode is stored. DEFAULT: MN")
-    parser.add_argument("-t", "--tags_to_be_removed", metavar="<STRING>", type=str, nargs="*", default=["BX", "MI", "MN"],
+    parser.add_argument("-t", "--tags_to_be_removed", metavar="<STRING>", type=str, nargs="*",
+                        default=["BX", "MI", "MN"],
                         help=".bam file tags which are to be removed for filtered reads. DEFAULT: BX MI MN")
