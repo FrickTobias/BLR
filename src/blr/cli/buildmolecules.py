@@ -1,7 +1,7 @@
 """
 Tags .bam file with molecule information based on barcode sequence and genomic proximity.
 
-A molecule is defined by having a) minimum --threshold reads and including all reads with the same barcode which are b)
+A molecule is defined by having 1) minimum --threshold reads and including all reads with the same barcode which are 2)
 a maximum distance of --window between any given reads.
 """
 
@@ -124,7 +124,7 @@ def fetch_bc(pysam_read, barcode_tag, summary=None):
         barcode = None
 
         if summary:
-            summary.non_tagged_reads += 1
+            summary.reads_without_barcode += 1
 
     return barcode
 
