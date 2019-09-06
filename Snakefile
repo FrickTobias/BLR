@@ -167,6 +167,8 @@ rule buildmolecules:
         "blr buildmolecules"
         " {input.bam}"
         " {output.bam}"
+        " -m {config[molecule_tag]}"
+        " -n {config[num_mol_tag]}"
         " -bc {config[cluster_tag]}"
         " 2> {log}"
 
@@ -181,8 +183,9 @@ rule filterclusters:
         "blr filterclusters"
         " {input.bam}"
         " {output.bam}"
+        " -mn {config[num_mol_tag]}"
         " -M 260"
-        " -t {config[cluster_tag]} 2> {log}"
+        " -t {config[cluster_tag]} {config[molecule_tag]} {config[num_mol_tag]} {config[sequence_tag]} 2> {log}"
 
 rule bam_to_fastq:
     # Convert final bam file to fastq files for read 1 and 2
