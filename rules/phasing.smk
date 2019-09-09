@@ -31,27 +31,25 @@ rule HAPCUT2_LinkFragments:
 
 rule HAPCUT2_phasing:
     output:
-        phase = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.phase",
-        phased_vcf = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.phase.phased.vcf"
+        phase =      "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.phase",
+        phased_vcf = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.phase.phased.VCF"
     input:
         linked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.linked",
         vcf = "{dir}/reference.vcf"
     log: "{dir}/hapcut2_phasing.log"
-    params:
-        phase = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.phase"
     shell:
          "{HAPCUT2}/build/HAPCUT2"
          " --nf 1"
          " --fragments {input.linked}"
          " --vcf {input.vcf}"
-         " --out {params.phase}"
+         " --out {output.phase}"
          " --outvcf 1 2> {log}"
 
 rule HapCUT2_stats:
     output:
         stats = "{dir}/phasing_stats.txt"
     input:
-         vcf1 = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.phase.phased.vcf",
+         vcf1 = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.phase.phased.VCF",
     params:
           vcf2 = config["phasing_ground_truth"]
     shell:
