@@ -37,14 +37,12 @@ rule HAPCUT2_phasing:
         linked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.linked",
         vcf = "{dir}/reference.vcf"
     log: "{dir}/hapcut2_phasing.log"
-    params:
-        phase = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.phase"
     shell:
          "{HAPCUT2}/build/HAPCUT2"
          " --nf 1"
          " --fragments {input.linked}"
          " --vcf {input.vcf}"
-         " --out {params.phase}"
+         " --out {output.phase}"
          " --outvcf 1 2> {log}"
 
 rule HapCUT2_stats:
