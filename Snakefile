@@ -181,16 +181,21 @@ rule filterclusters:
     # Filter clusters based on parameters
     output:
         bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
+        bai = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam.bai"
     input:
         bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.bam"
     log: "{dir}/filterclusters.log"
     shell:
         "blr filterclusters"
         " {input.bam}"
-        " {output.bam}"
+        " -"
         " -mn {config[num_mol_tag]}"
         " -M 260"
-        " -t {config[cluster_tag]} {config[molecule_tag]} {config[num_mol_tag]} {config[sequence_tag]} 2> {log}"
+        " -t {config[cluster_tag]} {config[molecule_tag]} {config[num_mol_tag]} {config[sequence_tag]}"
+        " 2>> {log} |"
+        " tee {output.bam} |"
+        " samtools index  - {output.bai}"
+
 
 rule bam_to_fastq:
     # Convert final bam file to fastq files for read 1 and 2
