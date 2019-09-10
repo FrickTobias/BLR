@@ -2,9 +2,9 @@ HAPCUT2=config["hapcut2"]
 
 rule HAPCUT2_extractHAIRS:
     output:
-        unlinked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.unlinked"
+        unlinked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked"
     input:
-        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.bam",
+        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
         vcf = "{dir}/reference.vcf"
     log: "{dir}/hapcut2_extracthairs.log"
     shell:
@@ -16,11 +16,11 @@ rule HAPCUT2_extractHAIRS:
 
 rule HAPCUT2_LinkFragments:
     output:
-        linked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.linked"
+        linked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked"
     input:
-        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.bam",
+        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
         vcf = "{dir}/reference.vcf",
-        unlinked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.unlinked"
+        unlinked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked"
     log: "{dir}/hapcut2_linkfragments.log"
     shell:
          "python {HAPCUT2}/utilities/LinkFragments.py"
@@ -31,10 +31,10 @@ rule HAPCUT2_LinkFragments:
 
 rule HAPCUT2_phasing:
     output:
-        phase =      "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.phase",
-        phased_vcf = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.phase.phased.VCF"
+        phase =      "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase",
+        phased_vcf = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.VCF"
     input:
-        linked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.linked",
+        linked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked",
         vcf = "{dir}/reference.vcf"
     log: "{dir}/hapcut2_phasing.log"
     shell:
@@ -49,7 +49,7 @@ rule HapCUT2_stats:
     output:
         stats = "{dir}/phasing_stats.txt"
     input:
-         vcf1 = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.phase.phased.VCF",
+         vcf1 = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.VCF",
     params:
           vcf2 = config["phasing_ground_truth"]
     shell:
