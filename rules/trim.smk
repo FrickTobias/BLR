@@ -20,7 +20,7 @@ rule trim:
     threads: 20
     shell:
         "cutadapt" #Initial trim
-        " -g ^CAGTTGATCATCAGCAGGTAATCTGG"
+        " -g 'XNNNCAGTTGATCATCAGCAGGTAATCTGG;min_overlap=26'"
         " -e 0.2"
         " --discard-untrimmed"
         " -j {threads}"

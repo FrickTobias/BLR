@@ -1,8 +1,6 @@
 index_nucleotides: 3
 heap_space: 90
 cluster_tag: BC    # Used to store barcode cluster id in bam file. 'BX' is 10x genomic default
-molecule_tag: MI  # Used to store molecule ID, same as 10x default.
-num_mol_tag: MN # Used to store number of molecules per barcode
 sequence_tag: RX    # Used to store original barcode sequence in bam file. 'RX' is 10x genomic default
 bowtie2_reference: .   #Fill in /path/to/bowtie2_reference
 picard_command: picard
