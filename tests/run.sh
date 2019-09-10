@@ -12,7 +12,7 @@ snakemake -p --configfile tests/test_config.yaml outdir/reads.1.final.fastq.gz \
     outdir/reads.2.final.fastq.gz
 
 m=$(samtools sort -n outdir/mapped.sorted.tag.mkdup.bcmerge.filt.bam | samtools view - | md5sum | cut -f1 -d" ")
-test $m == be2dbe2f5a2ab660a949e1944e077a79
+test $m == 53df30b14f6cc184758a4711f08daf43
 
 # Test phasing
 snakemake -p --configfile tests/test_config.yaml outdir/phasing_stats.txt
