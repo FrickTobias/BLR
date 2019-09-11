@@ -25,13 +25,14 @@ before_install:
   - conda update -q conda
   - conda config --add channels bioconda --add channels conda-forge
   - conda info -a
-  - wget https://export.uppmax.uu.se/uppstore2018173/blr-testdata-0.1.tar.gz
-  - tar xf blr-testdata-0.1.tar.gz
-  - ln -s blr-testdata-0.1 testdata
+  - wget https://export.uppmax.uu.se/uppstore2018173/blr-testdata-0.2.tar.gz
+  - tar xf blr-testdata-0.2.tar.gz
+  - ln -s blr-testdata-0.2 testdata
 
 install:
   - conda env create -n testenv -f environment.yml
   - conda activate testenv
   - pip install .
+  - bash install-hapcut2.sh
 
 script: tests/run.sh

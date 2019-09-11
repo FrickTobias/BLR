@@ -12,6 +12,9 @@ indexes = sorted(["".join(tup) for tup in itertools.product("ATCG", repeat=confi
 # Import rules for trimming fastq files.
 include: "rules/trim.smk"
 
+# Import rules for phasing
+include: "rules/phasing.smk"
+
 rule compress:
     output: "{dir}/{sample}.fastq.gz"
     input: "{dir}/{sample}.fastq"
@@ -176,16 +179,21 @@ rule filterclusters:
     # Filter clusters based on parameters
     output:
         bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
+        bai = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam.bai"
     input:
         bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.bam"
     log: "{dir}/filterclusters.log"
     shell:
         "blr filterclusters"
         " {input.bam}"
-        " {output.bam}"
+        " -"
         " -mn {config[num_mol_tag]}"
         " -M 260"
-        " -t {config[cluster_tag]} {config[molecule_tag]} {config[num_mol_tag]} {config[sequence_tag]} 2> {log}"
+        " -t {config[cluster_tag]} {config[molecule_tag]} {config[num_mol_tag]} {config[sequence_tag]}"
+        " 2>> {log} |"
+        " tee {output.bam} |"
+        " samtools index  - {output.bai}"
+
 
 rule bam_to_fastq:
     # Convert final bam file to fastq files for read 1 and 2
@@ -203,3 +211,24 @@ rule bam_to_fastq:
         " I={input.bam}"
         " FASTQ={output.r1_fastq}"
         " SECOND_END_FASTQ={output.r2_fastq} 2>> {log}"
+
+if config['reference_variants']:
+    rule link:
+        output: "{dir}/reference.vcf"
+        params: config['reference_variants']
+        run:
+            cmd = "ln -s " + os.path.abspath(config['reference_variants']) + " " + str(output)
+            shell(cmd)
+else:
+    rule call_variants_freebayes:
+        output:
+             vcf = "{dir}/reference.vcf"
+        input:
+             bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.bam"
+        log: "{dir}/call_variants_freebayes.log"
+        params:
+            reference = config["bowtie2_reference"] + ".fasta" # I am unsure if this is a good solution, but it works.
+        shell:
+             "freebayes"
+             " -f {params.reference}"
+             " {input.bam} 1> {output.vcf} 2> {log}"

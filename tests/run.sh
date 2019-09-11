@@ -8,8 +8,15 @@ mkdir -p outdir
 ln -s $PWD/testdata/reads.1.fastq.gz outdir/reads.1.fastq.gz
 ln -s $PWD/testdata/reads.2.fastq.gz outdir/reads.2.fastq.gz
 
-snakemake --configfile tests/test_config.yaml outdir/reads.1.final.fastq.gz \
+snakemake -p --configfile tests/test_config.yaml outdir/reads.1.final.fastq.gz \
     outdir/reads.2.final.fastq.gz
 
 m=$(samtools sort -n outdir/mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | samtools view - | md5sum | cut -f1 -d" ")
-test $m == 02595541aa2247266537cd772d712820
+test $m == 134db15680443fc32d25ba577a0c5700
+
+# Test phasing
+snakemake -p --configfile tests/test_config.yaml outdir/phasing_stats.txt
+
+# Cut away columns 2 and 3 as these change order between linux and osx
+m2=$(cut -f1,4- outdir/mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase | md5sum | cut -f1 -d" ")
+test $m2 == 70c907df8a996d2b3ba3f06fb942b244
