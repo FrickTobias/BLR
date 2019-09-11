@@ -11,6 +11,5 @@ picard_command: picard #Picard run command.
 # Phasing settings #
 ####################
 hapcut2: HapCUT2 #Path to Hapcut2 command.
-call_variants: true #Call variants for dataset, this means that reference variants will not be used.
-reference_variants: #Path to reference variants used for phasing
+reference_variants: #Path to reference variants used for phasing, if not provided then variant will be called by freebayes
 phasing_ground_truth: #Path to phased variants used for calculating stats

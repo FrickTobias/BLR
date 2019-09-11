@@ -1,4 +1,4 @@
-from snakemake.utils import validate, WorkflowError
+from snakemake.utils import validate
 import itertools
 import os
 
@@ -212,7 +212,14 @@ rule bam_to_fastq:
         " FASTQ={output.r1_fastq}"
         " SECOND_END_FASTQ={output.r2_fastq} 2>> {log}"
 
-if config['call_variants']:
+if config['reference_variants']:
+    rule link:
+        output: "{dir}/reference.vcf"
+        params: config['reference_variants']
+        run:
+            cmd = "ln -s " + os.path.abspath(config['reference_variants']) + " " + str(output)
+            shell(cmd)
+else:
     rule call_variants_freebayes:
         output:
              vcf = "{dir}/reference.vcf"
@@ -225,13 +232,3 @@ if config['call_variants']:
              "freebayes"
              " -f {params.reference}"
              " {input.bam} 1> {output.vcf} 2> {log}"
-elif os.path.exists(config['reference_variants']):
-    rule link:
-        output: "{dir}/reference.vcf"
-        params: config['reference_variants']
-        run:
-            cmd = "ln -s " + os.path.abspath(config['reference_variants']) + " " + str(output)
-            shell(cmd)
-else:
-    raise WorkflowError("Either call_variants must be set to true or path to reference_variants be supplied.")
-

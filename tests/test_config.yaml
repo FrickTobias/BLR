@@ -11,6 +11,5 @@ picard_command: picard
 # Phasing settings #
 ####################
 hapcut2: HapCUT2 #Path to Hapcut2 command.
-call_variants: false # Call variants for dataset, this means that reference variants will not be used.
-reference_variants: ./testdata/HG002_GRCh38_GIAB_highconf.chr1mini.vcf # Path to reference variants
+reference_variants: ./testdata/HG002_GRCh38_GIAB_highconf.chr1mini.vcf # Path to reference variants, if not provided then variant will be called by freebayes
 phasing_ground_truth: ./testdata/HG002_GRCh38_GIAB_highconf_triophased.chr1mini.vcf #Path to phased variants used for calculating stats

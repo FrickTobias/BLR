@@ -1,8 +1,8 @@
 HAPCUT2=config["hapcut2"]
 
-rule HAPCUT2_extractHAIRS:
+rule hapcut2_extracthairs:
     output:
-        unlinked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked"
+        unlinked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked.txt"
     input:
         bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
         vcf = "{dir}/reference.vcf"
@@ -14,13 +14,13 @@ rule HAPCUT2_extractHAIRS:
          " --VCF {input.vcf}"
          " --out {output.unlinked} 2> {log}"
 
-rule HAPCUT2_LinkFragments:
+rule hapcut2_linkfragments:
     output:
-        linked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked"
+        linked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked.txt"
     input:
         bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
         vcf = "{dir}/reference.vcf",
-        unlinked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked"
+        unlinked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked.txt"
     log: "{dir}/hapcut2_linkfragments.log"
     shell:
          "python {HAPCUT2}/utilities/LinkFragments.py"
@@ -29,12 +29,12 @@ rule HAPCUT2_LinkFragments:
          " --fragments {input.unlinked}"
          " --out {output.linked} &> {log}"
 
-rule HAPCUT2_phasing:
+rule hapcut2_phasing:
     output:
         phase =      "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase",
         phased_vcf = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.VCF"
     input:
-        linked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked",
+        linked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked.txt",
         vcf = "{dir}/reference.vcf"
     log: "{dir}/hapcut2_phasing.log"
     shell:
@@ -45,7 +45,7 @@ rule HAPCUT2_phasing:
          " --out {output.phase}"
          " --outvcf 1 2> {log}"
 
-rule HapCUT2_stats:
+rule hapcut2_stats:
     output:
         stats = "{dir}/phasing_stats.txt"
     input:

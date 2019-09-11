@@ -37,14 +37,10 @@ properties:
     type: string
     description: Hapcut2 command to be used.
     default: .
-  call_variants:
-    type: boolean
-    description: Call variants for dataset.
-    default: true
   reference_variants:
     type: string
-    description: Path to reference variants
-    default: .
+    description: Path to reference variants, if not provided then variant will be called by freebayes
+    default:
   phasing_ground_truth:
     type: string
     description: Path to phased variants used to compute phasing stats.
