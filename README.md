@@ -1,4 +1,4 @@
-![Travis CI badge](https://api.travis-ci.org/FrickTobias/BLR.svg)
+[![Travis CI](https://api.travis-ci.org/FrickTobias/BLR.svg)](https://travis-ci.org/FrickTobias/BLR/)
 
 :exclamation:**NB! This is currently under heavy development.**:exclamation:
 
