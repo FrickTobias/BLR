@@ -224,7 +224,7 @@ else:
         output:
              vcf = "{dir}/reference.vcf"
         input:
-             bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.filt.bam"
+             bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
         log: "{dir}/call_variants_freebayes.log"
         params:
             reference = config["bowtie2_reference"] + ".fasta" # I am unsure if this is a good solution, but it works.
