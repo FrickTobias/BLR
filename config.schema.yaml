@@ -26,9 +26,8 @@ properties:
     description: SAM tag to use for store original barcode sequence in bam file. 'RX' is 10x genomic default
     default: RX
   bowtie2_reference:
-    type: string
+    type: [ "string", "null" ]
     description: Path to bowtie2 reference for mapping
-    default: ""
   picard_command:
     type: string
     description: Picard command to be used.
@@ -38,10 +37,8 @@ properties:
     description: Hapcut2 command to be used.
     default: .
   reference_variants:
-    type: string
+    type: [ "string", "null" ]
     description: Path to reference variants, if not provided then variant will be called by freebayes
-    default: ""
   phasing_ground_truth:
-    type: string
+    type: [ "string", "null" ]
     description: Path to phased variants used to compute phasing stats.
-    default: ""

@@ -4,12 +4,12 @@ cluster_tag: BX    # Used to store barcode cluster id in bam file. 'BX' is 10x g
 molecule_tag: MI  # Used to store molecule ID, same as 10x default.
 num_mol_tag: MN # Used to store number of molecules per barcode
 sequence_tag: RX    # Used to store original barcode sequence in bam file. 'RX' is 10x genomic default
-bowtie2_reference: ""   #Fill in /path/to/bowtie2_reference
+bowtie2_reference: #Fill in /path/to/bowtie2_reference
 picard_command: picard #Picard run command.
 
 ####################
 # Phasing settings #
 ####################
 hapcut2: HapCUT2 #Path to Hapcut2 command.
-reference_variants: "" #Path to reference variants used for phasing, if not provided then variant will be called by freebayes
-phasing_ground_truth: "" #Path to phased variants used for calculating stats
+reference_variants: #Path to reference variants used for phasing, if not provided then variant will be called by freebayes
+phasing_ground_truth: #Path to phased variants used for calculating stats
