@@ -2,11 +2,11 @@ HAPCUT2=config["hapcut2"]
 
 rule hapcut2_extracthairs:
     output:
-        unlinked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked.txt"
+        unlinked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked.txt"
     input:
-        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
-        vcf = "{dir}/reference.vcf"
-    log: "{dir}/hapcut2_extracthairs.log"
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
+        vcf = "reference.vcf"
+    log: "hapcut2_extracthairs.log"
     shell:
          "{HAPCUT2}/build/extractHAIRS"
          " --10X 1"
@@ -16,12 +16,12 @@ rule hapcut2_extracthairs:
 
 rule hapcut2_linkfragments:
     output:
-        linked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked.txt"
+        linked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked.txt"
     input:
-        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
-        vcf = "{dir}/reference.vcf",
-        unlinked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked.txt"
-    log: "{dir}/hapcut2_linkfragments.log"
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
+        vcf = "reference.vcf",
+        unlinked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked.txt"
+    log: "hapcut2_linkfragments.log"
     shell:
          "python {HAPCUT2}/utilities/LinkFragments.py"
          " --bam {input.bam}"
@@ -31,12 +31,12 @@ rule hapcut2_linkfragments:
 
 rule hapcut2_phasing:
     output:
-        phase =      "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase",
-        phased_vcf = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.VCF"
+        phase =      "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase",
+        phased_vcf = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.VCF"
     input:
-        linked = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked.txt",
-        vcf = "{dir}/reference.vcf"
-    log: "{dir}/hapcut2_phasing.log"
+        linked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked.txt",
+        vcf = "reference.vcf"
+    log: "hapcut2_phasing.log"
     shell:
          "{HAPCUT2}/build/HAPCUT2"
          " --nf 1"
@@ -47,9 +47,9 @@ rule hapcut2_phasing:
 
 rule hapcut2_stats:
     output:
-        stats = "{dir}/phasing_stats.txt"
+        stats = "phasing_stats.txt"
     input:
-         vcf1 = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.VCF",
+         vcf1 = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.VCF",
     params:
           vcf2 = config["phasing_ground_truth"]
     shell:
