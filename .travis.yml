@@ -30,7 +30,7 @@ before_install:
   - ln -s blr-testdata-0.2 testdata
 
 install:
-  - conda env create -n testenv -f environment.yml
+  - conda env create -n testenv -f environment.${TRAVIS_OS_NAME}.lock.yml
   - conda activate testenv
   - pip install .
   - bash install-hapcut2.sh
