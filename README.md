@@ -25,7 +25,7 @@ Activate your enviroment
 
 Change into the `workdir` folder, and run the pipeline using snakemake, indicating your intended target. In this example, the full pipeline is run.
 
-    snakemake --snakefile path/to/Snakefile reads.1.final.fastq.gz reads.2.final.fastq.gz
+    blr run reads.1.final.fastq.gz reads.2.final.fastq.gz
 
 ## Install and Setup
 
