@@ -12,8 +12,12 @@ setup(
     long_description_content_type="text/markdown",
     license="MIT",
     python_requires=">=3.6",
+    install_requires=[
+        "importlib_resources; python_version<'3.7'",
+    ],
     package_dir={"": "src"},
     packages=find_namespace_packages("src"),
+    package_data={"blr": ["Snakefile", "rules/*.smk", "config.schema.yaml"]},
     entry_points={"console_scripts": ["blr = blr.__main__:main"]},
     classifiers=[
         "Development Status :: 4 - Beta",
