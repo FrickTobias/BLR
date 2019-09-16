@@ -13,6 +13,10 @@ setup(
     license="MIT",
     python_requires=">=3.6",
     install_requires=[
+        "pysam",
+        "dnaio",
+        "tqdm",
+        "snakemake",
         "importlib_resources; python_version<'3.7'",
     ],
     package_dir={"": "src"},
