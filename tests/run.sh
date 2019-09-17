@@ -1,6 +1,14 @@
 #!/bin/bash
 set -xeuo pipefail
 
+samtools --version
+bowtie2 --version
+picard SamToFastq --version || true
+cutadapt --version
+cd-hit --help | head -n 1 || true
+snakemake --version
+blr --version
+
 ( cd testdata && bowtie2-build chr1mini.fasta chr1mini > /dev/null )
 
 rm -rf outdir
