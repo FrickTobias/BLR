@@ -9,14 +9,14 @@ rule trim:
     # Cut 3' TES' sequence from R1 and R2. TES'=CTGTCTCTTATACACATCT
     # Discard untrimmed.
     output:
-        r1_fastq="{dir}/trimmed-c.1.fastq.gz",
-        r2_fastq="{dir}/trimmed-c.2.fastq.gz"
+        r1_fastq="trimmed-c.1.fastq.gz",
+        r2_fastq="trimmed-c.2.fastq.gz"
     input:
-        r1_fastq="{dir}/reads.1.fastq.gz",
-        r2_fastq="{dir}/reads.2.fastq.gz"
+        r1_fastq="reads.1.fastq.gz",
+        r2_fastq="reads.2.fastq.gz"
     log:
-        a = "{dir}/trimmed-a.log",
-        b = "{dir}/trimmed-b.log"
+        a = "trimmed-a.log",
+        b = "trimmed-b.log"
     threads: 20
     shell:
         "cutadapt" #Initial trim

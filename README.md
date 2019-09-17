@@ -16,16 +16,16 @@ Create soft links for the gzipped fastq files to analyze in the `workdir` folder
     ln -s $PWD/path/to/sample.R2.fastq.gz workdir/reads.2.fastq.gz
 
 Make a copy of the `config.yaml` file and enter the path to your reference genome.
-  
-    cp config.yaml workdir/my_config.yaml
-    
+
+    cp config.yaml workdir/
+
 Activate your enviroment
 
     conda activate blr
 
-Run the pipeline using snakemake and indicate your intended target. In this example the full pipeline is run.  
+Change into the `workdir` folder, and run the pipeline using snakemake, indicating your intended target. In this example, the full pipeline is run.
 
-    snakemake --snakefile path/to/Snakefile --configfile workdir/my_config.yaml workdir/reads.1.final.fastq.gz workdir/reads.2.final.fastq.gz 
+    snakemake --snakefile path/to/Snakefile reads.1.final.fastq.gz reads.2.final.fastq.gz
 
 ## Install and Setup
 

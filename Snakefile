@@ -16,8 +16,8 @@ include: "rules/trim.smk"
 include: "rules/phasing.smk"
 
 rule compress:
-    output: "{dir}/{sample}.fastq.gz"
-    input: "{dir}/{sample}.fastq"
+    output: "{sample}.fastq.gz"
+    input: "{sample}.fastq"
     shell:
         "pigz < {input} > {output}"
 
@@ -26,12 +26,12 @@ if config["index_nucleotides"] == 0:
     rule cdhitprep_no_index:
         # Create fasta containing aggregates barcode sequences from fastq file headers.
         output:
-            "{dir}/unique_bc/all.fa"
+            "unique_bc/all.fa"
         input:
-            r1_fastq = "{dir}/trimmed-c.1.fastq.gz"
+            r1_fastq = "trimmed-c.1.fastq.gz"
         log:
-            stdout = "{dir}/cdhit_prep.stdout",
-            stderr = "{dir}/cdhit_prep.stderr"
+            stdout = "cdhit_prep.stdout",
+            stderr = "cdhit_prep.stderr"
         shell:
             "blr cdhitprep"
             " {input.r1_fastq}"
@@ -41,14 +41,14 @@ else:
     rule cdhitprep:
         # Create fasta containing aggregates barcode sequences from fastq file headers.
         output:
-            expand("{{dir}}/unique_bc/{sample}.fa", sample=indexes)
+            expand("unique_bc/{sample}.fa", sample=indexes)
         input:
-            r1_fastq = "{dir}/trimmed-c.1.fastq.gz"
+            r1_fastq = "trimmed-c.1.fastq.gz"
         params:
-            dir = "{dir}/unique_bc/"
+            dir = "unique_bc/"
         log:
-            stdout = "{dir}/cdhit_prep.stdout",
-            stderr = "{dir}/cdhit_prep.stderr"
+            stdout = "cdhit_prep.stdout",
+            stderr = "cdhit_prep.stderr"
         shell:
             "blr cdhitprep"
             " {input.r1_fastq}"
@@ -60,12 +60,12 @@ else:
 rule barcode_clustering:
     # Barcode clustering using cd-hit-454
     input:
-       "{dir}/unique_bc/{sample}.fa"
+       "unique_bc/{sample}.fa"
     output:
-        "{dir}/unique_bc/{sample}.clustered",
-        "{dir}/unique_bc/{sample}.clustered.clstr"
+        "unique_bc/{sample}.clustered",
+        "unique_bc/{sample}.clustered.clstr"
     threads: 20
-    log: "{dir}/unique_bc/{sample}.clustering.log"
+    log: "unique_bc/{sample}.clustering.log"
     params:
         prefix= lambda wildcards,output: os.path.splitext(output[1])[0]
     shell:
@@ -82,23 +82,23 @@ rule barcode_clustering:
 rule concat_files:
     # Concatenate all the .clstr files into one single file.
     output:
-        "{dir}/barcodes.clstr"
+        "barcodes.clstr"
     input:
-        expand("{{dir}}/unique_bc/{sample}.clustered.clstr", sample=indexes)
+        expand("unique_bc/{sample}.clustered.clstr", sample=indexes)
     shell:
         "cat {input} > {output}"
 
 rule bowtie2_mapping:
     # Mapping of trimmed fastq to reference using bowtie2 and sorting output using samtools.
     output:
-        bam = "{dir}/mapped.sorted.bam"
+        bam = "mapped.sorted.bam"
     input:
-        r1_fastq = "{dir}/trimmed-c.1.fastq.gz",
-        r2_fastq = "{dir}/trimmed-c.2.fastq.gz"
+        r1_fastq = "trimmed-c.1.fastq.gz",
+        r2_fastq = "trimmed-c.2.fastq.gz"
     threads: 20
     params:
         reference = config["bowtie2_reference"]
-    log: "{dir}/bowtie2_mapping.log"
+    log: "bowtie2_mapping.log"
     shell:
         "bowtie2"
         " -1 {input.r1_fastq}"
@@ -113,11 +113,11 @@ rule bowtie2_mapping:
 rule tagbam:
     # Add barcode information to bam file using custom script
     output:
-        bam = "{dir}/mapped.sorted.tag.bam"
+        bam = "mapped.sorted.tag.bam"
     input:
-        bam = "{dir}/mapped.sorted.bam",
-        clstr = "{dir}/barcodes.clstr"
-    log: "{dir}/tag_bam.stderr"
+        bam = "mapped.sorted.bam",
+        clstr = "barcodes.clstr"
+    log: "tag_bam.stderr"
     shell:
         "blr tagbam"
         " {input.bam}"
@@ -128,12 +128,12 @@ rule tagbam:
 rule duplicates_marking:
     # Mark duplicates between barcode clusters using picard
     output:
-        bam = "{dir}/mapped.sorted.tag.mkdup.bam"
+        bam = "mapped.sorted.tag.mkdup.bam"
     input:
-        bam = "{dir}/mapped.sorted.tag.bam"
+        bam = "mapped.sorted.tag.bam"
     log:
-        metrics = "{dir}/picard_mkdup_metrics.log",
-        stderr = "{dir}/picard_mkdup.log"
+        metrics = "picard_mkdup_metrics.log",
+        stderr = "picard_mkdup.log"
     params:
         picard_command = config["picard_command"],
         heap_space=config["heap_space"]
@@ -147,11 +147,11 @@ rule duplicates_marking:
 rule clusterrmdup:
     # Removes cluster duplicates and indexes output
     output:
-        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.bam",
-        merges = "{dir}/barcode-merges.csv"
+        bam = "mapped.sorted.tag.mkdup.bcmerge.bam",
+        merges = "barcode-merges.csv"
     input:
-        bam = "{dir}/mapped.sorted.tag.mkdup.bam"
-    log: "{dir}/clusterrmdup.log"
+        bam = "mapped.sorted.tag.mkdup.bam"
+    log: "clusterrmdup.log"
     shell:
         "blr clusterrmdup"
         " {input.bam}"
@@ -162,10 +162,10 @@ rule clusterrmdup:
 rule buildmolecules:
     # Groups reads into molecules depending on their genomic position and barcode
     output:
-        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.bam"
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.bam"
     input:
-        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.bam"
-    log: "{dir}/buildmolecules.log"
+        bam = "mapped.sorted.tag.mkdup.bcmerge.bam"
+    log: "buildmolecules.log"
     shell:
         "blr buildmolecules"
         " {input.bam}"
@@ -178,11 +178,11 @@ rule buildmolecules:
 rule filterclusters:
     # Filter clusters based on parameters
     output:
-        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
-        bai = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam.bai"
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
+        bai = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam.bai"
     input:
-        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.bam"
-    log: "{dir}/filterclusters.log"
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.bam"
+    log: "filterclusters.log"
     shell:
         "blr filterclusters"
         " {input.bam}"
@@ -198,11 +198,11 @@ rule filterclusters:
 rule bam_to_fastq:
     # Convert final bam file to fastq files for read 1 and 2
     output:
-        r1_fastq = "{dir}/reads.1.final.fastq",
-        r2_fastq = "{dir}/reads.2.final.fastq"
+        r1_fastq = "reads.1.final.fastq",
+        r2_fastq = "reads.2.final.fastq"
     input:
-        bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
-    log: "{dir}/picard_samtofastq.log"
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
+    log: "picard_samtofastq.log"
     params:
         picard_command = config["picard_command"],
         heap_space=config["heap_space"]
@@ -214,7 +214,7 @@ rule bam_to_fastq:
 
 if config['reference_variants']:
     rule link:
-        output: "{dir}/reference.vcf"
+        output: "reference.vcf"
         params: config['reference_variants']
         run:
             cmd = "ln -s " + os.path.abspath(config['reference_variants']) + " " + str(output)
@@ -222,10 +222,10 @@ if config['reference_variants']:
 else:
     rule call_variants_freebayes:
         output:
-             vcf = "{dir}/reference.vcf"
+             vcf = "reference.vcf"
         input:
-             bam = "{dir}/mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
-        log: "{dir}/call_variants_freebayes.log"
+             bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
+        log: "call_variants_freebayes.log"
         params:
             reference = config["bowtie2_reference"] + ".fasta" # I am unsure if this is a good solution, but it works.
         shell:
