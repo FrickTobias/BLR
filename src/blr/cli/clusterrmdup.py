@@ -24,7 +24,9 @@ def main(args):
     current_cache_rp = dict()
     cache_reads = dict()
     chrom_prev = None
+    pos_prev = None
     merge_dict = dict()
+    cache_dup_pos = dict()
     with pysam.AlignmentFile(args.input_tagged_bam, "rb") as openin:
         for read in tqdm(openin.fetch(until_eof=True), desc="Processing reads"):
             summary.tot_reads += 1
@@ -63,11 +65,12 @@ def main(args):
                     for cache_read_pair_tracker in current_cache_rp.values():
                         if cache_read_pair_tracker.duplicate_read_pair():
                             summary.reads_at_analyzed_dup_position += len(cache_read_pair_tracker.current_reads) * 2
-                            merge_dict, cache_dup_pos = seed_duplicates(merge_dict=merge_dict,
-                                                                        cache_dup_pos=cache_dup_pos,
-                                                                        pos_new=cache_read_pair_tracker.position_tuple_ID,
-                                                                        bc_new=cache_read_pair_tracker.barcodes,
-                                                                        window=args.window)
+                            merge_dict, cache_dup_pos = seed_duplicates(
+                                merge_dict=merge_dict,
+                                cache_dup_pos=cache_dup_pos,
+                                pos_new=cache_read_pair_tracker.position_tuple_ID,
+                                bc_new=cache_read_pair_tracker.barcodes,
+                                window=args.window)
                     current_cache_rp = dict()
                     current_cache_rp[rp_pos_tuple] = CacheReadPairTracker(rp_pos_tuple=rp_pos_tuple,
                                                                           chromosome=chrom_new, read=read, mate=mate,
@@ -295,9 +298,12 @@ class Summary:
 def add_arguments(parser):
     parser.add_argument("input_tagged_bam", help="Sorted .bam file tagged with barcodes (-bc).")
     parser.add_argument("output_bam", help="Sorted .bam file without barcode duplicates.")
-    parser.add_argument("merge_log",
-                        help=".csv log file containing all merges done. File is in format: {old barcode id},{new barcode id}")
-    parser.add_argument("-bc", "--barcode_tag", metavar="<BARCODE_TAG>", type=str, default="BC",
-                        help=".bam file tag in which the barcode is specified in. DEFAULT: BC")
-    parser.add_argument("-w", "--window", metavar="<INTEGER>", type=int, default=100000,
-                        help="Window size. Duplicate positions within this distance will be used to find cluster duplicates.")
+    parser.add_argument(
+        "merge_log",
+        help=".csv log file containing all merges done. File is in format: {old barcode id},{new barcode id}")
+    parser.add_argument(
+        "-bc", "--barcode_tag", metavar="<BARCODE_TAG>", type=str, default="BC",
+        help=".bam file tag in which the barcode is specified in. DEFAULT: BC")
+    parser.add_argument(
+        "-w", "--window", metavar="<INTEGER>", type=int, default=100000,
+        help="Window size. Duplicate positions within this distance will be used to find cluster duplicates.")

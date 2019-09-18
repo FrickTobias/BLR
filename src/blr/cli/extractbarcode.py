@@ -51,16 +51,20 @@ def main(args):
 
 
 def add_arguments(parser):
-    parser.add_argument("input1", metavar='<INPUT FASTQ1>',
-                        help="Input .fastq file. Assumes to contain read1 if given with second input file. If only "
-                             "input1 is given, input is assumed to be an interleaved fastq file. If reading from stdin"
-                             "is requested use '-' as a placeholder.")
-    parser.add_argument("input2", nargs='?', metavar='<INPUT FASTQ2>',
-                        help="Input .fastq file for read2 for paired-end read. Leave empty if using interleaved fastq.")
-    parser.add_argument("-o1", "--output1", default=None, metavar='<OUTPUT FASTQ1>',
-                        help="Output .fastq file name for read1. If not specified the result is written to stdout"
-                             " as interleaved fastq. If output1 given but not output2, output will be written as "
-                             "interleaved fastq to output1.")
-    parser.add_argument("-o2", "--output2", default=None, metavar='<OUTPUT FASTQ2>',
-                        help="Output .fastq file name for read2. If not specified but -o1 given the result is written"
-                             " as interleaved fastq to o1.")
+    parser.add_argument(
+        "input1", metavar='<INPUT FASTQ1>',
+        help="Input .fastq file. Assumes to contain read1 if given with second input file. If only "
+             "input1 is given, input is assumed to be an interleaved fastq file. If reading from stdin"
+             "is requested use '-' as a placeholder.")
+    parser.add_argument(
+        "input2", nargs='?', metavar='<INPUT FASTQ2>',
+        help="Input .fastq file for read2 for paired-end read. Leave empty if using interleaved fastq.")
+    parser.add_argument(
+        "-o1", "--output1", default=None, metavar='<OUTPUT FASTQ1>',
+        help="Output .fastq file name for read1. If not specified the result is written to stdout"
+             " as interleaved fastq. If output1 given but not output2, output will be written as "
+             "interleaved fastq to output1.")
+    parser.add_argument(
+        "-o2", "--output2", default=None, metavar='<OUTPUT FASTQ2>',
+        help="Output .fastq file name for read2. If not specified but -o1 given the result is written"
+             " as interleaved fastq to o1.")
