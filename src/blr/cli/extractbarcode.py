@@ -6,16 +6,13 @@ Script can handle gzipped files (.gz).
 import logging
 import sys
 import dnaio
-
-import blr.utils as BLR
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
 
 def main(args):
     logger.info(f'Starting')
-
-    progress = BLR.ProgressReporter('Read pairs processed', 1000000)
 
     input_interleaved = True if not args.input2 else False
     logger.info(f"Input detected as {'interleaved fastq.' if input_interleaved else 'paired fastq.'}")
@@ -31,7 +28,7 @@ def main(args):
 
     reader = dnaio.open(args.input1, file2=args.input2, interleaved=input_interleaved, mode="r", fileformat="fastq")
     writer = dnaio.open(args.output1, file2=args.output2, interleaved=output_interleaved, mode="w", fileformat="fastq")
-    for read1, read2 in reader:
+    for read1, read2 in tqdm(reader, desc='Read pairs processed'):
         # Adjusting for BC
         bc_seq = read1.sequence[:20]
         read1.sequence = read1.sequence[20:]
@@ -47,9 +44,6 @@ def main(args):
 
         # Write to out
         writer.write(read1, read2)
-
-        # Progress reporting
-        progress.update()
 
     reader.close()
     writer.close()
