@@ -2,7 +2,6 @@
 Take trimmed read barcodes sequences from headers (@HEADER_bc-seq)
 and write FASTA files with unique barcodes
 """
-import sys
 import os
 import logging
 
@@ -14,7 +13,10 @@ logger = logging.getLogger(__name__)
 
 
 def main(args):
-    """Takes a fastq file barcode sequences in the header and writes a barcode fasta file with only unique entries. """
+    """
+    Takes a fastq file barcode sequences in the header and writes a barcode
+    fasta file with only unique entries.
+    """
 
     logger.info(f'Filtering barcodes with less than {args.filter} reads')
 

@@ -53,7 +53,8 @@ def main(args):
 
 def build_molecules(pysam_openfile, barcode_tag, window, min_reads, summary):
     """
-    Builds all_molecules.bc_to_mol ([barcode][moleculeID] = molecule) and all_molecules.header_to_mol ([read_name]=mol_ID)
+    Builds all_molecules.bc_to_mol ([barcode][moleculeID] = molecule) and
+    all_molecules.header_to_mol ([read_name]=mol_ID)
     :param pysam_openfile: Pysam open file instance.
     :param barcode_tag: Tag used to store barcode in bam file (usually BC).
     :param window: Max distance between reads to include in the same molecule.
@@ -74,7 +75,7 @@ def build_molecules(pysam_openfile, barcode_tag, window, min_reads, summary):
 
         # Fetches barcode and genomic position. Position will be formatted so start < stop.
         barcode = fetch_bc(pysam_read=read, barcode_tag=barcode_tag, summary=summary)
-        if barcode and read.is_unmapped == False:
+        if barcode and not read.is_unmapped:
             read_start, read_stop = sorted((read.reference_start, read.reference_end))
 
             # Commit molecules between chromosomes
@@ -87,7 +88,7 @@ def build_molecules(pysam_openfile, barcode_tag, window, min_reads, summary):
 
                 # Read is within window => add read to molecule (don't include overlapping reads).
                 if (molecule.stop + window) >= read_start:
-                    if molecule.stop >= read_start and not read.query_name in molecule.read_headers:
+                    if molecule.stop >= read_start and read.query_name not in molecule.read_headers:
                         summary.overlapping_reads_in_molecule += 1
                     else:
                         molecule.add_read(stop=read_stop, read_header=read.query_name)
@@ -198,7 +199,7 @@ class AllMolecules:
         """
 
         if molecule.number_of_reads >= self.min_reads:
-            if not molecule.barcode in self.bc_to_mol:
+            if molecule.barcode not in self.bc_to_mol:
                 self.bc_to_mol[molecule.barcode] = set()
             self.bc_to_mol[molecule.barcode].add(molecule)
             for header in molecule.read_headers:
@@ -239,7 +240,11 @@ class Summary:
 
     def non_analyzed_reads(self):
 
-        return self.overlapping_reads_in_molecule + self.reads_without_barcode + self.unmapped_bc_tagged_read + self.duplicates
+        return (
+            self.overlapping_reads_in_molecule
+            + self.reads_without_barcode
+            + self.unmapped_bc_tagged_read
+            + self.duplicates)
 
     def print_stats(self):
         """

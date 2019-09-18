@@ -80,4 +80,3 @@ def add_arguments(parser):
     parser.add_argument("-bc", "--barcode-cluster-tag", metavar="<STRING>", type=str, default="BX",
                         help="Bam file tag where barcode cluster id is stored. 10x genomics longranger output "
                              "uses 'BX' for their error corrected barcodes. DEFAULT: BX")
-
