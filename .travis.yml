@@ -8,12 +8,9 @@ cache:
 
 python:
   - "3.6"
-
-matrix:
-  include:
-    - os: osx
-      language: generic
-    - os: linux
+os:
+  - linux
+  - osx
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh; fi
@@ -35,4 +32,12 @@ install:
   - pip install .
   - bash install-hapcut2.sh
 
-script: tests/run.sh
+script:
+  - tests/run.sh
+
+jobs:
+  include:
+    - name: flake8
+      before_install:
+      install: python3 -m pip install flake8
+      script: flake8 src/
