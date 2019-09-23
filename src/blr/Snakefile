@@ -101,6 +101,7 @@ rule bowtie2_mapping:
     log: "bowtie2_mapping.log"
     shell:
         "bowtie2"
+        " --reorder"
         " -1 {input.r1_fastq}"
         " -2 {input.r2_fastq}"
         " -x {params.reference}"
