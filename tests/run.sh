@@ -19,8 +19,8 @@ cp tests/test_config.yaml outdir/config.yaml
 cd outdir
 blr run reads.1.final.fastq.gz reads.2.final.fastq.gz
 
-m=$(samtools sort -n mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | samtools view - | md5sum | cut -f1 -d" ")
-test $m == 134db15680443fc32d25ba577a0c5700
+m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
+test $m == 19022e7b4faebc24459bc243dc837ef4
 
 # Test phasing
 blr run phasing_stats.txt
