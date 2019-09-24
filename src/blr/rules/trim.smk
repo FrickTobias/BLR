@@ -1,5 +1,5 @@
 """
-Rules connected to trimming of fastq files.
+Rules connected to trimming of FASTQ files.
 """
 
 rule trim:
@@ -19,7 +19,7 @@ rule trim:
         b = "trimmed-b.log"
     threads: 20
     shell:
-        "cutadapt" #Initial trim
+        "cutadapt"
         " -g 'XNNNCAGTTGATCATCAGCAGGTAATCTGG;min_overlap=26'"
         " -e 0.2"
         " --discard-untrimmed"
@@ -30,10 +30,10 @@ rule trim:
         " {input.r1_fastq}"
         " {input.r2_fastq}"
         " 2> {log.a} |"
-        " blr extractbarcode" #Extract barcodes
+        "blr extractbarcode"
         " -"
         " -o1 - |" 
-        " cutadapt" # Final trim
+        "cutadapt"
         " -a ^CATGACCTCTTGGAACTGTCAGATGTGTATAAGAGACAG...CTGTCTCTTATACACATCT"
         " -A CTGTCTCTTATACACATCT"
         " -e 0.2"
