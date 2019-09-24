@@ -19,7 +19,7 @@ dependencies:
   - configargparse=0.13.0=py_1
   - cryptography=2.7=py36h72c5cf5_0
   - curl=7.65.3=hf8cf82a_0
-  - cutadapt=2.3=py36h14c3975_0
+  - cutadapt=2.5=py36h516909a_0
   - datrie=0.8=py36h516909a_0
   - dnaio=0.3=py36h14c3975_1
   - docutils=0.15.2=py36_0
@@ -71,7 +71,7 @@ dependencies:
   - pyopenssl=19.0.0=py36_0
   - pyrsistent=0.15.4=py36h516909a_0
   - pysam=0.15.3=py36hda2845c_1
-  - pysocks=1.7.0=py36_0
+  - pysocks=1.7.1=py36_0
   - python=3.6.7=h357f687_1005
   - pyyaml=5.1.2=py36h516909a_0
   - ratelimiter=1.2.0=py36_1000
@@ -85,8 +85,8 @@ dependencies:
   - sqlite=3.29.0=hcee41ef_1
   - tbb=2019.8=hc9558a2_0
   - tk=8.6.9=hed695b0_1003
-  - tqdm=4.35.0=py_0
-  - urllib3=1.25.3=py36_0
+  - tqdm=4.36.1=py_0
+  - urllib3=1.25.5=py36_0
   - wheel=0.33.6=py36_0
   - wrapt=1.11.2=py36h516909a_0
   - xopen=0.8.2=py36_0

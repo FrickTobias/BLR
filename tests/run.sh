@@ -20,7 +20,7 @@ cd outdir
 blr run reads.1.final.fastq.gz reads.2.final.fastq.gz
 
 m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
-test $m == 19022e7b4faebc24459bc243dc837ef4
+test $m == 827612d1dd59d07071defa26bc8add4c
 
 # Test phasing
 blr run phasing_stats.txt
