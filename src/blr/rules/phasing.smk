@@ -14,6 +14,7 @@ rule hapcut2_extracthairs:
          " --VCF {input.vcf}"
          " --out {output.unlinked} 2> {log}"
 
+
 rule hapcut2_linkfragments:
     output:
         linked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked.txt"
@@ -28,6 +29,7 @@ rule hapcut2_linkfragments:
          " -v {input.vcf}"
          " --fragments {input.unlinked}"
          " --out {output.linked} &> {log}"
+
 
 rule hapcut2_phasing:
     output:
@@ -44,6 +46,7 @@ rule hapcut2_phasing:
          " --vcf {input.vcf}"
          " --out {output.phase}"
          " --outvcf 1 2> {log}"
+
 
 rule hapcut2_stats:
     output:
