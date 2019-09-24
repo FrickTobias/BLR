@@ -9,7 +9,7 @@ validate(config, "config.schema.yaml")
 indexes = sorted(["".join(tup) for tup in itertools.product("ATCG", repeat=config["index_nucleotides"])]) \
                 if config["index_nucleotides"] > 0 else ["all"]
 
-# Import rules for trimming fastq files.
+# Import rules for trimming FASTQ files.
 include: "rules/trim.smk"
 
 # Import rules for phasing
@@ -25,7 +25,7 @@ rule compress:
 # If the number of index nucleotide is 0 only on file will be created.
 if config["index_nucleotides"] == 0:
     rule cdhitprep_no_index:
-        # Create fasta containing aggregates barcode sequences from fastq file headers.
+        # Create fasta containing aggregates barcode sequences from FASTQ file headers.
         output:
             "unique_bc/all.fa"
         input:
@@ -40,7 +40,7 @@ if config["index_nucleotides"] == 0:
             " -f 0 > {log.stdout} 2> {log.stderr}"
 else:
     rule cdhitprep:
-        # Create fasta containing aggregates barcode sequences from fastq file headers.
+        # Create fasta containing aggregates barcode sequences from FASTQ file headers.
         output:
             expand("unique_bc/{sample}.fa", sample=indexes)
         input:
@@ -92,7 +92,7 @@ rule concat_files:
 
 
 rule bowtie2_mapping:
-    # Mapping of trimmed fastq to reference using bowtie2 and sorting output using samtools.
+    # Mapping of trimmed FASTQ to reference using bowtie2 and sorting output using samtools.
     output:
         bam = "mapped.sorted.bam"
     input:
@@ -116,7 +116,7 @@ rule bowtie2_mapping:
 
 
 rule tagbam:
-    # Add barcode information to bam file using custom script
+    # Add barcodes to BAM
     output:
         bam = "mapped.sorted.tag.bam"
     input:
@@ -131,8 +131,7 @@ rule tagbam:
         " -bc {config[cluster_tag]} 2> {log}"
 
 
-rule duplicates_marking:
-    # Mark duplicates between barcode clusters using picard
+rule mark_duplicates:
     output:
         bam = "mapped.sorted.tag.mkdup.bam"
     input:
@@ -205,7 +204,7 @@ rule filterclusters:
 
 
 rule bam_to_fastq:
-    # Convert final bam file to fastq files for read 1 and 2
+    # Convert final BAM file to FASTQ files for read 1 and 2
     output:
         r1_fastq = "reads.1.final.fastq",
         r2_fastq = "reads.2.final.fastq"
