@@ -21,6 +21,7 @@ rule compress:
     shell:
         "pigz < {input} > {output}"
 
+
 # If the number of index nucleotide is 0 only on file will be created.
 if config["index_nucleotides"] == 0:
     rule cdhitprep_no_index:
@@ -79,6 +80,7 @@ rule barcode_clustering:
         " -n 3"
         " -M 0 >> {log}"
 
+
 rule concat_files:
     # Concatenate all the .clstr files into one single file.
     output:
@@ -87,6 +89,7 @@ rule concat_files:
         expand("unique_bc/{sample}.clustered.clstr", sample=indexes)
     shell:
         "cat {input} > {output}"
+
 
 rule bowtie2_mapping:
     # Mapping of trimmed fastq to reference using bowtie2 and sorting output using samtools.
@@ -111,6 +114,7 @@ rule bowtie2_mapping:
         " -@ {threads}"
         " -O BAM > {output.bam}"
 
+
 rule tagbam:
     # Add barcode information to bam file using custom script
     output:
@@ -125,6 +129,7 @@ rule tagbam:
         " {input.clstr}"
         " {output.bam}"
         " -bc {config[cluster_tag]} 2> {log}"
+
 
 rule duplicates_marking:
     # Mark duplicates between barcode clusters using picard
@@ -145,6 +150,7 @@ rule duplicates_marking:
         " M={log.metrics}"
         " ASSUME_SORT_ORDER=coordinate 2> {log.stderr}"
 
+
 rule clusterrmdup:
     # Removes cluster duplicates and indexes output
     output:
@@ -159,6 +165,7 @@ rule clusterrmdup:
         " {output.bam}"
         " {output.merges}"
         " -bc {config[cluster_tag]} 2>> {log}"
+
 
 rule buildmolecules:
     # Groups reads into molecules depending on their genomic position and barcode
@@ -175,6 +182,7 @@ rule buildmolecules:
         " -n {config[num_mol_tag]}"
         " -bc {config[cluster_tag]}"
         " 2> {log}"
+
 
 rule filterclusters:
     # Filter clusters based on parameters
@@ -212,6 +220,7 @@ rule bam_to_fastq:
         " I={input.bam}"
         " FASTQ={output.r1_fastq}"
         " SECOND_END_FASTQ={output.r2_fastq} 2>> {log}"
+
 
 if config['reference_variants']:
     rule link:
