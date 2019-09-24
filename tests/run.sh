@@ -15,7 +15,7 @@ rm -rf outdir
 blr init --r1=testdata/reads.1.fastq.gz outdir
 cp tests/test_config.yaml outdir/config.yaml
 cd outdir
-blr run reads.1.final.fastq.gz reads.2.final.fastq.gz
+blr run
 
 m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
 test $m == 827612d1dd59d07071defa26bc8add4c

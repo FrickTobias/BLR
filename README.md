@@ -23,7 +23,7 @@ particular to enter the path to your reference genome.
 
 Finally, change into the `workdir` folder and run the pipeline:
 
-    blr run reads.1.final.fastq.gz reads.2.final.fastq.gz
+    blr run
 
 
 ## Install and Setup
