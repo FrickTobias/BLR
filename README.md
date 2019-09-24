@@ -5,27 +5,26 @@
 # Barcode-Linked Reads Analysis
 
 ## Usage
-Create a working directory in which to run the analysis. 
 
-    mkdir workdir
-
-Create soft links for the gzipped fastq files to analyze in the `workdir` folder for read 1 and 2. Note that the  must have the names 
-`reads.1.fastq.gz` and `reads.2.fastq.gz`
-
-    ln -s $PWD/path/to/sample.R1.fastq.gz workdir/reads.1.fastq.gz
-    ln -s $PWD/path/to/sample.R2.fastq.gz workdir/reads.2.fastq.gz
-
-Make a copy of the `config.yaml` file and enter the path to your reference genome.
-
-    cp config.yaml workdir/
-
-Activate your enviroment
+After installation, activate your Conda environment:
 
     conda activate blr
 
-Change into the `workdir` folder, and run the pipeline using snakemake, indicating your intended target. In this example, the full pipeline is run.
+Choose a name for the analysis. It will be `workdir` in this example. Create
+the analysis directory with this command:
+
+    blr init --reads1=path/to/sample.R1.fastq.gz workdir
+
+Note that BLR expects paired-end reads. However, only the path to the R1 file
+needs to be provided. The R2 file will be found automatically.
+
+Then, you may need to edit the configuration file `workdir/config.yaml`, in
+particular to enter the path to your reference genome.
+
+Finally, change into the `workdir` folder and run the pipeline:
 
     blr run reads.1.final.fastq.gz reads.2.final.fastq.gz
+
 
 ## Install and Setup
 

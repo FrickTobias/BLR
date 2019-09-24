@@ -12,9 +12,7 @@ blr --version
 ( cd testdata && bowtie2-build chr1mini.fasta chr1mini > /dev/null )
 
 rm -rf outdir
-mkdir -p outdir
-ln -s $PWD/testdata/reads.1.fastq.gz outdir/reads.1.fastq.gz
-ln -s $PWD/testdata/reads.2.fastq.gz outdir/reads.2.fastq.gz
+blr init --r1=testdata/reads.1.fastq.gz outdir
 cp tests/test_config.yaml outdir/config.yaml
 cd outdir
 blr run reads.1.final.fastq.gz reads.2.final.fastq.gz
