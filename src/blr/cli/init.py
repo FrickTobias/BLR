@@ -13,7 +13,7 @@ from ..utils import guess_paired_path
 logger = logging.getLogger(__name__)
 
 
-CONFIGURATION_FILE_NAME = "config.yaml"
+CONFIGURATION_FILE_NAME = "blr.yaml"
 
 
 def add_arguments(parser):

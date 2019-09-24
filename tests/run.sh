@@ -13,7 +13,7 @@ blr --version
 
 rm -rf outdir
 blr init --r1=testdata/reads.1.fastq.gz outdir
-cp tests/test_config.yaml outdir/config.yaml
+cp tests/test_config.yaml outdir/blr.yaml
 cd outdir
 blr run
 
