@@ -15,6 +15,11 @@ include: "rules/trim.smk"
 # Import rules for phasing
 include: "rules/phasing.smk"
 
+
+rule final:
+    input: "reads.1.final.fastq.gz", "reads.2.final.fastq.gz"
+
+
 rule compress:
     output: "{sample}.fastq.gz"
     input: "{sample}.fastq"
