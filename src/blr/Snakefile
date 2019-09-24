@@ -2,7 +2,7 @@ from snakemake.utils import validate
 import itertools
 import os
 
-configfile: "config.yaml"
+configfile: "blr.yaml"
 validate(config, "config.schema.yaml")
 
 # Create list of files to be created in cdhitprep
