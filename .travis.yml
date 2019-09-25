@@ -1,16 +1,10 @@
-language: python
+language: generic
 
 dist: xenial
 
 cache:
   directories:
     - $HOME/.cache/pip
-
-python:
-  - "3.6"
-os:
-  - linux
-  - osx
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh; fi
@@ -37,7 +31,13 @@ script:
 
 jobs:
   include:
+    - name: Linux
+      os: linux
+    - name: macOS
+      os: osx
     - name: flake8
+      language: python
+      python: "3.6"
       before_install:
       install: python3 -m pip install flake8
       script: flake8 src/
