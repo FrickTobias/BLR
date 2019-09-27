@@ -31,6 +31,7 @@ dependencies:
   - htslib=1.9=ha228f0b_7
   - icu=64.2=he1b5a44_1
   - idna=2.8=py36_1000
+  - importlib_resources=1.0.2=py36_1000
   - jpeg=9c=h14c3975_1001
   - jsonschema=3.0.2=py36_0
   - krb5=1.16.3=h05b26f9_1001
@@ -86,7 +87,7 @@ dependencies:
   - tbb=2019.8=hc9558a2_0
   - tk=8.6.9=hed695b0_1003
   - tqdm=4.36.1=py_0
-  - urllib3=1.25.5=py36_0
+  - urllib3=1.25.6=py36_0
   - wheel=0.33.6=py36_0
   - wrapt=1.11.2=py36h516909a_0
   - xopen=0.8.2=py36_0

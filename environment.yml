@@ -16,3 +16,4 @@ dependencies:
   - samtools
   - snakemake-minimal
   - tqdm
+  - importlib_resources
