@@ -76,7 +76,7 @@ rule barcode_clustering:
         " -c 0.9"
         " -gap 100"
         " -g 1"
-        " -n 3"
+        " -n 8"
         " -M 0 >> {log}"
 
 rule concat_files:
