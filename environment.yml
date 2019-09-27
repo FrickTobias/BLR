@@ -9,6 +9,7 @@ dependencies:
   - nomkl
   - python=3.6
   - bowtie2
+  - bwa
   - pysam
   - picard=2.10
   - cd-hit

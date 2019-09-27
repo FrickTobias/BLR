@@ -10,6 +10,7 @@ dependencies:
   - attrs=19.1.0=py_0
   - blas=2.12=openblas
   - bowtie2=2.3.5=py36he860b03_0
+  - bwa=0.7.17=hed695b0_6
   - bzip2=1.0.8=h516909a_1
   - ca-certificates=2019.9.11=hecc5488_0
   - cd-hit=4.8.1=hdbcaa40_2

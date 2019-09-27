@@ -96,26 +96,38 @@ rule concat_files:
         "cat {input} > {output}"
 
 
-rule bowtie2_mapping:
-    # Mapping of trimmed FASTQ to reference using bowtie2 and sorting output using samtools.
+rule map_reads:
     output:
         bam = "mapped.sorted.bam"
     input:
         r1_fastq = "trimmed-c.1.fastq.gz",
         r2_fastq = "trimmed-c.2.fastq.gz"
     threads: 20
-    log: "bowtie2_mapping.log"
-    shell:
-        "bowtie2"
-        " --reorder"
-        " -1 {input.r1_fastq}"
-        " -2 {input.r2_fastq}"
-        " -x {config[bowtie2_reference]}"
-        " --maxins 2000"
-        " -p {threads} 2> {log} |"
-        "samtools sort -"
-        " -@ {threads}"
-        " -O BAM > {output.bam}"
+    log: "read_mapping.log"
+    run:
+        commands = {
+            "bwa":
+                "bwa mem"
+                " -t {threads}"
+                " {config[genome_reference]}"
+                " {input.r1_fastq}"
+                " {input.r2_fastq}",
+            "bowtie2":
+                "bowtie2"
+                " -p {threads}"
+                " --reorder"
+                " --maxins 2000"
+                " -x {config[genome_reference]}"
+                " -1 {input.r1_fastq}"
+                " -2 {input.r2_fastq}"
+        }
+        command = commands[config["read_mapper"]].format(**locals(), **globals())
+        shell(
+            "{command} 2> {log} |"
+            "samtools sort -"
+            " -@ {threads}"
+            " -O BAM > {output.bam}"
+        )
 
 
 rule tagbam:

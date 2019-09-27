@@ -9,14 +9,26 @@ cd-hit --help | head -n 1 || true
 snakemake --version
 blr --version
 
-( cd testdata && bowtie2-build chr1mini.fasta chr1mini > /dev/null )
+( cd testdata && bwa index chr1mini.fasta )
 
-rm -rf outdir
-blr init --r1=testdata/reads.1.fastq.gz outdir
-cp tests/test_config.yaml outdir/blr.yaml
-cd outdir
+rm -rf outdir-bwa
+blr init --r1=testdata/reads.1.fastq.gz outdir-bwa
+sed 's|read_mapper: .*|read_mapper: bwa|' tests/test_config.yaml > outdir-bwa/blr.yaml
+#echo "genome_reference:
+
+pushd outdir-bwa
 blr run
+m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
+test $m == 55c9c63d3d371fbff6f99977c57cd7a6
+popd
 
+( cd testdata && bowtie2-build chr1mini.fasta chr1mini.fasta > /dev/null )
+
+rm -rf outdir-bowtie2
+blr init --r1=testdata/reads.1.fastq.gz outdir-bowtie2
+cp tests/test_config.yaml outdir-bowtie2/blr.yaml
+pushd outdir-bowtie2
+blr run
 m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
 test $m == 827612d1dd59d07071defa26bc8add4c
 
