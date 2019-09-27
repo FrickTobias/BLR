@@ -25,6 +25,7 @@ dependencies:
   - gitpython=3.0.2=py_0
   - htslib=1.9=h3a161e8_7
   - idna=2.8=py36_1000
+  - importlib_resources=1.0.2=py36_1000
   - jsonschema=3.0.2=py36_0
   - krb5=1.16.3=hcfa6398_1001
   - libblas=3.8.0=12_openblas
@@ -70,7 +71,7 @@ dependencies:
   - tbb=2019.8=h770b8ee_0
   - tk=8.6.9=h2573ce8_1003
   - tqdm=4.36.1=py_0
-  - urllib3=1.25.5=py36_0
+  - urllib3=1.25.6=py36_0
   - wheel=0.33.6=py36_0
   - wrapt=1.11.2=py36h01d97ff_0
   - xopen=0.8.2=py36_0
