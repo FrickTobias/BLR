@@ -71,15 +71,13 @@ rule bowtie2_mapping:
         r1_fastq = "trimmed_barcoded.1.fastq.gz",
         r2_fastq = "trimmed_barcoded.2.fastq.gz"
     threads: 20
-    params:
-        reference = config["bowtie2_reference"]
     log: "bowtie2_mapping.log"
     shell:
         "bowtie2"
         " --reorder"
         " -1 {input.r1_fastq}"
         " -2 {input.r2_fastq}"
-        " -x {params.reference}"
+        " -x {config[bowtie2_reference]}"
         " --maxins 2000"
         " -p {threads} 2> {log} |"
         "samtools sort -"
@@ -109,11 +107,8 @@ rule mark_duplicates:
     log:
         metrics = "picard_mkdup_metrics.log",
         stderr = "picard_mkdup.log"
-    params:
-        picard_command = config["picard_command"],
-        heap_space=config["heap_space"]
     shell:
-        "{params.picard_command} -Xms{params.heap_space}g MarkDuplicates"
+        "{config[picard_command]} -Xms{config[heap_space]}g MarkDuplicates"
         " I={input.bam}"
         " O={output.bam}"
         " M={log.metrics}"
@@ -182,23 +177,18 @@ rule bam_to_fastq:
     input:
         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
     log: "picard_samtofastq.log"
-    params:
-        picard_command = config["picard_command"],
-        heap_space=config["heap_space"]
     shell:
-        "{params.picard_command} -Xms{params.heap_space}g SamToFastq"
+        "{config[picard_command]} -Xms{config[heap_space]}g SamToFastq"
         " I={input.bam}"
         " FASTQ={output.r1_fastq}"
         " SECOND_END_FASTQ={output.r2_fastq} 2>> {log}"
 
 
-if config['reference_variants']:
+if config["reference_variants"]:
     rule link:
         output: "reference.vcf"
-        params: config['reference_variants']
-        run:
-            cmd = "ln -s " + os.path.abspath(config['reference_variants']) + " " + str(output)
-            shell(cmd)
+        shell:
+            "ln -s {config[reference_variants]} {output}"
 else:
     rule call_variants_freebayes:
         output:
@@ -206,9 +196,7 @@ else:
         input:
              bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
         log: "call_variants_freebayes.log"
-        params:
-            reference = config["bowtie2_reference"] + ".fasta" # I am unsure if this is a good solution, but it works.
         shell:
              "freebayes"
-             " -f {params.reference}"
+             " -f {config[reference]}.fasta"
              " {input.bam} 1> {output.vcf} 2> {log}"
