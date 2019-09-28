@@ -37,10 +37,6 @@ def init(directory: Path, reads1: Path):
         logger.error("The name of the analysis directory must not contain spaces")
         sys.exit(1)
 
-    if directory.exists():
-        logger.error(f"The target directory {directory!r} already exists.")
-        sys.exit(1)
-
     fail_if_inaccessible(reads1)
     reads2 = guess_paired_path(reads1)
     if reads2 is None:
