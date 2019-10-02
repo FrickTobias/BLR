@@ -5,11 +5,7 @@ import os
 configfile: "blr.yaml"
 validate(config, "config.schema.yaml")
 
-# Create list of files to be created in cdhitprep
-indexes = sorted(["".join(tup) for tup in itertools.product("ATCG", repeat=config["index_nucleotides"])]) \
-                if config["index_nucleotides"] > 0 else ["all"]
-
-# Import rules for trimming FASTQ files.
+# Import rules for trimming fastq files.
 include: "rules/trim.smk"
 
 # Import rules for phasing
@@ -27,73 +23,43 @@ rule compress:
         "pigz < {input} > {output}"
 
 
-# If the number of index nucleotide is 0 only on file will be created.
-if config["index_nucleotides"] == 0:
-    rule cdhitprep_no_index:
-        # Create fasta containing aggregates barcode sequences from FASTQ file headers.
-        output:
-            "unique_bc/all.fa"
-        input:
-            r1_fastq = "trimmed-c.1.fastq.gz"
-        log:
-            stdout = "cdhit_prep.stdout",
-            stderr = "cdhit_prep.stderr"
-        shell:
-            "blr cdhitprep"
-            " {input.r1_fastq}"
-            " {output}"
-            " -f 0 > {log.stdout} 2> {log.stderr}"
-else:
-    rule cdhitprep:
-        # Create fasta containing aggregates barcode sequences from FASTQ file headers.
-        output:
-            expand("unique_bc/{sample}.fa", sample=indexes)
-        input:
-            r1_fastq = "trimmed-c.1.fastq.gz"
-        params:
-            dir = "unique_bc/"
-        log:
-            stdout = "cdhit_prep.stdout",
-            stderr = "cdhit_prep.stderr"
-        shell:
-            "blr cdhitprep"
-            " {input.r1_fastq}"
-            " {params.dir}"
-            " -i {config[index_nucleotides]}"
-            " -f 0 > {log.stdout} 2> {log.stderr}"
-
-
-rule barcode_clustering:
-    # Barcode clustering using cd-hit-454
-    input:
-       "unique_bc/{sample}.fa"
+rule tag_fastq:
     output:
-        "unique_bc/{sample}.clustered",
-        "unique_bc/{sample}.clustered.clstr"
-    threads: 20
-    log: "unique_bc/{sample}.clustering.log"
-    params:
-        prefix= lambda wildcards,output: os.path.splitext(output[1])[0]
+        r1_fastq="trimmed_barcoded.1.fastq.gz",
+        r2_fastq="trimmed_barcoded.2.fastq.gz"
+    input:
+        r1_fastq="trimmed.1.fastq.gz",
+        r2_fastq="trimmed.2.fastq.gz",
+        raw_barcodes="barcodes.fastq.gz",
+        corr_barcodes="barcodes.clstr"
+    log: "tag_fastq.log"
     shell:
-        "cd-hit-454"
-        " -i {input}"
-        " -o {params.prefix}"
-        " -T {threads}"
-        " -c 0.9"
-        " -gap 100"
-        " -g 1"
-        " -n 8"
-        " -M 0 >> {log}"
+        "blr tagfastq"
+        " -o1 {output.r1_fastq}"
+        " -o2 {output.r2_fastq}"
+        " -rb {input.raw_barcodes}"
+        " -cb {input.corr_barcodes}"
+        " {input.r1_fastq}"
+        " {input.r2_fastq}"
+        " 2> {log}"
 
 
-rule concat_files:
-    # Concatenate all the .clstr files into one single file.
+rule starcode_clustering:
+    # Cluster DBS barcodes using starcode
     output:
         "barcodes.clstr"
     input:
-        expand("unique_bc/{sample}.clustered.clstr", sample=indexes)
+        "barcodes.fastq"
+    threads: 20
+    log: "starcode_clustering.log"
     shell:
-        "cat {input} > {output}"
+        "starcode"
+        " -i {input}"
+        " -o {output}"
+        " -t {threads}"
+        " -d 2"
+        " --print-clusters"
+        " 2> {log}"
 
 
 rule bowtie2_mapping:
@@ -101,8 +67,8 @@ rule bowtie2_mapping:
     output:
         bam = "mapped.sorted.bam"
     input:
-        r1_fastq = "trimmed-c.1.fastq.gz",
-        r2_fastq = "trimmed-c.2.fastq.gz"
+        r1_fastq = "trimmed_barcoded.1.fastq.gz",
+        r2_fastq = "trimmed_barcoded.2.fastq.gz"
     threads: 20
     params:
         reference = config["bowtie2_reference"]
@@ -125,13 +91,11 @@ rule tagbam:
     output:
         bam = "mapped.sorted.tag.bam"
     input:
-        bam = "mapped.sorted.bam",
-        clstr = "barcodes.clstr"
+        bam = "mapped.sorted.bam"
     log: "tag_bam.stderr"
     shell:
         "blr tagbam"
         " {input.bam}"
-        " {input.clstr}"
         " {output.bam}"
         " -bc {config[cluster_tag]} 2> {log}"
 
