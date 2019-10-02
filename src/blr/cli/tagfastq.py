@@ -44,15 +44,15 @@ def main(args):
             # Header parsing
             name_and_pos_r1, read_and_index_r1 = read1.name.split(maxsplit=1)
             name_and_pos_r2, read_and_index_r2 = read2.name.split(maxsplit=1)
-    
+
             assert name_and_pos_r1 == name_and_pos_r2
-    
+
             try:
                 raw_barcode_seq = header_barcodes[name_and_pos_r1]
             except KeyError:
                 reads_skipped.append(name_and_pos_r1)
                 continue
-            
+
             corr_barcode = corrected_barcodes[raw_barcode_seq]
 
             # Make new string with barcode sequence and id to add to headers.
@@ -61,7 +61,7 @@ def main(args):
             # Save header to read instances
             read1.name = f"{name_and_pos_r1}_{new_text} {read_and_index_r1}"
             read2.name = f"{name_and_pos_r2}_{new_text} {read_and_index_r2}"
-    
+
             # Write to out
             writer.write(read1, read2)
 
