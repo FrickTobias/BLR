@@ -1,10 +1,6 @@
 $schema: "http://json-schema.org/draft-06/schema#"
 description: Configuration parameters for running BLR pipeline
 properties:
-  index_nucleotides:
-    type: integer
-    description: Number of index nucleotide to use when splitting for barcode clustering.
-    default: 3
   heap_space:
     type: integer
     description: Heap space to use for picard commands.
