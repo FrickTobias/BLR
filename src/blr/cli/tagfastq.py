@@ -90,7 +90,7 @@ def parse_corrected_barcodes(open_file):
     Parse starcode cluster output and return a dictionary with raw sequences pointing to a
     corrected canonical sequence
     :param open_file: starcode tabular output file.
-    :return: dict: raw sequences pointing to a nametuple containe corrected canonical
+    :return: dict: raw sequences pointing to a nametuple containing corrected canonical
     sequence and index.
     """
     target = namedtuple("Cluster", ['seq', 'index'])
