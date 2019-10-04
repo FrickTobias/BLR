@@ -18,7 +18,7 @@ cd outdir
 blr run
 
 m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
-test $m == 6aad25571f8cc5c92cca88e66407a520
+test $m == 20407296d48b01df24ffecc35eb5acf3
 
 # Test phasing
 blr run phasing_stats.txt

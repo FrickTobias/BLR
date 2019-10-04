@@ -29,7 +29,7 @@ rule tag_fastq:
     input:
         r1_fastq="trimmed.1.fastq.gz",
         r2_fastq="trimmed.2.fastq.gz",
-        raw_barcodes="barcodes.fastq.gz",
+        raw_barcodes="barcodes.fasta",
         corr_barcodes="barcodes.clstr"
     log: "tag_fastq.log"
     shell:
@@ -48,7 +48,7 @@ rule starcode_clustering:
     output:
         "barcodes.clstr"
     input:
-        "barcodes.fastq"
+        "barcodes.fasta"
     threads: 20
     log: "starcode_clustering.log"
     shell:
