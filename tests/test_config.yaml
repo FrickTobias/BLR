@@ -6,6 +6,14 @@ sequence_tag: RX    # Used to store original barcode sequence in bam file. 'RX' 
 bowtie2_reference: ../testdata/chr1mini
 picard_command: picard
 
+#################
+# Trim settings #
+#################
+h1: CAGTTGATCATCAGCAGGTAATCTGG # h1 adaptor sequnce, appears before barcode in read1
+h2: CATGACCTCTTGGAACTGTCAGATGTGTATAAGAGACAG # h2 adaptor sequence, appears after barcode in read1
+h3: CTGTCTCTTATACACATCT # h3 adaptor sequence, appears after genomics insert in read1 and read2.
+barcode_len: 20 # Length of barcode sequence
+
 ####################
 # Phasing settings #
 ####################

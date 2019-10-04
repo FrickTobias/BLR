@@ -1,5 +1,4 @@
 from snakemake.utils import validate
-import itertools
 import os
 
 configfile: "blr.yaml"
@@ -35,10 +34,10 @@ rule tag_fastq:
     log: "tag_fastq.log"
     shell:
         "blr tagfastq"
-        " -o1 {output.r1_fastq}"
-        " -o2 {output.r2_fastq}"
-        " -rb {input.raw_barcodes}"
-        " -cb {input.corr_barcodes}"
+        " --o1 {output.r1_fastq}"
+        " --o2 {output.r2_fastq}"
+        " {input.raw_barcodes}"
+        " {input.corr_barcodes}"
         " {input.r1_fastq}"
         " {input.r2_fastq}"
         " 2> {log}"
@@ -97,7 +96,7 @@ rule tagbam:
         "blr tagbam"
         " {input.bam}"
         " {output.bam}"
-        " -bc {config[cluster_tag]} 2> {log}"
+        " --bc {config[cluster_tag]} 2> {log}"
 
 
 rule mark_duplicates:

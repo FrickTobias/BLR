@@ -28,6 +28,18 @@ properties:
     type: string
     description: Picard command to be used.
     default: picard
+  h1:
+    type: string
+    description: h1 adaptor sequnce, appears before barcode in read1
+  h2:
+    type: string
+    description: h2 adaptor sequence, appears after barcode in read1
+  h3:
+    type: string
+    description: h3 adaptor sequence, appears after genomics insert in read1 and read2.
+  barcode_len:
+    type: integer
+    description: Length of barcode sequence
   hapcut2:
     type: string
     description: Hapcut2 command to be used.

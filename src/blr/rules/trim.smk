@@ -17,12 +17,9 @@ READ 2 LAYOUT
               insert length
 """
 
-h1="CAGTTGATCATCAGCAGGTAATCTGG"
-DBS="N"*20
-h2="CATGACCTCTTGGAACTGTCAGATGTGTATAAGAGACAG"
-h3="CTGTCTCTTATACACATCT"
-trim_len=sum(map(len, [h1,DBS,h2]))
-extract_len=len(h1)
+DBS = "N"*config["barcode_len"]
+trim_len = sum(map(len, [config["h1"], DBS, config["h2"]]))
+extract_len = len(config["h1"])
 
 rule trim:
     # Trim away 5' and possible 3' handles on read1 and trim possible 3' handles on read2.
@@ -35,9 +32,9 @@ rule trim:
     log: "cutadapt_trim.log"
     threads: 20
     shell:
-        "cutadapt" #Initial trim
-        " -g 'XNNN{h1}{DBS}{h2};min_overlap={trim_len}...{h3};optional'"
-        " -A {h3}"
+        "cutadapt"
+        " -g 'XNNN{config[h1]}{DBS}{config[h2]};min_overlap={trim_len}...{config[h3]};optional'"
+        " -A {config[h3]}"
         " --pair-filter 'first'"
         " -e 0.2"
         " --discard-untrimmed"
@@ -58,8 +55,8 @@ rule extract_DBS:
     log: "cutadapt_extract_DBS.log"
     threads: 20
     shell:
-        "cutadapt" #Initial trim
-        " -g 'XNNN{h1};min_overlap={extract_len}...{h2}'"
+        "cutadapt"
+        " -g 'XNNN{config[h1]};min_overlap={extract_len}...{config[h2]}'"
         " -e 0.2"
         " --discard-untrimmed"
         " -j {threads}"
