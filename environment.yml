@@ -11,9 +11,9 @@ dependencies:
   - bowtie2
   - pysam
   - picard=2.10
-  - cd-hit
   - cutadapt=2.5
   - samtools
   - snakemake-minimal
+  - starcode
   - tqdm
   - importlib_resources

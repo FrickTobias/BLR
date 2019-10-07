@@ -5,7 +5,7 @@ samtools --version
 bowtie2 --version
 picard SamToFastq --version || true
 cutadapt --version
-cd-hit --help | head -n 1 || true
+starcode --version
 snakemake --version
 blr --version
 
@@ -18,7 +18,7 @@ cd outdir
 blr run
 
 m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
-test $m == 827612d1dd59d07071defa26bc8add4c
+test $m == 20407296d48b01df24ffecc35eb5acf3
 
 # Test phasing
 blr run phasing_stats.txt
