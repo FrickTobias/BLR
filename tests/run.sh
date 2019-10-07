@@ -14,7 +14,6 @@ blr --version
 rm -rf outdir-bwa
 blr init --r1=testdata/reads.1.fastq.gz outdir-bwa
 sed 's|read_mapper: .*|read_mapper: bwa|' tests/test_config.yaml > outdir-bwa/blr.yaml
-#echo "genome_reference:
 
 pushd outdir-bwa
 blr run
