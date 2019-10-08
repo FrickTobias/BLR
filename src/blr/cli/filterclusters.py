@@ -101,16 +101,16 @@ class Summary:
 
 def add_arguments(parser):
     parser.add_argument("input",
-                        help="BAM file tagged with barcodes information under the tag specified at --bc/--barcode-tag. "
+                        help="BAM file tagged with barcodes information under the tag specified at -b/--barcode-tag. "
                              "The file needs to be indexed, sorted & have duplicates removed.")
     parser.add_argument("output", help="Output filtered file.")
 
     parser.add_argument("-b", "--barcode-tag", default="BX",
-                        help="BAM file tag where barcode cluster id is stored. 10x genomics longranger output "
-                             "uses 'BX' for their error corrected barcodes. Default: %(default)s")
+                        help="SAM tag for storing the error corrected barcode. Default: %(default)s")
     parser.add_argument("-M", "--max_molecules", type=int, default=500,
                         help="Maximum number of molecules allowed to keep barcode. Default: %(default)s")
     parser.add_argument("-m", "--molecule-tag", default="MI",
-                        help="BAM tag containing the molecule index. Default: %(default)s")
+                        help="SAM tag for storing molecule index specifying a identified molecule for each barcode. "
+                             "Default: %(default)s")
     parser.add_argument("-n", "--number_tag", default="MN",
-                        help="BAM tag containing the molecule count for the particular barcode. Default: %(default)s")
+                        help="SAM tag for storing molecule count for a particular barcode. Default: %(default)s")
