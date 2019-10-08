@@ -12,8 +12,10 @@ logger = logging.getLogger(__name__)
 
 
 def main(args):
-    summary = Summary(args.tags_to_be_removed)
-    logger.info(f"Starting")
+    tags_to_remove = [args.barcode_tag, args.molecule_tag, args.number_tag]
+
+    summary = Summary(tags_to_remove)
+    logger.info("Starting")
 
     # Writes filtered out
     with pysam.AlignmentFile(args.input, "rb") as openin, \
@@ -21,19 +23,19 @@ def main(args):
         logger.info("Writing filtered bam file")
         for read in tqdm(openin.fetch(until_eof=True)):
             summary.tot_reads += 1
-            no_mols = fetch_tag(pysam_read=read, no_mols_tag=args.molecule_number_tag, default=0)
+            no_mols = fetch_tag(pysam_read=read, no_mols_tag=args.number_tag, default=0)
 
             # If barcode is not in all_molecules the barcode does not have enough proximal reads to make a single
             # molecule. If the barcode has more than <max_molecules> molecules, remove it from the read.
             if no_mols > args.max_molecules:
-                read, summary = strip_barcode(pysam_read=read, tags_to_be_removed=args.tags_to_be_removed,
+                read, summary = strip_barcode(pysam_read=read, tags_to_be_removed=tags_to_remove,
                                               summary=summary)
 
             openout.write(read)
 
     summary.print_stats()
 
-    logger.info(f"Finished")
+    logger.info("Finished")
 
 
 def fetch_tag(pysam_read, no_mols_tag, default=None):
@@ -56,7 +58,7 @@ def strip_barcode(pysam_read, tags_to_be_removed, summary):
 
     # Modify header
     header, bc_info = pysam_read.query_name.split("_", maxsplit=1)
-    pysam_read.query_name = header + "_" + "FILTERED-" + bc_info
+    pysam_read.query_name = f"{header}_FILTERED-{bc_info}"
 
     # Remove tags
     for bam_tag in tags_to_be_removed:
@@ -98,14 +100,17 @@ class Summary:
 
 
 def add_arguments(parser):
-    parser.add_argument("input", help=".bam file tagged with BX:Z:<int> tags. Needs to be indexed, sorted & have "
-                                      "duplicates removed.")
+    parser.add_argument("input",
+                        help="BAM file tagged with barcodes information under the tag specified at --bc/--barcode-tag. "
+                             "The file needs to be indexed, sorted & have duplicates removed.")
     parser.add_argument("output", help="Output filtered file.")
 
-    parser.add_argument("-M", "--max_molecules", metavar="<INTEGER>", type=int, default=500,
-                        help="Maximum number of molecules allowed to keep barcode. DEFAULT: 500")
-    parser.add_argument("-mn", "--molecule_number_tag", metavar="<STRING>", type=str, default="MN",
-                        help=".bam file tag where number of molecules for that barcode is stored. DEFAULT: MN")
-    parser.add_argument("-t", "--tags_to_be_removed", metavar="<STRING>", type=str, nargs="*",
-                        default=["BX", "MI", "MN"],
-                        help=".bam file tags which are to be removed for filtered reads. DEFAULT: BX MI MN")
+    parser.add_argument("-b", "--barcode-tag", default="BX",
+                        help="BAM file tag where barcode cluster id is stored. 10x genomics longranger output "
+                             "uses 'BX' for their error corrected barcodes. Default: %(default)s")
+    parser.add_argument("-M", "--max_molecules", type=int, default=500,
+                        help="Maximum number of molecules allowed to keep barcode. Default: %(default)s")
+    parser.add_argument("-m", "--molecule-tag", default="MI",
+                        help="BAM tag containing the molecule index. Default: %(default)s")
+    parser.add_argument("-n", "--number_tag", default="MN",
+                        help="BAM tag containing the molecule count for the particular barcode. Default: %(default)s")
