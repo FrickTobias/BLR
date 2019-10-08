@@ -30,7 +30,7 @@ def main(args):
             if cluster_tag:
                 cluster_id = cluster_tag.split(":")[-1]
 
-                read.set_tag(args.barcode_cluster_tag, cluster_id, value_type='Z')
+                read.set_tag(args.barcode_tag, cluster_id, value_type='Z')
 
             out.write(read)
 
@@ -43,7 +43,5 @@ def add_arguments(parser):
                         help="BAM file with mapped reads which is to be tagged with barcode ids.")
     parser.add_argument("output_tagged_bam",
                         help="BAM file with barcode cluster id in the bc tag.")
-    parser.add_argument("--barcode-cluster-tag", "--bc", default="BX",
-                        help="BAM file tag where barcode cluster id is stored. 10x genomics "
-                             "longranger output uses 'BX' for their error corrected barcodes. "
-                             "Default: %(default)s")
+    parser.add_argument("-b", "--barcode-tag", default="BX",
+                        help="SAM tag for storing the error corrected barcode. Default: %(default)s")

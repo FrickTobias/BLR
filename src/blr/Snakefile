@@ -36,6 +36,8 @@ rule tag_fastq:
         "blr tagfastq"
         " --o1 {output.r1_fastq}"
         " --o2 {output.r2_fastq}"
+        " -b {config[cluster_tag]}"
+        " -s {config[sequence_tag]}"
         " {input.raw_barcodes}"
         " {input.corr_barcodes}"
         " {input.r1_fastq}"
@@ -96,7 +98,7 @@ rule tagbam:
         "blr tagbam"
         " {input.bam}"
         " {output.bam}"
-        " --bc {config[cluster_tag]} 2> {log}"
+        " -b {config[cluster_tag]} 2> {log}"
 
 
 rule mark_duplicates:

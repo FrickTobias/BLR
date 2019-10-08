@@ -284,7 +284,7 @@ class Summary:
 
 def add_arguments(parser):
     parser.add_argument("bam",
-                        help="Sorted BAM file tagged with barcode in the same tag as specified in --bc/--barcode-tag.")
+                        help="Sorted BAM file tagged with barcode in the same tag as specified in -b/--barcode-tag.")
     parser.add_argument("output",
                         help="Output BAM file with molecule tags found under the tag specified at -m/--molecule-tag "
                              "and molecules number for each barcode under the specified -n/--number-tag.")
@@ -295,12 +295,12 @@ def add_arguments(parser):
     parser.add_argument("-w", "--window", type=int, default=30000,
                         help="Window size cutoff for maximum distance in between two reads in one molecule. Default: "
                              "%(default)s")
-    parser.add_argument( "-b", "--barcode-tag", default="BX",
-                        help="BAM file tag where barcode cluster id is stored. 10x genomics longranger output "
-                             "uses 'BX' for their error corrected barcodes. Default: %(default)s")
+    parser.add_argument("-b", "--barcode-tag", default="BX",
+                        help="SAM tag for storing the error corrected barcode. Default: %(default)s")
     parser.add_argument("-s", "--stats-file",
                         help="Write barcode/molecule statistics files.")
     parser.add_argument("-m", "--molecule-tag", default="MI",
-                        help="BAM file tag to put molecule ID in. Default: %(default)s")
+                        help="SAM tag for storing molecule index specifying a identified molecule for each barcode. "
+                             "Default: %(default)s")
     parser.add_argument("-n", "--number-tag", default="MN",
-                        help="BAM file tag to put number of molecules (in that barcode) in. Default: %(default)s")
+                        help="SAM tag for storing molecule count for a particular barcode. Default: %(default)s")

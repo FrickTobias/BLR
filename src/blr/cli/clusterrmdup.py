@@ -303,7 +303,7 @@ def add_arguments(parser):
         help="CSV log file containing all merges done. File is in format: {old barcode id},{new barcode id}")
     parser.add_argument(
         "-b", "--barcode-tag", default="BX",
-        help="BAM file tag in which the barcode is specified in. Default: %(default)s")
+        help="SAM tag for storing the error corrected barcode. Default: %(default)s")
     parser.add_argument(
         "-w", "--window", type=int, default=100000,
         help="Window size. Duplicate positions within this distance will be used to find cluster duplicates. "
