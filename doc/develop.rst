@@ -18,3 +18,21 @@ There are two types of files that describe Conda environments.
 
 Use the script ``misc/condalock.sh`` to update the lock files whenever you make
 changes to ``environment.yml``.
+
+
+SAM Tags
+--------
+Specifications on SAM-tags used for holding information during data processing and which argparse
+option flags to use when specifying them in python scripts. The `10x Genomics barcoded BAM format
+<https://support.10xgenomics.com/genome-exome/software/pipelines/latest/output/bam>`_ is followed
+where that information is defined.
+
+..  csv-table::
+    :header: "SAM-tag", "Option flag", "Description"
+    :widths: 20, 20, 40
+
+    "BX", "-b, --barcode-tag", "SAM tag for storing the error corrected barcode."
+    "MI", "-m, --molecule-tag", "SAM tag for storing molecule index specifying a identified molecule
+    for each barcode."
+    "MN", "-n, --number-tag", "SAM tag for storing molecule count for a particular barcode."
+    "RX", "-r, --raw-barcode-tag", "SAM tag for storing the raw barcode sequence."

@@ -71,7 +71,8 @@ def main(args):
                 corr_barcode = corrected_barcodes[raw_barcode_seq]
 
                 # Make new string with barcode sequence and id to add to headers.
-                new_text = f"{corr_barcode.seq}_{args.barcode_cluster_tag}:Z:{corr_barcode.index}"
+                new_text = f"{corr_barcode.seq}_{args.sequence_tag}:Z:{raw_barcode_seq}" \
+                           f"_{args.barcode_tag}:Z:{corr_barcode.index}"
 
                 # Save header to read instances
                 read1.name = f"{name_and_pos_r1}_{new_text} {read_and_index_r1}"
@@ -142,6 +143,8 @@ def add_arguments(parser):
         help="Output FASTQ/FASTA name for read2. If not specified but --o1/--output1 given the "
              "result is written as interleaved .")
     parser.add_argument(
-        "--barcode-cluster-tag", "--bc", default="BX",
-        help="BAM file tag where barcode cluster id is stored. 10x genomics longranger output "
-             "uses 'BX' for their error corrected barcodes. Default: %(default)s")
+        "-b", "--barcode-tag", default="BX",
+        help="SAM tag for storing the error corrected barcode. Default: %(default)s")
+    parser.add_argument(
+        "-s", "--sequence-tag", default="RX",
+        help="SAM tag for storing the raw barcode sequence. Default: %(default)s")

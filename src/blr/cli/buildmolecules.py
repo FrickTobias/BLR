@@ -157,7 +157,7 @@ class Molecule:
         self.ID = Molecule.molecule_counter
 
     def length(self):
-        return (self.stop - self.start)
+        return self.stop - self.start
 
     def add_read(self, stop, read_header):
         """
@@ -284,21 +284,23 @@ class Summary:
 
 def add_arguments(parser):
     parser.add_argument("bam",
-                        help=".bam file tagged with barcode in the --barcode-tag bamfile tag. REQUIREMENTS: Sorted.")
-    parser.add_argument("output", help=".bam file with molecule tags in the --molecule-tag bamfile tag.")
+                        help="Sorted BAM file tagged with barcode in the same tag as specified in -b/--barcode-tag.")
+    parser.add_argument("output",
+                        help="Output BAM file with molecule tags found under the tag specified at -m/--molecule-tag "
+                             "and molecules number for each barcode under the specified -n/--number-tag.")
 
-    parser.add_argument("-t", "--threshold", metavar="<INTEGER>", type=int, default=4,
+    parser.add_argument("-t", "--threshold", type=int, default=4,
                         help="Threshold for how many reads are required for including given molecule in statistics "
-                             "(except_reads_per_molecule). DEFAULT: 4")
-    parser.add_argument("-w", "--window", metavar="<INTEGER>", type=int, default=30000,
-                        help="Window size cutoff for maximum distance in between two reads in one molecule. DEFAULT: "
-                             "30000")
-    parser.add_argument("-bc", "--barcode-tag", metavar="<STRING>", type=str, default="BX",
-                        help="Bam file tag where barcode cluster id is stored. 10x genomics longranger output "
-                             "uses 'BX' for their error corrected barcodes. DEFAULT: BX")
-    parser.add_argument("-s", "--stats-file", metavar="<PREFIX>", type=str,
-                        help="Write barcode/molecule statistics files. DEFAULT: None")
-    parser.add_argument("-m", "--molecule-tag", metavar="<TAG-STRING>", type=str, default="MI",
-                        help=".bam file tag to put molecule ID in. DEFAULT: MI")
-    parser.add_argument("-n", "--number-tag", metavar="<TAG-STRING>", type=str, default="MN",
-                        help=".bam file tag to put number of molecules (in that barcode) in. DEFAULT: MN")
+                             "(except_reads_per_molecule). Default: %(default)s")
+    parser.add_argument("-w", "--window", type=int, default=30000,
+                        help="Window size cutoff for maximum distance in between two reads in one molecule. Default: "
+                             "%(default)s")
+    parser.add_argument("-b", "--barcode-tag", default="BX",
+                        help="SAM tag for storing the error corrected barcode. Default: %(default)s")
+    parser.add_argument("-s", "--stats-file",
+                        help="Write barcode/molecule statistics files.")
+    parser.add_argument("-m", "--molecule-tag", default="MI",
+                        help="SAM tag for storing molecule index specifying a identified molecule for each barcode. "
+                             "Default: %(default)s")
+    parser.add_argument("-n", "--number-tag", default="MN",
+                        help="SAM tag for storing molecule count for a particular barcode. Default: %(default)s")

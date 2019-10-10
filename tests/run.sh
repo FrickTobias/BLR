@@ -18,7 +18,8 @@ sed 's|read_mapper: .*|read_mapper: bwa|' tests/test_config.yaml > outdir-bwa/bl
 pushd outdir-bwa
 blr run
 m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
-test $m == 393b0ef0bc6281b6e815354dccd132bb
+test $m == b7bffb901d59030ea4cc939a29c85643
+
 popd
 
 ( cd testdata && bowtie2-build chr1mini.fasta chr1mini.fasta > /dev/null )
@@ -29,7 +30,7 @@ cp tests/test_config.yaml outdir-bowtie2/blr.yaml
 pushd outdir-bowtie2
 blr run
 m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
-test $m == 20407296d48b01df24ffecc35eb5acf3
+test $m == 5607178a324ce4a394e5370a4d192377
 
 # Test phasing
 blr run phasing_stats.txt

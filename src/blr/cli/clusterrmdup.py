@@ -296,14 +296,15 @@ class Summary:
 
 
 def add_arguments(parser):
-    parser.add_argument("input_tagged_bam", help="Sorted .bam file tagged with barcodes (-bc).")
-    parser.add_argument("output_bam", help="Sorted .bam file without barcode duplicates.")
+    parser.add_argument("input_tagged_bam", help="Sorted SAM file tagged with barcodes.")
+    parser.add_argument("output_bam", help="Sorted SAM file without barcode duplicates.")
     parser.add_argument(
         "merge_log",
-        help=".csv log file containing all merges done. File is in format: {old barcode id},{new barcode id}")
+        help="CSV log file containing all merges done. File is in format: {old barcode id},{new barcode id}")
     parser.add_argument(
-        "-bc", "--barcode_tag", metavar="<BARCODE_TAG>", type=str, default="BC",
-        help=".bam file tag in which the barcode is specified in. DEFAULT: BC")
+        "-b", "--barcode-tag", default="BX",
+        help="SAM tag for storing the error corrected barcode. Default: %(default)s")
     parser.add_argument(
-        "-w", "--window", metavar="<INTEGER>", type=int, default=100000,
-        help="Window size. Duplicate positions within this distance will be used to find cluster duplicates.")
+        "-w", "--window", type=int, default=100000,
+        help="Window size. Duplicate positions within this distance will be used to find cluster duplicates. "
+             "Default: %(default)s")
