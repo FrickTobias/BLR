@@ -18,7 +18,7 @@ sed 's|read_mapper: .*|read_mapper: bwa|' tests/test_config.yaml > outdir-bwa/bl
 pushd outdir-bwa
 blr run
 m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
-test $m == 55c9c63d3d371fbff6f99977c57cd7a6
+test $m == b7bffb901d59030ea4cc939a29c85643
 popd
 
 ( cd testdata && bowtie2-build chr1mini.fasta chr1mini.fasta > /dev/null )
