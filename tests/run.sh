@@ -18,7 +18,7 @@ sed 's|read_mapper: .*|read_mapper: bwa|' tests/test_config.yaml > outdir-bwa/bl
 pushd outdir-bwa
 blr run
 m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
-test $m == b7bffb901d59030ea4cc939a29c85643
+test $m == dbdfa522fbf41b44049207bbeed3fea1
 
 popd
 
@@ -30,7 +30,7 @@ cp tests/test_config.yaml outdir-bowtie2/blr.yaml
 pushd outdir-bowtie2
 blr run
 m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
-test $m == 5607178a324ce4a394e5370a4d192377
+test $m == bfe1f589782a502a6b123e5edcbe9b3e
 
 # Test phasing
 blr run phasing_stats.txt

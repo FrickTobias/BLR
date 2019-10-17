@@ -57,8 +57,7 @@ def strip_barcode(pysam_read, tags_to_be_removed, summary):
     """
 
     # Modify header
-    header, bc_info = pysam_read.query_name.split("_", maxsplit=1)
-    pysam_read.query_name = f"{header}_FILTERED-{bc_info}"
+    pysam_read.query_name = f"{pysam_read.query_name}_FILTERED"
 
     # Remove tags
     for bam_tag in tags_to_be_removed:
@@ -68,7 +67,7 @@ def strip_barcode(pysam_read, tags_to_be_removed, summary):
         summary.reads_with_removed_tags += 1
 
         # Strip read from tag
-        pysam_read.set_tag(bam_tag, "FILTERED", value_type="Z")
+        pysam_read.set_tag(bam_tag, None, value_type="Z")
 
     return pysam_read, summary
 
