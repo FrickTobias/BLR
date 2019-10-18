@@ -22,7 +22,6 @@ import logging
 import sys
 import dnaio
 from tqdm import tqdm
-from collections import namedtuple
 
 logger = logging.getLogger(__name__)
 
