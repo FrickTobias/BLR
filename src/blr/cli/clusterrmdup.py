@@ -234,9 +234,9 @@ def seed_duplicates(merge_dict, cache_dup_pos, pos_new, bc_new, window):
 
 def find_min_bc(bc_minimum, merge_dict):
     """
-    Goes through merge dict and finds the alphabetically top string for a chain of key-value entries. E.g if merge_dict has
-    TAGA => GGAT, GGAT => CTGA, CTGA => ACGA it will return ACGA if any of the values CTGA, GGAT, TAGA or ACGA are given.
-    :return: lowest clstr id for key-value chain
+    Goes through merge dict and finds the alphabetically top string for a chain of key-value entries. E.g if
+    merge_dict has TAGA => GGAT, GGAT => CTGA, CTGA => ACGA it will return ACGA if any of the values CTGA, GGAT,
+    TAGA or ACGA are given. :return: lowest clstr id for key-value chain
     """
 
     while True:
