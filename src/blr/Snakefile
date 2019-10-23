@@ -124,14 +124,35 @@ rule mark_duplicates:
     input:
         bam = "mapped.sorted.tag.bam"
     log:
-        metrics = "picard_mkdup_metrics.log",
-        stderr = "picard_mkdup.log"
-    shell:
-        "picard -Xms{config[heap_space]}g MarkDuplicates"
-        " I={input.bam}"
-        " O={output.bam}"
-        " M={log.metrics}"
-        " ASSUME_SORT_ORDER=coordinate 2> {log.stderr}"
+        metrics = "mark_duplicates_metrics.txt",
+        stderr = "mark_duplicates.log"
+    threads: 20
+    run:
+        commands = {
+            "sambamba":
+                "sambamba markdup "
+                " -t {threads} "
+                " {input.bam}"
+                " {output.bam} 2> {log.stderr}",
+            "samblaster":
+                "samtools sort"
+                " -n"
+                " -O SAM "
+                " -@ {threads}"
+                " {input.bam} |"
+                " samblaster 2> {log.stderr} |"
+                " samtools sort - "
+                "-@ {threads}"
+                " -O BAM > {output.bam}",
+            "picard":
+                "picard -Xms{config[heap_space]}g MarkDuplicates"
+                " I={input.bam}"
+                " O={output.bam}"
+                " M={log.metrics}"
+                " ASSUME_SORT_ORDER=coordinate 2> {log.stderr}"
+        }
+        command = commands[config["duplicate_marker"]].format(**locals(), **globals())
+        shell(command)
 
 
 rule clusterrmdup:

@@ -5,6 +5,7 @@ num_mol_tag: MN # Used to store number of molecules per barcode
 sequence_tag: RX    # Used to store original barcode sequence in bam file. 'RX' is 10x genomic default
 genome_reference:  # Path to indexed reference
 read_mapper: bowtie2  # Choose bwa, bowtie2 or minimap2
+duplicate_marker: sambamba # Choose sambamba or samblaster or picard
 
 #################
 # Trim settings #

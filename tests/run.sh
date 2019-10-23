@@ -9,6 +9,8 @@ cutadapt --version
 starcode --version
 snakemake --version
 blr --version
+samblaster --version
+sambamba --version
 
 ( cd testdata && bwa index chr1mini.fasta )
 ( cd testdata && bowtie2-build chr1mini.fasta chr1mini.fasta > /dev/null )
