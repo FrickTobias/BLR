@@ -52,6 +52,7 @@ def main(args):
     logger.info(f"Output detected as {'interleaved' if out_interleaved else 'paired'} FASTQ.")
 
     reads_missing_barcode = 0
+    separator = args.sep
     # Parse input FASTA/FASTQ for read1 and read2 and write output
     with dnaio.open(args.input1, file2=args.input2, interleaved=in_interleaved, mode="r") as reader, \
             dnaio.open(args.output1, file2=args.output2, interleaved=out_interleaved, mode="w") as writer:
@@ -73,7 +74,7 @@ def main(args):
                 corr_barcode_id = f"{args.barcode_tag}:Z:{corr_barcode_seq}"
 
                 # Create new name with barcode information.
-                new_name = "_".join([name_and_pos_r1, raw_barcode_id, corr_barcode_id])
+                new_name = separator.join([name_and_pos_r1, raw_barcode_id, corr_barcode_id])
 
                 # Save header to read instances
                 read1.name = " ".join([new_name, read_and_index_r1])
@@ -146,3 +147,7 @@ def add_arguments(parser):
     parser.add_argument(
         "-s", "--sequence-tag", default="RX",
         help="SAM tag for storing the raw barcode sequence. Default: %(default)s")
+    parser.add_argument(
+        "--sep", default="_",
+        help="Character used as separator for storing SAM tags in the FASTQ/FASTA header. Default: %(default)s"
+    )
