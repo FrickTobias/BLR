@@ -90,7 +90,7 @@ rule map_reads:
         }
         command = commands[config["read_mapper"]].format(**locals(), **globals())
         shell(
-            "{command} 2> {log} |"
+            "{command} 2> >(tee {log} >&2) |"
             "samtools sort -"
             " -@ {threads}"
             " -O BAM > {output.bam}"
