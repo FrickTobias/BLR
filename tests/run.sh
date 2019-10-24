@@ -10,6 +10,7 @@ snakemake --version
 blr --version
 
 ( cd testdata && bwa index chr1mini.fasta )
+( cd testdata && bowtie2-build chr1mini.fasta chr1mini.fasta > /dev/null )
 
 pytest tests/
 
@@ -23,8 +24,6 @@ m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f
 test $m == dbdfa522fbf41b44049207bbeed3fea1
 
 popd
-
-( cd testdata && bowtie2-build chr1mini.fasta chr1mini.fasta > /dev/null )
 
 rm -rf outdir-bowtie2
 blr init --r1=testdata/reads.1.fastq.gz outdir-bowtie2
