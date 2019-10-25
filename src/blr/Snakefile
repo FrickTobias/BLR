@@ -120,7 +120,7 @@ rule mark_duplicates:
         metrics = "picard_mkdup_metrics.log",
         stderr = "picard_mkdup.log"
     shell:
-        "{config[picard_command]} -Xms{config[heap_space]}g MarkDuplicates"
+        "picard -Xms{config[heap_space]}g MarkDuplicates"
         " I={input.bam}"
         " O={output.bam}"
         " M={log.metrics}"
@@ -190,7 +190,7 @@ rule bam_to_fastq:
         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
     log: "picard_samtofastq.log"
     shell:
-        "{config[picard_command]} -Xms{config[heap_space]}g SamToFastq"
+        "picard -Xms{config[heap_space]}g SamToFastq"
         " I={input.bam}"
         " FASTQ={output.r1_fastq}"
         " SECOND_END_FASTQ={output.r2_fastq} 2>> {log}"
