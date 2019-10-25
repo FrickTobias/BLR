@@ -86,7 +86,14 @@ rule map_reads:
                 " --maxins 2000"
                 " -x {config[genome_reference]}"
                 " -1 {input.r1_fastq}"
-                " -2 {input.r2_fastq}"
+                " -2 {input.r2_fastq}",
+            "minimap2":
+                "minimap2"
+                " -ax sr"
+                " -t {threads}"
+                " {config[genome_reference]}"
+                " {input.r1_fastq}"
+                " {input.r2_fastq}",
         }
         command = commands[config["read_mapper"]].format(**locals(), **globals())
         shell(

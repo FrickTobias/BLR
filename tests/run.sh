@@ -3,6 +3,7 @@ set -xeuo pipefail
 
 samtools --version
 bowtie2 --version
+minimap2 --version
 picard SamToFastq --version || true
 cutadapt --version
 starcode --version
@@ -12,7 +13,7 @@ blr --version
 ( cd testdata && bwa index chr1mini.fasta )
 ( cd testdata && bowtie2-build chr1mini.fasta chr1mini.fasta > /dev/null )
 
-pytest tests/
+pytest -v tests/
 
 rm -rf outdir-bowtie2
 blr init --r1=testdata/reads.1.fastq.gz outdir-bowtie2

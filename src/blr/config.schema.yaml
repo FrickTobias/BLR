@@ -23,7 +23,7 @@ properties:
     default: RX
   read_mapper:
     type: string
-    pattern: "bwa|bowtie2"
+    pattern: "bwa|bowtie2|minimap2"
     description: Which read mapper to use
   genome_reference:
     type: [ "string", "null" ]
