@@ -22,7 +22,6 @@ import logging
 import sys
 import dnaio
 from tqdm import tqdm
-from collections import namedtuple
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +52,7 @@ def main(args):
     logger.info(f"Output detected as {'interleaved' if out_interleaved else 'paired'} FASTQ.")
 
     reads_missing_barcode = 0
+    separator = args.sep
     # Parse input FASTA/FASTQ for read1 and read2 and write output
     with dnaio.open(args.input1, file2=args.input2, interleaved=in_interleaved, mode="r") as reader, \
             dnaio.open(args.output1, file2=args.output2, interleaved=out_interleaved, mode="w") as writer:
@@ -68,15 +68,17 @@ def main(args):
                 reads_missing_barcode += 1
 
             if raw_barcode_seq:
-                corr_barcode = corrected_barcodes[raw_barcode_seq]
+                corr_barcode_seq = corrected_barcodes[raw_barcode_seq]
 
-                # Make new string with barcode sequence and id to add to headers.
-                new_text = f"{corr_barcode.seq}_{args.sequence_tag}:Z:{raw_barcode_seq}" \
-                           f"_{args.barcode_tag}:Z:{corr_barcode.index}"
+                raw_barcode_id = f"{args.sequence_tag}:Z:{raw_barcode_seq}"
+                corr_barcode_id = f"{args.barcode_tag}:Z:{corr_barcode_seq}"
+
+                # Create new name with barcode information.
+                new_name = separator.join([name_and_pos_r1, raw_barcode_id, corr_barcode_id])
 
                 # Save header to read instances
-                read1.name = f"{name_and_pos_r1}_{new_text} {read_and_index_r1}"
-                read2.name = f"{name_and_pos_r2}_{new_text} {read_and_index_r2}"
+                read1.name = " ".join([new_name, read_and_index_r1])
+                read2.name = " ".join([new_name, read_and_index_r2])
 
             # Write to out
             writer.write(read1, read2)
@@ -91,15 +93,12 @@ def parse_corrected_barcodes(open_file):
     Parse starcode cluster output and return a dictionary with raw sequences pointing to a
     corrected canonical sequence
     :param open_file: starcode tabular output file.
-    :return: dict: raw sequences pointing to a nametuple containing corrected canonical
-    sequence and index.
+    :return: dict: raw sequences pointing to a corrected canonical sequence.
     """
-    target = namedtuple("Cluster", ['seq', 'index'])
     corrected_barcodes = dict()
-    for index, cluster in tqdm(enumerate(open_file.readlines(), start=1), desc="Clusters processed"):
+    for cluster in tqdm(open_file.readlines(), desc="Clusters processed"):
         canonical_seq, _, cluster_seqs = cluster.strip().split("\t", maxsplit=3)
-        cluster_target = target(seq=canonical_seq, index=index)
-        corrected_barcodes.update({raw_seq: cluster_target for raw_seq in cluster_seqs.split(",")})
+        corrected_barcodes.update({raw_seq: canonical_seq for raw_seq in cluster_seqs.split(",")})
     return corrected_barcodes
 
 
@@ -148,3 +147,7 @@ def add_arguments(parser):
     parser.add_argument(
         "-s", "--sequence-tag", default="RX",
         help="SAM tag for storing the raw barcode sequence. Default: %(default)s")
+    parser.add_argument(
+        "--sep", default="_",
+        help="Character used as separator for storing SAM tags in the FASTQ/FASTA header. Default: %(default)s"
+    )

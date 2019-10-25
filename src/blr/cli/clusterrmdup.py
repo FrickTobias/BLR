@@ -107,15 +107,13 @@ def main(args):
 
             # If read barcode in merge dict, change tag and header to compensate.
             try:
-                previous_barcode_id = int(read.get_tag(args.barcode_tag))
+                previous_barcode_id = str(read.get_tag(args.barcode_tag))
             except KeyError:
                 previous_barcode_id = None
             if previous_barcode_id in merge_dict:
                 summary.reads_with_new_tag += 1
                 new_barcode_id = str(merge_dict[previous_barcode_id])
                 read.set_tag(args.barcode_tag, new_barcode_id, value_type="Z")
-                read.query_name = "_".join(
-                    read.query_name.split("_")[:-1]) + "_" + args.barcode_tag + ":Z:" + new_barcode_id
 
                 # Merge file writing
                 if new_barcode_id not in bc_seq_already_written:
@@ -148,7 +146,7 @@ def meet_requirements(read, mate, summary, barcode_tag):
         rp_meet_requirements = False
 
     try:
-        bc_new = int(read.get_tag(barcode_tag))
+        bc_new = str(read.get_tag(barcode_tag))
     except KeyError:
         summary.non_tagged_reads += 2
         rp_meet_requirements = False
@@ -236,9 +234,9 @@ def seed_duplicates(merge_dict, cache_dup_pos, pos_new, bc_new, window):
 
 def find_min_bc(bc_minimum, merge_dict):
     """
-    Goes through merge dict and finds the lowest current value for a chain of key-value entries. E.g if merge_dict has
-    100 => 80, 80 => 60, 60 => 40 it will return 40 if any of the values 100,80,60 or 40 are given.
-    :return: lowest clstr id for key-value chain
+    Goes through merge dict and finds the alphabetically top string for a chain of key-value entries. E.g if
+    merge_dict has TAGA => GGAT, GGAT => CTGA, CTGA => ACGA it will return ACGA if any of the values CTGA, GGAT,
+    TAGA or ACGA are given. :return: lowest clstr id for key-value chain
     """
 
     while True:
