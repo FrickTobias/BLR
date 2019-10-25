@@ -14,17 +14,6 @@ blr --version
 
 pytest tests/
 
-rm -rf outdir-bwa
-blr init --r1=testdata/reads.1.fastq.gz outdir-bwa
-sed 's|read_mapper: .*|read_mapper: bwa|' tests/test_config.yaml > outdir-bwa/blr.yaml
-
-pushd outdir-bwa
-blr run
-m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
-test $m == dbdfa522fbf41b44049207bbeed3fea1
-
-popd
-
 rm -rf outdir-bowtie2
 blr init --r1=testdata/reads.1.fastq.gz outdir-bowtie2
 cp tests/test_config.yaml outdir-bowtie2/blr.yaml
