@@ -22,6 +22,9 @@ def add_arguments(parser):
         'Default: %(default)s')
     arg('--keepgoing', '-k', default=False, action='store_true',
         help='If one job fails, finish the others.')
+    arg("--dag", default=False, action='store_true',
+        help="Print the dag in the graphviz dot language (requires graphviz to be installed). Default: %(default)s. "
+             "To get output to pdf file, pipe output into dot as follows: blr run --dag | dot -Tpdf > dag.pdf")
     arg('targets', nargs='*', default=[],
         help='File(s) to create. If omitted, the full pipeline is run.')
 
@@ -39,6 +42,7 @@ def main(args):
             cores=args.cores,
             keepgoing=args.keepgoing,
             printshellcmds=True,
+            printdag=args.dag,
             targets=args.targets if args.targets else None,
         )
     sys.exit(0 if success else 1)
