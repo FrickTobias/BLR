@@ -1,7 +1,7 @@
 from pathlib import Path
 import pysam
 import pytest
-from xopen import xopen
+import dnaio
 
 from blr.cli.init import init
 from blr.cli.run import run
@@ -18,11 +18,11 @@ def count_bam_alignments(path):
 
 
 def count_fastq_reads(path):
-    with xopen(path) as f:
+    with dnaio.open(path) as f:
         n = 0
         for _ in f:
             n += 1
-    return n // 4
+    return n
 
 
 def copy_config(source, target, genome_reference=None, read_mapper=None):
@@ -54,5 +54,5 @@ def test_mappers(tmpdir, read_mapper):
         read_mapper=read_mapper,
     )
     run(workdir=workdir, targets=["mapped.sorted.bam"])
-    n_input_fastq_reads = 2 * count_fastq_reads(workdir / "trimmed_barcoded.1.fastq.gz")
+    n_input_fastq_reads = 2 * count_fastq_reads(Path(workdir / "trimmed_barcoded.1.fastq.gz"))
     assert n_input_fastq_reads <= count_bam_alignments(workdir / "mapped.sorted.bam")
