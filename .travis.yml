@@ -23,6 +23,7 @@ before_install:
 install:
   - conda env create -n testenv -f environment.${TRAVIS_OS_NAME}.lock.yml
   - conda activate testenv
+  - conda install pytest
   - pip install --no-deps .
   - bash install-hapcut2.sh
 
@@ -40,4 +41,4 @@ jobs:
       python: "3.6"
       before_install:
       install: python3 -m pip install flake8
-      script: flake8 src/
+      script: flake8 src/ tests/

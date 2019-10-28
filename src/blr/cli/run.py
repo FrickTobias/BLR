@@ -11,6 +11,10 @@ from snakemake import snakemake
 logger = logging.getLogger(__name__)
 
 
+class SnakemakeError(Exception):
+    pass
+
+
 def add_arguments(parser):
     arg = parser.add_argument
     arg('--dryrun', '-n', default=False, action='store_true',
@@ -30,6 +34,22 @@ def add_arguments(parser):
 
 
 def main(args):
+    targets = args.targets if args.targets else None
+    try:
+        run(args.dryrun, args.cores, args.keepgoing, args.dag, targets)
+    except SnakemakeError:
+        sys.exit(1)
+    sys.exit(0)
+
+
+def run(
+    dryrun: bool = False,
+    cores: int = 4,
+    keepgoing: bool = False,
+    printdag: bool = False,
+    targets=None,
+    workdir=None,
+):
     # snakemake sets up its own logging, and this cannot be easily changed
     # (setting keep_logger=True crashes), so remove our own log handler
     # for now
@@ -38,11 +58,13 @@ def main(args):
         success = snakemake(
             snakefile_path,
             snakemakepath='snakemake',
-            dryrun=args.dryrun,
-            cores=args.cores,
-            keepgoing=args.keepgoing,
+            dryrun=dryrun,
+            cores=cores,
+            keepgoing=keepgoing,
             printshellcmds=True,
-            printdag=args.dag,
-            targets=args.targets if args.targets else None,
+            printdag=printdag,
+            targets=targets,
+            workdir=workdir,
         )
-    sys.exit(0 if success else 1)
+    if not success:
+        raise SnakemakeError()
