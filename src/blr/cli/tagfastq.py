@@ -96,7 +96,7 @@ def parse_corrected_barcodes(open_file):
     :return: dict: raw sequences pointing to a corrected canonical sequence.
     """
     corrected_barcodes = dict()
-    for cluster in tqdm(open_file.readlines(), desc="Clusters processed"):
+    for cluster in tqdm(open_file, desc="Clusters processed"):
         canonical_seq, _, cluster_seqs = cluster.strip().split("\t", maxsplit=3)
         corrected_barcodes.update({raw_seq: canonical_seq for raw_seq in cluster_seqs.split(",")})
     return corrected_barcodes
