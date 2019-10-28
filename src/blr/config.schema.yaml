@@ -28,10 +28,6 @@ properties:
   genome_reference:
     type: [ "string", "null" ]
     description: Reference index prefix
-  picard_command:
-    type: string
-    description: Picard command to be used.
-    default: picard
   h1:
     type: string
     description: h1 adaptor sequnce, appears before barcode in read1
