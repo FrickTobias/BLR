@@ -10,6 +10,7 @@ dependencies:
   - python=3.6
   - bowtie2
   - bwa
+  - minimap2
   - pysam
   - picard=2.10
   - cutadapt=2.5

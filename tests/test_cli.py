@@ -43,7 +43,7 @@ def test_init(tmpdir):
     init(tmpdir / "analysis", TESTDATA_READS)
 
 
-@pytest.mark.parametrize("read_mapper", ["bwa", "bowtie2"])
+@pytest.mark.parametrize("read_mapper", ["bwa", "bowtie2", "minimap2"])
 def test_mappers(tmpdir, read_mapper):
     workdir = tmpdir / "analysis"
     init(workdir, TESTDATA_READS)
