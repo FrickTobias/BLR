@@ -6,7 +6,7 @@ sequence_tag: RX    # Used to store original barcode sequence in bam file. 'RX' 
 picard_command: picard
 read_mapper: bowtie2
 genome_reference: ../testdata/chr1mini.fasta
-duplicate_marker: sambamba # Choose sambamba or samblaster or picard
+duplicate_marker: sambamba # Choose sambamba or samblaster
 
 #################
 # Trim settings #

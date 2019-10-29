@@ -1,5 +1,4 @@
 from snakemake.utils import validate
-import os
 
 configfile: "blr.yaml"
 validate(config, "config.schema.yaml")
@@ -96,18 +95,27 @@ rule map_reads:
                 " {input.r2_fastq}",
         }
         command = commands[config["read_mapper"]].format(**locals(), **globals())
-        shell(
-            "{command} 2> >(tee {log} >&2) |"
-            "samtools sort -"
-            " -@ {threads}"
-            " -O BAM > {output.bam}"
-        )
+        if config["duplicate_marker"] == "samblaster":
+            shell(
+                "{command} 2> >(tee {log} >&2) |"
+                "samblaster |"
+                "samtools sort -"
+                " -@ {threads}"
+                " -O BAM > {output.bam}"
+            )
+        else:
+            shell(
+                "{command} 2> >(tee {log} >&2) |"
+                "samtools sort -"
+                " -@ {threads}"
+                " -O BAM > {output.bam}"
+            )
 
 
 rule tagbam:
     # Add barcodes to BAM
     output:
-        bam = "mapped.sorted.tag.bam"
+        bam = "mapped.sorted.tag.mkdup.bam" if config['duplicate_marker'] == 'samblaster' else "mapped.sorted.tag.bam"
     input:
         bam = "mapped.sorted.bam"
     log: "tag_bam.stderr"
@@ -123,36 +131,13 @@ rule mark_duplicates:
         bam = "mapped.sorted.tag.mkdup.bam"
     input:
         bam = "mapped.sorted.tag.bam"
-    log:
-        metrics = "mark_duplicates_metrics.txt",
-        stderr = "mark_duplicates.log"
+    log: "mark_duplicates.log"
     threads: 20
-    run:
-        commands = {
-            "sambamba":
-                "sambamba markdup "
-                " -t {threads} "
-                " {input.bam}"
-                " {output.bam} 2> {log.stderr}",
-            "samblaster":
-                "samtools sort"
-                " -n"
-                " -O SAM "
-                " -@ {threads}"
-                " {input.bam} |"
-                " samblaster 2> {log.stderr} |"
-                " samtools sort - "
-                "-@ {threads}"
-                " -O BAM > {output.bam}",
-            "picard":
-                "picard -Xms{config[heap_space]}g MarkDuplicates"
-                " I={input.bam}"
-                " O={output.bam}"
-                " M={log.metrics}"
-                " ASSUME_SORT_ORDER=coordinate 2> {log.stderr}"
-        }
-        command = commands[config["duplicate_marker"]].format(**locals(), **globals())
-        shell(command)
+    shell:
+        "sambamba markdup "
+        " -t {threads} "
+        " {input.bam}"
+        " {output.bam} 2> {log}"
 
 
 rule clusterrmdup:

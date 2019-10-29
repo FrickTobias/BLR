@@ -27,7 +27,7 @@ properties:
     description: Which read mapper to use
   duplicate_marker:
     type: string
-    pattern: "sambamba|samblaster|picard"
+    pattern: "sambamba|samblaster"
     description: Which duplicate marking tools to use
   genome_reference:
     type: [ "string", "null" ]
