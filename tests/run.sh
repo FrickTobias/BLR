@@ -23,7 +23,7 @@ cp tests/test_config.yaml outdir-bowtie2/blr.yaml
 pushd outdir-bowtie2
 blr run
 m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
-test $m == bfe1f589782a502a6b123e5edcbe9b3e
+test $m == e389e3f6e8ba14466f232b19fa1a0ee5
 
 # Test phasing
 blr run phasing_stats.txt
