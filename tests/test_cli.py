@@ -25,7 +25,7 @@ def count_fastq_reads(path):
     return n
 
 
-def copy_config(source, target, genome_reference=None, read_mapper=None):
+def copy_config(source, target, genome_reference=None, read_mapper=None, duplicate_marker=None):
     """Copy config, possibly changing genome_reference or read_mapper"""
 
     with open(source) as infile:
@@ -36,6 +36,8 @@ def copy_config(source, target, genome_reference=None, read_mapper=None):
                     line = f"genome_reference: {path}\n"
                 if read_mapper is not None and line.startswith("read_mapper:"):
                     line = f"read_mapper: {read_mapper}\n"
+                if duplicate_marker is not None and line.startswith("duplicate_marker:"):
+                    line = f"duplicate_marker: {duplicate_marker}\n"
                 outfile.write(line)
 
 
@@ -56,3 +58,19 @@ def test_mappers(tmpdir, read_mapper):
     run(workdir=workdir, targets=["mapped.sorted.bam"])
     n_input_fastq_reads = 2 * count_fastq_reads(Path(workdir / "trimmed_barcoded.1.fastq.gz"))
     assert n_input_fastq_reads <= count_bam_alignments(workdir / "mapped.sorted.bam")
+
+
+@pytest.mark.parametrize("duplicate_marker", ["sambamba", "samblaster"])
+def test_duplicate_markers(tmpdir, duplicate_marker):
+    workdir = tmpdir / "analysis"
+    init(workdir, TESTDATA_READS)
+    copy_config(
+        "tests/test_config.yaml",
+        workdir / "blr.yaml",
+        genome_reference=str(Path("testdata/chr1mini.fasta").absolute()),
+        read_mapper="bwa",
+        duplicate_marker=duplicate_marker
+    )
+    run(workdir=workdir, targets=["mapped.sorted.tag.mkdup.bam"])
+    n_input_fastq_reads = 2 * count_fastq_reads(Path(workdir / "trimmed_barcoded.1.fastq.gz"))
+    assert n_input_fastq_reads <= count_bam_alignments(workdir / "mapped.sorted.tag.mkdup.bam")

@@ -1,5 +1,4 @@
 from snakemake.utils import validate
-import os
 
 configfile: "blr.yaml"
 validate(config, "config.schema.yaml")
@@ -96,8 +95,13 @@ rule map_reads:
                 " {input.r2_fastq}",
         }
         command = commands[config["read_mapper"]].format(**locals(), **globals())
+
+        # Add duplicate marking to map_reads pipe if samblaster selected.
+        mkdup = "samblaster |" if config["duplicate_marker"] == "samblaster" else ""
+
         shell(
             "{command} 2> >(tee {log} >&2) |"
+            "{mkdup}"
             "samtools sort -"
             " -@ {threads}"
             " -O BAM > {output.bam}"
@@ -107,7 +111,7 @@ rule map_reads:
 rule tagbam:
     # Add barcodes to BAM
     output:
-        bam = "mapped.sorted.tag.bam"
+        bam = "mapped.sorted.tag.mkdup.bam" if config['duplicate_marker'] == 'samblaster' else "mapped.sorted.tag.bam"
     input:
         bam = "mapped.sorted.bam"
     log: "tag_bam.stderr"
@@ -123,15 +127,13 @@ rule mark_duplicates:
         bam = "mapped.sorted.tag.mkdup.bam"
     input:
         bam = "mapped.sorted.tag.bam"
-    log:
-        metrics = "picard_mkdup_metrics.log",
-        stderr = "picard_mkdup.log"
+    log: "mark_duplicates.log"
+    threads: 20
     shell:
-        "picard -Xms{config[heap_space]}g MarkDuplicates"
-        " I={input.bam}"
-        " O={output.bam}"
-        " M={log.metrics}"
-        " ASSUME_SORT_ORDER=coordinate 2> {log.stderr}"
+        "sambamba markdup"
+        " -t {threads}"
+        " {input.bam}"
+        " {output.bam} 2> {log}"
 
 
 rule clusterrmdup:
