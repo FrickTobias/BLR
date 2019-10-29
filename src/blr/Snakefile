@@ -95,21 +95,17 @@ rule map_reads:
                 " {input.r2_fastq}",
         }
         command = commands[config["read_mapper"]].format(**locals(), **globals())
-        if config["duplicate_marker"] == "samblaster":
-            shell(
-                "{command} 2> >(tee {log} >&2) |"
-                "samblaster |"
-                "samtools sort -"
-                " -@ {threads}"
-                " -O BAM > {output.bam}"
-            )
-        else:
-            shell(
-                "{command} 2> >(tee {log} >&2) |"
-                "samtools sort -"
-                " -@ {threads}"
-                " -O BAM > {output.bam}"
-            )
+
+        # Add duplicate marking to map_reads pipe if samblaster selected.
+        mkdup = "samblaster |" if config["duplicate_marker"] == "samblaster" else ""
+
+        shell(
+            "{command} 2> >(tee {log} >&2) |"
+            "{mkdup}"
+            "samtools sort -"
+            " -@ {threads}"
+            " -O BAM > {output.bam}"
+        )
 
 
 rule tagbam:
@@ -134,8 +130,8 @@ rule mark_duplicates:
     log: "mark_duplicates.log"
     threads: 20
     shell:
-        "sambamba markdup "
-        " -t {threads} "
+        "sambamba markdup"
+        " -t {threads}"
         " {input.bam}"
         " {output.bam} 2> {log}"
 
