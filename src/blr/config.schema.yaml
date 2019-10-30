@@ -44,10 +44,6 @@ properties:
   barcode_len:
     type: integer
     description: Length of barcode sequence
-  hapcut2:
-    type: string
-    description: Hapcut2 command to be used.
-    default: .
   reference_variants:
     type: [ "string", "null" ]
     description: Path to reference variants, if not provided then variant will be called by freebayes
