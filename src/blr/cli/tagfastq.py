@@ -34,11 +34,6 @@ def main(args):
     with open(args.corrected_barcodes, "r") as reader:
         corrected_barcodes = parse_corrected_barcodes(reader)
 
-    # Get the raw barcodes and create a dictionary pointing each read header to the raw
-    # barcode sequence.
-    with dnaio.open(args.raw_barcodes, mode="r") as reader:
-        raw_barcodes = parse_raw_barcodes(reader)
-
     in_interleaved = not args.input2
     logger.info(f"Input detected as {'interleaved' if in_interleaved else 'paired'} FASTQ.")
 
@@ -51,22 +46,26 @@ def main(args):
     out_interleaved = not args.output2
     logger.info(f"Output detected as {'interleaved' if out_interleaved else 'paired'} FASTQ.")
 
+    raw_barcodes_cache = dict()
     reads_missing_barcode = 0
     separator = args.sep
-    # Parse input FASTA/FASTQ for read1 and read2 and write output
-    with dnaio.open(args.input1, file2=args.input2, interleaved=in_interleaved, mode="r") as reader, \
-            dnaio.open(args.output1, file2=args.output2, interleaved=out_interleaved, mode="w") as writer:
+    # Parse input FASTA/FASTQ for read1 and read2, raw barcodes and write output
+    with dnaio.open(args.input1, file2=args.input2, interleaved=in_interleaved, mode="r",
+                    fileformat="fastq") as reader, \
+            dnaio.open(args.output1, file2=args.output2, interleaved=out_interleaved, mode="w",
+                       fileformat="fastq") as writer, \
+            dnaio.open(args.raw_barcodes, mode="r") as raw_bc_reader:
+
+        raw_bc_iterator = parse_raw_barcodes(raw_bc_reader)
+
         for read1, read2 in tqdm(reader, desc="Read pairs processed"):
             # Header parsing
             name_and_pos_r1, read_and_index_r1 = read1.name.split(maxsplit=1)
             name_and_pos_r2, read_and_index_r2 = read2.name.split(maxsplit=1)
 
-            try:
-                raw_barcode_seq = raw_barcodes[name_and_pos_r1]
-            except KeyError:
-                raw_barcode_seq = None
-                reads_missing_barcode += 1
+            raw_barcode_seq, raw_barcodes_cache = search_bc(raw_bc_iterator, name_and_pos_r1, raw_barcodes_cache)
 
+            # Check if barcode was found and update header with barcode info.
             if raw_barcode_seq:
                 corr_barcode_seq = corrected_barcodes[raw_barcode_seq]
 
@@ -79,6 +78,8 @@ def main(args):
                 # Save header to read instances
                 read1.name = " ".join([new_name, read_and_index_r1])
                 read2.name = " ".join([new_name, read_and_index_r2])
+            else:
+                reads_missing_barcode += 1
 
             # Write to out
             writer.write(read1, read2)
@@ -86,6 +87,22 @@ def main(args):
     logger.info(f"Read-pairs missing barcodes: {reads_missing_barcode}")
 
     logger.info("Finished")
+
+
+def search_bc(iterator: iter, header: str, cache: dict, maxiter: int = 10):
+    # Check it header is stored in cache. If not move forward on step in iterator at look again.
+    iteration = 0
+    while header not in cache and iteration < maxiter:
+        iteration += 1
+        # Progress iterator
+        try:
+            cache.update(next(iterator))
+        except StopIteration:
+            break
+
+    barcode_seq = cache.pop(header, None)
+
+    return barcode_seq, cache
 
 
 def parse_corrected_barcodes(open_file):
@@ -109,11 +126,9 @@ def parse_raw_barcodes(open_file):
     :param open_file: dnaio odject.
     :return: dict: entry headers pointing to a raw barcodes sequence
     """
-    raw_barcodes = dict()
     for barcode in tqdm(open_file, desc="Raw barcodes processed"):
         header, _ = barcode.name.split(maxsplit=1)
-        raw_barcodes[header] = barcode.sequence
-    return raw_barcodes
+        yield {header: barcode.sequence}
 
 
 def add_arguments(parser):
