@@ -50,7 +50,8 @@ def main(args):
     reads_missing_barcode = 0
     separator = args.sep
     # Parse input FASTA/FASTQ for read1 and read2, raw barcodes and write output
-    with dnaio.open(args.input1, file2=args.input2, interleaved=in_interleaved, mode="r", fileformat="fastq") as reader, \
+    with dnaio.open(args.input1, file2=args.input2, interleaved=in_interleaved, mode="r",
+                    fileformat="fastq") as reader, \
             dnaio.open(args.output1, file2=args.output2, interleaved=out_interleaved, mode="w",
                        fileformat="fastq") as writer, \
             dnaio.open(args.raw_barcodes, mode="r") as raw_bc_reader:
