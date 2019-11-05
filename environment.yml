@@ -16,6 +16,7 @@ dependencies:
   - cutadapt=2.5
   - sambamba=0.6.6
   - samblaster
+  - hapcut2
   - samtools
   - snakemake-minimal
   - starcode

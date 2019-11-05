@@ -25,7 +25,6 @@ install:
   - conda activate testenv
   - conda install pytest
   - pip install --no-deps .
-  - bash install-hapcut2.sh
 
 script:
   - tests/run.sh

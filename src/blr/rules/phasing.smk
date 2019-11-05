@@ -1,4 +1,3 @@
-HAPCUT2=config["hapcut2"]
 
 rule hapcut2_extracthairs:
     output:
@@ -8,7 +7,7 @@ rule hapcut2_extracthairs:
         vcf = "reference.vcf"
     log: "hapcut2_extracthairs.log"
     shell:
-         "{HAPCUT2}/build/extractHAIRS"
+         "extractHAIRS"
          " --10X 1"
          " --bam {input.bam}"
          " --VCF {input.vcf}"
@@ -24,7 +23,7 @@ rule hapcut2_linkfragments:
         unlinked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked.txt"
     log: "hapcut2_linkfragments.log"
     shell:
-         "python {HAPCUT2}/utilities/LinkFragments.py"
+         "LinkFragments.py"
          " --bam {input.bam}"
          " -v {input.vcf}"
          " --fragments {input.unlinked}"
@@ -40,7 +39,7 @@ rule hapcut2_phasing:
         vcf = "reference.vcf"
     log: "hapcut2_phasing.log"
     shell:
-         "{HAPCUT2}/build/HAPCUT2"
+         "hapcut2"
          " --nf 1"
          " --fragments {input.linked}"
          " --vcf {input.vcf}"
@@ -56,7 +55,7 @@ rule hapcut2_stats:
     params:
           vcf2 = config["phasing_ground_truth"]
     shell:
-         "python {HAPCUT2}/utilities/calculate_haplotype_statistics.py"
+         "calculate_haplotype_statistics.py"
          " -v1 {input.vcf1}"
          " -v2 {params.vcf2}"
          " > {output.stats}"
