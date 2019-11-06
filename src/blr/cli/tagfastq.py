@@ -85,24 +85,26 @@ def main(args):
             # Write to out
             writer.write(read1, read2)
 
-    logger.info(f"Barcodes missing trimmed reads: {len(uncorrected_barcodes_cache)}")
     logger.info(f"Read-pairs missing barcodes: {reads_missing_barcode}")
 
     logger.info("Finished")
 
 
 def search_barcode(uncorrected_barcodes, header: str, cache, maxiter: int = 10):
-    # Check it header is stored in cache. If not move forward on step in uncorrected_barcodes at look again.
-    iteration = 0
-    while header not in cache and iteration < maxiter:
-        iteration += 1
-        try:
-            cache.update(next(uncorrected_barcodes))
-        except StopIteration:
-            break
+    if header in cache:
+        return cache.pop(header)
 
-    barcode_seq = cache.pop(header, None)
-    return barcode_seq
+    for iteration, header_barcode_pair in enumerate(uncorrected_barcodes):
+        # If header in next pair then parser lines are synced --> drop cache.
+        if header in header_barcode_pair:
+            cache.clear()
+            return header_barcode_pair[header]
+
+        cache.update(header_barcode_pair)
+
+        if iteration >= maxiter:
+            break
+    return None
 
 
 def parse_corrected_barcodes(open_file):
