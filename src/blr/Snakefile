@@ -66,8 +66,8 @@ rule map_reads:
     output:
         bam = "mapped.sorted.bam"
     input:
-        r1_fastq = "trimmed_barcoded.1.fastq.gz",
-        r2_fastq = "trimmed_barcoded.2.fastq.gz"
+        r1_fastq = "trimmed.barcoded.1.fastq.gz",
+        r2_fastq = "trimmed.barcoded.2.fastq.gz"
     threads: 20
     log: "read_mapping.log"
     run:
