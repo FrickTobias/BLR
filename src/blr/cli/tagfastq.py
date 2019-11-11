@@ -47,7 +47,6 @@ def main(args):
     out_interleaved = not args.output2
     logger.info(f"Output detected as {'interleaved' if out_interleaved else 'paired'} FASTQ.")
 
-    uncorrected_barcodes_cache = dict()
     reads_missing_barcode = 0
     separator = args.sep
     # Parse input FASTA/FASTQ for read1 and read2, uncorrected barcodes and write output
@@ -55,17 +54,14 @@ def main(args):
                     fileformat="fastq") as reader, \
             dnaio.open(args.output1, file2=args.output2, interleaved=out_interleaved, mode="w",
                        fileformat="fastq") as writer, \
-            dnaio.open(args.uncorrected_barcodes, mode="r") as uncorrected_barcode_reader:
-
-        uncorrected_barcode_iterator = parse_uncorrected_barcodes(uncorrected_barcode_reader)
+            BarcodeReader(args.uncorrected_barcodes) as uncorrected_barcode_reader:
 
         for read1, read2 in tqdm(reader, desc="Read pairs processed"):
             # Header parsing
             name_and_pos_r1, read_and_index_r1 = read1.name.split(maxsplit=1)
             name_and_pos_r2, read_and_index_r2 = read2.name.split(maxsplit=1)
 
-            uncorrected_barcode_seq = search_barcode(uncorrected_barcode_iterator, name_and_pos_r1,
-                                                     uncorrected_barcodes_cache)
+            uncorrected_barcode_seq = uncorrected_barcode_reader.get_barcode(name_and_pos_r1)
 
             # Check if barcode was found and update header with barcode info.
             if uncorrected_barcode_seq:
@@ -91,20 +87,6 @@ def main(args):
     logger.info("Finished")
 
 
-def search_barcode(uncorrected_barcodes, header: str, cache, maxiter: int = 10):
-    if header in cache:
-        return cache.pop(header)
-
-    for header_barcode_pair in islice(uncorrected_barcodes, maxiter):
-        # If header in next pair then parser lines are synced --> drop cache.
-        if header in header_barcode_pair:
-            cache.clear()
-            return header_barcode_pair[header]
-
-        cache.update(header_barcode_pair)
-    return None
-
-
 def parse_corrected_barcodes(open_file):
     """
     Parse starcode cluster output and return a dictionary with raw sequences pointing to a
@@ -119,16 +101,36 @@ def parse_corrected_barcodes(open_file):
     return corrected_barcodes
 
 
-def parse_uncorrected_barcodes(open_file):
-    """
-    Parse FASTA/FASTQ containing barcode sequences and return a dictionary with entry headers
-    pointing to a raw barcodes sequence.
-    :param open_file: dnaio odject.
-    :return: iterable with dict elements
-    """
-    for barcode in tqdm(open_file, desc="Raw barcodes processed"):
-        header, _ = barcode.name.split(maxsplit=1)
-        yield {header: barcode.sequence}
+class BarcodeReader:
+    def __init__(self, filename):
+        self.cache = dict()
+        self.filename = filename
+        self.barcodes = self.parse()
+
+    def parse(self):
+        for barcode in tqdm(self.open_file, desc="Uncorrected barcodes processed"):
+            header, _ = barcode.name.split(maxsplit=1)
+            yield {header: barcode.sequence}
+
+    def get_barcode(self, header, maxiter=10):
+        if header in self.cache:
+            return self.cache.pop(header)
+
+        for header_barcode_pair in islice(self.barcodes, maxiter):
+            # If header in next pair then parser lines are synced --> drop cache.
+            if header in header_barcode_pair:
+                self.cache.clear()
+                return header_barcode_pair[header]
+
+            self.cache.update(header_barcode_pair)
+        return None
+
+    def __enter__(self):
+        self.open_file = dnaio.open(self.filename, mode="r")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return self.open_file.close()
 
 
 def add_arguments(parser):
