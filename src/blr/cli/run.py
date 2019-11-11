@@ -26,6 +26,8 @@ def add_arguments(parser):
         'Default: %(default)s')
     arg('--keepgoing', '-k', default=False, action='store_true',
         help='If one job fails, finish the others.')
+    arg('--unlock', default=False, action='store_true',
+        help='Remove a lock on the working directory.')
     arg("--dag", default=False, action='store_true',
         help="Print the dag in the graphviz dot language (requires graphviz to be installed). Default: %(default)s. "
              "To get output to pdf file, pipe output into dot as follows: blr run --dag | dot -Tpdf > dag.pdf")
@@ -36,7 +38,7 @@ def add_arguments(parser):
 def main(args):
     targets = args.targets if args.targets else None
     try:
-        run(args.dryrun, args.cores, args.keepgoing, args.dag, targets)
+        run(args.dryrun, args.cores, args.keepgoing, args.unlock, args.dag, targets)
     except SnakemakeError:
         sys.exit(1)
     sys.exit(0)
@@ -46,6 +48,7 @@ def run(
     dryrun: bool = False,
     cores: int = 4,
     keepgoing: bool = False,
+    unlock: bool = False,
     printdag: bool = False,
     targets=None,
     workdir=None,
@@ -61,6 +64,7 @@ def run(
             dryrun=dryrun,
             cores=cores,
             keepgoing=keepgoing,
+            unlock=unlock,
             printshellcmds=True,
             printdag=printdag,
             targets=targets,
