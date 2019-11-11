@@ -21,6 +21,7 @@ the read by including it in the header.
 import logging
 import sys
 import dnaio
+from itertools import islice
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
@@ -94,16 +95,13 @@ def search_barcode(uncorrected_barcodes, header: str, cache, maxiter: int = 10):
     if header in cache:
         return cache.pop(header)
 
-    for iteration, header_barcode_pair in enumerate(uncorrected_barcodes):
+    for header_barcode_pair in islice(uncorrected_barcodes, maxiter):
         # If header in next pair then parser lines are synced --> drop cache.
         if header in header_barcode_pair:
             cache.clear()
             return header_barcode_pair[header]
 
         cache.update(header_barcode_pair)
-
-        if iteration >= maxiter:
-            break
     return None
 
 
