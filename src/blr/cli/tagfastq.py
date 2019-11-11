@@ -103,34 +103,36 @@ def parse_corrected_barcodes(open_file):
 
 class BarcodeReader:
     def __init__(self, filename):
-        self.cache = dict()
-        self.filename = filename
+        self._cache = dict()
+        self._file = dnaio.open(filename, mode="r")
         self.barcodes = self.parse()
 
     def parse(self):
-        for barcode in tqdm(self.open_file, desc="Uncorrected barcodes processed"):
+        for barcode in tqdm(self._file, desc="Uncorrected barcodes processed"):
             header, _ = barcode.name.split(maxsplit=1)
             yield {header: barcode.sequence}
 
     def get_barcode(self, header, maxiter=10):
-        if header in self.cache:
-            return self.cache.pop(header)
+        if header in self._cache:
+            return self._cache.pop(header)
 
         for header_barcode_pair in islice(self.barcodes, maxiter):
             # If header in next pair then parser lines are synced --> drop cache.
             if header in header_barcode_pair:
-                self.cache.clear()
+                self._cache.clear()
                 return header_barcode_pair[header]
 
-            self.cache.update(header_barcode_pair)
+            self._cache.update(header_barcode_pair)
         return None
 
     def __enter__(self):
-        self.open_file = dnaio.open(self.filename, mode="r")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        return self.open_file.close()
+        self.close()
+
+    def close(self):
+        self._file.close()
 
 
 def add_arguments(parser):
