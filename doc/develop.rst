@@ -35,4 +35,4 @@ where that information is defined.
     "MI", "-m, --molecule-tag", "SAM tag for storing molecule index specifying a identified molecule
     for each barcode."
     "MN", "-n, --number-tag", "SAM tag for storing molecule count for a particular barcode."
-    "RX", "-r, --raw-barcode-tag", "SAM tag for storing the raw barcode sequence."
+    "RX", "-s, --sequence-tag", "SAM tag for storing the uncorrected barcode sequence."
