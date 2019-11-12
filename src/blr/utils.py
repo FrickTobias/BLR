@@ -40,7 +40,7 @@ def guess_paired_path(path: Path):
     return None
 
 
-def get_bamtag(pysam_read, tag, tag_type=str):
+def get_bamtag(pysam_read, tag):
     """
     Fetches tags from bam files. Return an empty value of the same type if not found.
     :param pysam_read: pysam read object
@@ -49,8 +49,6 @@ def get_bamtag(pysam_read, tag, tag_type=str):
     :return: bam tag value
     """
     try:
-        tag_value = pysam_read.get_tag(tag)
+        return pysam_read.get_tag(tag)
     except KeyError:
-        tag_value = tag_type
-
-    return tag_value
+        return None

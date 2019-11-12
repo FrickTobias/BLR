@@ -25,11 +25,11 @@ def main(args):
         logger.info("Writing filtered bam file")
         for read in tqdm(openin.fetch(until_eof=True)):
             summary.tot_reads += 1
-            no_mols = utils.get_bamtag(pysam_read=read, tag=args.number_tag, tag_type=int)
+            no_mols = utils.get_bamtag(pysam_read=read, tag=args.number_tag)
 
             # If barcode is not in all_molecules the barcode does not have enough proximal reads to make a single
             # molecule. If the barcode has more than <max_molecules> molecules, remove it from the read.
-            if no_mols != int and no_mols > args.max_molecules:
+            if no_mols and no_mols > args.max_molecules:
                 read, summary = strip_barcode(pysam_read=read, tags_to_be_removed=tags_to_remove,
                                               summary=summary)
 

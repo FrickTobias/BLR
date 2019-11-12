@@ -145,7 +145,7 @@ def meet_requirements(read, mate, summary, barcode_tag):
         rp_meet_requirements = False
 
     bc_new = utils.get_bamtag(pysam_read=read, tag=barcode_tag)
-    if bc_new == "":
+    if not bc_new:
         summary.non_tagged_reads += 2
         rp_meet_requirements = False
 
