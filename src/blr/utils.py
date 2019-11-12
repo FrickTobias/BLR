@@ -1,4 +1,5 @@
 import re
+import pysam
 from pathlib import Path
 
 
@@ -38,3 +39,19 @@ def guess_paired_path(path: Path):
     if len(paths) == 1:
         return paths[0]
     return None
+
+
+def get_bamtag(pysam_read, tag, type=str):
+    """
+    Fetches tags from bam files. Return an empty value of the same type if not found.
+    :param pysam_read: pysam read object
+    :param tag: bam tag to fetch
+    :param type: what type to return if read does not have the tag
+    :return: bam tag value
+    """
+    try:
+        tag_value = pysam_read.get_tag(tag)
+    except KeyError:
+        tag_value = type
+
+    return tag_value
