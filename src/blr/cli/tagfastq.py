@@ -165,7 +165,7 @@ def add_arguments(parser):
         help="SAM tag for storing the error corrected barcode. Default: %(default)s")
     parser.add_argument(
         "-s", "--sequence-tag", default="RX",
-        help="SAM tag for storing the raw barcode sequence. Default: %(default)s")
+        help="SAM tag for storing the uncorrected barcode sequence. Default: %(default)s")
     parser.add_argument(
         "--sep", default="_",
         help="Character used as separator for storing SAM tags in the FASTQ/FASTA header. Default: %(default)s"

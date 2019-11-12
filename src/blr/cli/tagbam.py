@@ -54,4 +54,4 @@ def add_arguments(parser):
     parser.add_argument("-b", "--barcode-tag", default="BX",
                         help="SAM tag for storing the error corrected barcode. Default: %(default)s")
     parser.add_argument("-s", "--sequence-tag", default="RX",
-                        help="SAM tag for storing the raw barcode sequence. Default: %(default)s")
+                        help="SAM tag for storing the uncorrected barcode sequence. Default: %(default)s")
