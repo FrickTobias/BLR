@@ -21,15 +21,20 @@ DBS = "N"*config["barcode_len"]
 trim_len = sum(map(len, [config["h1"], DBS, config["h2"]]))
 extract_len = len(config["h1"])
 
-rule trim:
+rule trim_and_tag:
     # Trim away 5' and possible 3' handles on read1 and trim possible 3' handles on read2.
+    # Tag reads with uncorrected and corrected barcode.
     output:
-        r1_fastq="trimmed.1.fastq.gz",
-        r2_fastq="trimmed.2.fastq.gz"
+        r1_fastq="trimmed.barcoded.1.fastq.gz",
+        r2_fastq="trimmed.barcoded.2.fastq.gz"
     input:
         r1_fastq="reads.1.fastq.gz",
         r2_fastq="reads.2.fastq.gz",
-    log: "cutadapt_trim.log"
+        uncorrected_barcodes="barcodes.fasta",
+        corrected_barcodes="barcodes.clstr"
+    log:
+        cutadapt="cutadapt_trim.log",
+        tag="tag_fastq.log"
     threads: 20
     shell:
         "cutadapt"
@@ -40,11 +45,19 @@ rule trim:
         " --discard-untrimmed"
         " -j {threads}"
         " -m 25"
-        " -o {output.r1_fastq}"
-        " -p {output.r2_fastq}"
+        " --interleaved"
         " {input.r1_fastq}"
         " {input.r2_fastq}"
-        "> {log} "
+        " 2> {log.cutadapt} |"
+        "blr tagfastq"
+        " --o1 {output.r1_fastq}"
+        " --o2 {output.r2_fastq}"
+        " -b {config[cluster_tag]}"
+        " -s {config[sequence_tag]}"
+        " {input.uncorrected_barcodes}"
+        " {input.corrected_barcodes}"
+        " -"
+        " 2> {log.tag}"
 
 rule extract_DBS:
     # Extract barcode sequence from read1 FASTQ
