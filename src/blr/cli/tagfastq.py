@@ -122,7 +122,7 @@ class BarcodeReader:
                 self._cache.clear()
                 return barcode_sequence
 
-            self._cache.update({barcode_read_name: barcode_sequence})
+            self._cache[barcode_read_name] = barcode_sequence
         return None
 
     def __enter__(self):
