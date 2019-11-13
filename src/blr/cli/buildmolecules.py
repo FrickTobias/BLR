@@ -77,7 +77,11 @@ def build_molecules(pysam_openfile, barcode_tag, window, min_reads, summary):
 
         # Fetches barcode and genomic position. Position will be formatted so start < stop.
         barcode = utils.get_bamtag(pysam_read=read, tag=barcode_tag)
-        if barcode and not read.is_unmapped:
+        if not barcode:
+            summary.reads_without_barcode += 1
+        elif read.is_unmapped:
+            summary.unmapped_bc_tagged_read += 1
+        else:
             read_start, read_stop = sorted((read.reference_start, read.reference_end))
 
             # Commit molecules between chromosomes
@@ -107,9 +111,6 @@ def build_molecules(pysam_openfile, barcode_tag, window, min_reads, summary):
             else:
                 molecule = Molecule(barcode=barcode, start=read_start, stop=read_stop, read_header=read.query_name)
                 all_molecules.cache_dict[molecule.barcode] = molecule
-
-        elif barcode and read.is_unmapped:
-            summary.unmapped_bc_tagged_read += 1
 
     all_molecules.report_and_remove_all()
 
