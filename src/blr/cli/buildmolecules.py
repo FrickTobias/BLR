@@ -10,6 +10,8 @@ import logging
 
 from tqdm import tqdm
 
+from blr import utils
+
 logger = logging.getLogger(__name__)
 
 
@@ -74,8 +76,12 @@ def build_molecules(pysam_openfile, barcode_tag, window, min_reads, summary):
             continue
 
         # Fetches barcode and genomic position. Position will be formatted so start < stop.
-        barcode = fetch_bc(pysam_read=read, barcode_tag=barcode_tag, summary=summary)
-        if barcode and not read.is_unmapped:
+        barcode = utils.get_bamtag(pysam_read=read, tag=barcode_tag)
+        if not barcode:
+            summary.reads_without_barcode += 1
+        elif read.is_unmapped:
+            summary.unmapped_bc_tagged_read += 1
+        else:
             read_start, read_stop = sorted((read.reference_start, read.reference_end))
 
             # Commit molecules between chromosomes
@@ -106,28 +112,9 @@ def build_molecules(pysam_openfile, barcode_tag, window, min_reads, summary):
                 molecule = Molecule(barcode=barcode, start=read_start, stop=read_stop, read_header=read.query_name)
                 all_molecules.cache_dict[molecule.barcode] = molecule
 
-        elif barcode and read.is_unmapped:
-            summary.unmapped_bc_tagged_read += 1
-
     all_molecules.report_and_remove_all()
 
     return all_molecules.bc_to_mol, all_molecules.header_to_mol
-
-
-def fetch_bc(pysam_read, barcode_tag, summary=None):
-    """
-    Fetches barcode from a bam file tag, returns None if reads isn't tagged.
-    """
-
-    try:
-        barcode = pysam_read.get_tag(barcode_tag)
-    except KeyError:
-        barcode = None
-
-        if summary:
-            summary.reads_without_barcode += 1
-
-    return barcode
 
 
 class Molecule:
@@ -241,10 +228,10 @@ class Summary:
     def non_analyzed_reads(self):
 
         return (
-            self.overlapping_reads_in_molecule
-            + self.reads_without_barcode
-            + self.unmapped_bc_tagged_read
-            + self.duplicates)
+                self.overlapping_reads_in_molecule
+                + self.reads_without_barcode
+                + self.unmapped_bc_tagged_read
+                + self.duplicates)
 
     def print_stats(self):
         """

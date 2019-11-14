@@ -13,6 +13,8 @@ import pysam
 import logging
 from tqdm import tqdm
 
+from blr import utils
+
 logger = logging.getLogger(__name__)
 
 
@@ -106,10 +108,7 @@ def main(args):
         for read in tqdm(infile.fetch(until_eof=True), desc="Writing output", total=summary.tot_reads):
 
             # If read barcode in merge dict, change tag and header to compensate.
-            try:
-                previous_barcode_id = str(read.get_tag(args.barcode_tag))
-            except KeyError:
-                previous_barcode_id = None
+            previous_barcode_id = utils.get_bamtag(pysam_read=read, tag=args.barcode_tag)
             if previous_barcode_id in merge_dict:
                 summary.reads_with_new_tag += 1
                 new_barcode_id = str(merge_dict[previous_barcode_id])
@@ -145,9 +144,8 @@ def meet_requirements(read, mate, summary, barcode_tag):
             summary.unmapped_reads += 2
         rp_meet_requirements = False
 
-    try:
-        bc_new = str(read.get_tag(barcode_tag))
-    except KeyError:
+    bc_new = utils.get_bamtag(pysam_read=read, tag=barcode_tag)
+    if not bc_new:
         summary.non_tagged_reads += 2
         rp_meet_requirements = False
 
