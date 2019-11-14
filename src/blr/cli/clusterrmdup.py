@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def main(args):
     logger.info("Starting Analysis")
-
+    out_mode = utils.get_output_mode(args.output, args.output_format)
     summary = Summary()
 
     current_cache_rp = dict()
@@ -29,7 +29,7 @@ def main(args):
     pos_prev = None
     merge_dict = dict()
     cache_dup_pos = dict()
-    with pysam.AlignmentFile(args.input_tagged_bam, "rb") as openin:
+    with pysam.AlignmentFile(args.input, "rb") as openin:
         for read in tqdm(openin.fetch(until_eof=True), desc="Processing reads"):
             summary.tot_reads += 1
 
@@ -103,8 +103,8 @@ def main(args):
     # Write outputs
     bc_seq_already_written = set()
     with open(args.merge_log, "w") as bc_merge_file, \
-            pysam.AlignmentFile(args.input_tagged_bam, "rb") as infile, \
-            pysam.AlignmentFile(args.output_bam, "wb", template=infile) as out:
+            pysam.AlignmentFile(args.input, "rb") as infile, \
+            pysam.AlignmentFile(args.output, out_mode, template=infile) as out:
         for read in tqdm(infile.fetch(until_eof=True), desc="Writing output", total=summary.tot_reads):
 
             # If read barcode in merge dict, change tag and header to compensate.
@@ -292,15 +292,19 @@ class Summary:
 
 
 def add_arguments(parser):
-    parser.add_argument("input_tagged_bam", help="Sorted SAM file tagged with barcodes.")
-    parser.add_argument("output_bam", help="Sorted SAM file without barcode duplicates.")
-    parser.add_argument(
-        "merge_log",
-        help="CSV log file containing all merges done. File is in format: {old barcode id},{new barcode id}")
-    parser.add_argument(
-        "-b", "--barcode-tag", default="BX",
-        help="SAM tag for storing the error corrected barcode. Default: %(default)s")
-    parser.add_argument(
-        "-w", "--window", type=int, default=100000,
-        help="Window size. Duplicate positions within this distance will be used to find cluster duplicates. "
-             "Default: %(default)s")
+    parser.add_argument("input",
+                        help="Sorted SAM/BAM file tagged with barcodes.")
+    parser.add_argument("merge_log",
+                        help="CSV log file containing all merges done. File is in format: "
+                             "{old barcode id},{new barcode id}")
+
+    parser.add_argument("-o", "--output", default="-",
+                        help="Sorted SAM/BAM file without barcode duplicates. Default: write to stdout.")
+    parser.add_argument("-O", "--output-format", choices=["SAM", "BAM"], default="SAM",
+                        help="Specify output format. If a output file name is specified the format is inferred "
+                             "therefrom. Default: %(default)s")
+    parser.add_argument("-b", "--barcode-tag", default="BX",
+                        help="SAM tag for storing the error corrected barcode. Default: %(default)s")
+    parser.add_argument("-w", "--window", type=int, default=100000,
+                        help="Window size. Duplicate positions within this distance will be used to find cluster "
+                             "duplicates. Default: %(default)s")

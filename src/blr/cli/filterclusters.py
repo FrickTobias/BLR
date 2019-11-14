@@ -15,14 +15,14 @@ logger = logging.getLogger(__name__)
 
 def main(args):
     tags_to_remove = [args.barcode_tag, args.molecule_tag, args.number_tag]
-
+    out_mode = utils.get_output_mode(args.output, args.output_format)
     summary = Summary(tags_to_remove)
     logger.info("Starting")
 
+    logger.info(f"Writing filtered {args.output_format} file")
     # Writes filtered out
     with pysam.AlignmentFile(args.input, "rb") as openin, \
-            pysam.AlignmentFile(args.output, "wb", template=openin) as openout:
-        logger.info("Writing filtered bam file")
+            pysam.AlignmentFile(args.output, out_mode, template=openin) as openout:
         for read in tqdm(openin.fetch(until_eof=True)):
             summary.tot_reads += 1
             no_mols = utils.get_bamtag(pysam_read=read, tag=args.number_tag)
@@ -89,10 +89,15 @@ class Summary:
 
 def add_arguments(parser):
     parser.add_argument("input",
-                        help="BAM file tagged with barcodes information under the tag specified at -b/--barcode-tag. "
-                             "The file needs to be indexed, sorted & have duplicates removed.")
-    parser.add_argument("output", help="Output filtered file.")
+                        help="SAM/BAM file tagged with barcodes information under the tag specified at "
+                             "-b/--barcode-tag. The file needs to be indexed, sorted & have duplicates removed. "
+                             "To read from stdin use '-'.")
 
+    parser.add_argument("-o", "--output", default="-",
+                        help="Output filtered SAM/BAM file. Default: write to stdout.")
+    parser.add_argument("-O", "--output-format", choices=["SAM", "BAM"], default="SAM",
+                        help="Specify output format. If a output file name is specified the format is inferred "
+                             "therefrom. Default: %(default)s")
     parser.add_argument("-b", "--barcode-tag", default="BX",
                         help="SAM tag for storing the error corrected barcode. Default: %(default)s")
     parser.add_argument("-M", "--max_molecules", type=int, default=500,

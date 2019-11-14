@@ -1,10 +1,11 @@
 """
-Transfers barcode sequence informatino from BAM file header to BAM tags in new output BAM.
+Transfers barcode sequence information from the input file alignment name to SAM tags in output file.
 """
 
 import pysam
 import logging
 from tqdm import tqdm
+from blr import utils
 
 logger = logging.getLogger(__name__)
 
@@ -13,14 +14,14 @@ def main(args):
 
     # Generate dict with bc => bc_cluster consensus sequence
     logger.info("Starting analysis")
-
+    out_mode = utils.get_output_mode(args.output, args.output_format)
     alignments_missing_bc = 0
 
-    # Read BAM files and transfer barcode information from alignment name to SAM tag
-    with pysam.AlignmentFile(args.input_mapped_bam, 'rb') as infile, \
-            pysam.AlignmentFile(args.output_tagged_bam, 'wb', template=infile) as out:
+    # Read SAM/BAM files and transfer barcode information from alignment name to SAM tag
+    with pysam.AlignmentFile(args.input, "rb") as infile, \
+            pysam.AlignmentFile(args.output, out_mode, template=infile) as out:
 
-        for read in tqdm(infile.fetch(until_eof=True), desc="Reading BAM"):
+        for read in tqdm(infile.fetch(until_eof=True), desc="Reading input"):
             try:
                 name, raw_barcode_tag, corr_barcode_tag = read.query_name.split()[0].split('_')
             except ValueError:
@@ -47,10 +48,16 @@ def main(args):
 
 
 def add_arguments(parser):
-    parser.add_argument("input_mapped_bam",
-                        help="BAM file with mapped reads which is to be tagged with barcode ids.")
-    parser.add_argument("output_tagged_bam",
-                        help="BAM file with barcode cluster id in the bc tag.")
+    parser.add_argument("input",
+                        help="SAM/BAM file with mapped reads which is to be tagged with barcode information. To read "
+                             "from stdin use '-'.")
+
+    parser.add_argument("-o", "--output", default="-",
+                        help="SAM/BAM file with barcodes information in the specified SAM tags. Default: write to "
+                             "stdout.")
+    parser.add_argument("-O", "--output-format", choices=["SAM", "BAM"], default="SAM",
+                        help="Specify output format. If a output file name is specified the format is inferred "
+                             "therefrom. Default: %(default)s")
     parser.add_argument("-b", "--barcode-tag", default="BX",
                         help="SAM tag for storing the error corrected barcode. Default: %(default)s")
     parser.add_argument("-s", "--sequence-tag", default="RX",

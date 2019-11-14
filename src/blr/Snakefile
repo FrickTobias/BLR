@@ -95,7 +95,7 @@ rule tagbam:
     shell:
         "blr tagbam"
         " {input.bam}"
-        " {output.bam}"
+        " -o {output.bam}"
         " -b {config[cluster_tag]} 2> {log}"
 
 
@@ -124,8 +124,8 @@ rule clusterrmdup:
     shell:
         "blr clusterrmdup"
         " {input.bam}"
-        " {output.bam}"
         " {output.merges}"
+        " -o {output.bam}"
         " -b {config[cluster_tag]} 2>> {log}"
 
 
@@ -139,7 +139,7 @@ rule buildmolecules:
     shell:
         "blr buildmolecules"
         " {input.bam}"
-        " {output.bam}"
+        " -o {output.bam}"
         " -m {config[molecule_tag]}"
         " -n {config[num_mol_tag]}"
         " -b {config[cluster_tag]}"
@@ -157,7 +157,7 @@ rule filterclusters:
     shell:
         "blr filterclusters"
         " {input.bam}"
-        " -"
+        " -O BAM"
         " -m {config[molecule_tag]}"
         " -n {config[num_mol_tag]}"
         " -b {config[cluster_tag]}"

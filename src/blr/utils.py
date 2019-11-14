@@ -52,3 +52,21 @@ def get_bamtag(pysam_read, tag):
         return pysam_read.get_tag(tag)
     except KeyError:
         return None
+
+
+def get_output_mode(filename, spec_format):
+    """
+    Get the pySAM mode specification string for the specified output filename and format.
+    :param filename: String that is used to infer format. In case of writing to stdout, i.e. when '-' is speficied,
+    then the spec_format is used.
+    :param spec_format: Should be either SAM or BAM.
+    :return: String containing the pySAM mode information. String is 'w' for SAM and 'wb' for BAM.
+    """
+    format_to_mode = {
+        "SAM": "w",
+        "BAM": "wb"
+    }
+
+    if filename != "-":
+        spec_format = filename.split(".")[-1].upper()
+    return format_to_mode[spec_format]
