@@ -6,6 +6,20 @@
 
 set -euo pipefail
 
+if [[ $# -gt 0 ]]; then
+    case $1 in
+        osx|linux)
+            targets=$1
+            ;;
+        *)
+            echo "Target must be osx or linux"
+            exit 1
+            ;;
+    esac
+else
+    targets="linux osx"
+fi
+
 if [[ -e ~/.condarc ]]; then
     mv ~/.condarc ~/.condarc.condalock.bak
     trap "mv ~/.condarc.condalock.bak ~/.condarc" EXIT
@@ -13,7 +27,7 @@ else
     trap "rm ~/.condarc" EXIT
 fi
 
-for os in linux osx; do
+for os in ${targets}; do
     env=blrtmp-$RANDOM-$os
     env_yml=environment.$os.lock.yml
     printf "channels:\n  - conda-forge\n  - bioconda\n  - defaults\n" > ~/.condarc
