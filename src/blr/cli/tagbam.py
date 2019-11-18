@@ -53,11 +53,10 @@ def add_arguments(parser):
                              "from stdin use '-'.")
 
     parser.add_argument("-o", "--output", default="-",
-                        help="SAM/BAM file with barcodes information in the specified SAM tags. Default: write to "
-                             "stdout.")
-    parser.add_argument("-O", "--output-format", choices=["SAM", "BAM"], default="SAM",
-                        help="Specify output format. If a output file name is specified the format is inferred "
-                             "therefrom. Default: %(default)s")
+                        help="Write output SAM/BAM to file rather then stdout. Format is inferred from the "
+                             "filename unless -O/--output-format is specified.")
+    parser.add_argument("-O", "--output-format", choices=["SAM", "BAM"],
+                        help="Specify output format.")
     parser.add_argument("-b", "--barcode-tag", default="BX",
                         help="SAM tag for storing the error corrected barcode. Default: %(default)s")
     parser.add_argument("-s", "--sequence-tag", default="RX",

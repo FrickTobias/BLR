@@ -276,12 +276,10 @@ def add_arguments(parser):
                              "-b/--barcode-tag.")
 
     parser.add_argument("-o", "--output", default="-",
-                        help="Output SAM/BAM file with molecule tags found under the tag specified at "
-                             "-m/--molecule-tag and molecules number for each barcode under the specified "
-                             "-n/--number-tag. Default: write to stdout.")
-    parser.add_argument("-O", "--output-format", choices=["SAM", "BAM"], default="SAM",
-                        help="Specify output format. If a output file name is specified the format is inferred "
-                             "therefrom. Default: %(default)s")
+                        help="Write output SAM/BAM to file rather then stdout. Format is inferred from the "
+                             "filename unless -O/--output-format is specified.")
+    parser.add_argument("-O", "--output-format", choices=["SAM", "BAM"],
+                        help="Specify output format.")
     parser.add_argument("-t", "--threshold", type=int, default=4,
                         help="Threshold for how many reads are required for including given molecule in statistics "
                              "(except_reads_per_molecule). Default: %(default)s")

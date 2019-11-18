@@ -94,10 +94,10 @@ def add_arguments(parser):
                              "To read from stdin use '-'.")
 
     parser.add_argument("-o", "--output", default="-",
-                        help="Output filtered SAM/BAM file. Default: write to stdout.")
-    parser.add_argument("-O", "--output-format", choices=["SAM", "BAM"], default="SAM",
-                        help="Specify output format. If a output file name is specified the format is inferred "
-                             "therefrom. Default: %(default)s")
+                        help="Write output SAM/BAM to file rather then stdout. Format is inferred from the "
+                             "filename unless -O/--output-format is specified.")
+    parser.add_argument("-O", "--output-format", choices=["SAM", "BAM"],
+                        help="Specify output format.")
     parser.add_argument("-b", "--barcode-tag", default="BX",
                         help="SAM tag for storing the error corrected barcode. Default: %(default)s")
     parser.add_argument("-M", "--max_molecules", type=int, default=500,
