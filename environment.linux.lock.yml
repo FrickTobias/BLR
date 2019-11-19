@@ -6,7 +6,6 @@ dependencies:
   - _libgcc_mutex=0.1=main
   - alsa-lib=1.1.5=h516909a_1001
   - appdirs=1.4.3=py_1
-  - asn1crypto=1.2.0=py36_0
   - attrs=19.3.0=py_0
   - blas=2.14=openblas
   - bowtie2=2.3.5=py36he860b03_0
@@ -17,25 +16,26 @@ dependencies:
   - cffi=1.13.2=py36h8022711_0
   - chardet=3.0.4=py36_1003
   - configargparse=0.13.0=py_1
-  - cryptography=2.7=py36h72c5cf5_0
+  - cryptography=2.8=py36h72c5cf5_0
   - curl=7.65.3=hf8cf82a_0
   - cutadapt=2.5=py36h516909a_0
   - datrie=0.8=py36h516909a_0
-  - dnaio=0.4=py36h516909a_0
+  - dnaio=0.4.1=py36h516909a_0
   - docutils=0.15.2=py36_0
   - fontconfig=2.13.1=h86ecdb6_1001
+  - freebayes=1.3.1=py36h56106d0_0
   - freetype=2.10.0=he983fc9_1
   - giflib=5.1.7=h516909a_1
   - gitdb2=2.0.6=py_0
-  - gitpython=3.0.4=py_0
-  - hapcut2=1.1=hed695b0_0
+  - gitpython=3.0.5=py_0
+  - hapcut2=1.2=hed50d52_0
   - htslib=1.9=h244ad75_9
   - icu=64.2=he1b5a44_1
   - idna=2.8=py36_1000
   - importlib_metadata=0.23=py36_0
   - importlib_resources=1.0.2=py36_1000
   - jpeg=9c=h14c3975_1001
-  - jsonschema=3.1.1=py36_0
+  - jsonschema=3.2.0=py36_0
   - krb5=1.16.3=h05b26f9_1001
   - lcms2=2.9=h2e4bb80_0
   - libblas=3.8.0=14_openblas
@@ -49,11 +49,11 @@ dependencies:
   - libiconv=1.15=h516909a_1005
   - liblapack=3.8.0=14_openblas
   - liblapacke=3.8.0=14_openblas
-  - libopenblas=0.3.7=h6e990d7_2
+  - libopenblas=0.3.7=h6e990d7_3
   - libpng=1.6.37=hed695b0_0
   - libssh2=1.8.2=h22169c7_2
   - libstdcxx-ng=9.1.0=hdf63c60_0
-  - libtiff=4.1.0=hfc65ed5_0
+  - libtiff=4.1.0=hc3755c2_1
   - libuuid=2.32.1=h14c3975_1000
   - libxcb=1.13=h14c3975_1002
   - libxml2=2.9.10=hee79883_0
@@ -63,19 +63,20 @@ dependencies:
   - ncurses=6.1=hf484d3e_1002
   - nomkl=3.0=0
   - openjdk=11.0.1=h46a85a0_1017
-  - openssl=1.1.1c=h516909a_0
+  - openssl=1.1.1d=h516909a_0
+  - parallel=20190922=1
   - perl=5.26.2=h516909a_1006
   - picard=2.10.6=py36_0
   - pigz=2.3.4=0
   - pip=19.3.1=py36_0
-  - psutil=5.6.4=py36h516909a_0
+  - psutil=5.6.5=py36h516909a_0
   - pthread-stubs=0.4=h14c3975_1001
   - pycparser=2.19=py36_1
   - pyopenssl=19.0.0=py36_0
   - pyrsistent=0.15.5=py36h516909a_0
   - pysam=0.15.3=py36hbcae180_3
   - pysocks=1.7.1=py36_0
-  - python=3.6.7=h357f687_1005
+  - python=3.6.7=h357f687_1006
   - pyyaml=5.1.2=py36h516909a_0
   - ratelimiter=1.2.0=py36_1000
   - readline=8.0=hf8c457e_0
@@ -84,15 +85,15 @@ dependencies:
   - samblaster=0.1.24=hc9558a2_3
   - samtools=1.9=h10a08f8_12
   - setuptools=41.6.0=py36_1
-  - six=1.12.0=py36_1001
+  - six=1.13.0=py36_0
   - smmap2=2.0.5=py_0
-  - snakemake-minimal=5.7.4=py_0
+  - snakemake-minimal=5.8.1=py_0
   - sqlite=3.30.1=hcee41ef_0
   - starcode=1.3=h14c3975_1
   - tbb=2019.9=hc9558a2_0
   - tk=8.6.9=hed695b0_1003
-  - tqdm=4.36.1=py_0
-  - urllib3=1.25.6=py36_0
+  - tqdm=4.38.0=py_2
+  - urllib3=1.25.7=py36_0
   - wheel=0.33.6=py36_0
   - wrapt=1.11.2=py36h516909a_0
   - xopen=0.8.4=py36_0
@@ -106,7 +107,7 @@ dependencies:
   - xorg-libxfixes=5.0.3=h516909a_1004
   - xorg-libxi=1.7.10=h516909a_0
   - xorg-libxrender=0.9.10=h516909a_1002
-  - xorg-libxtst=1.2.3=h14c3975_1002
+  - xorg-libxtst=1.2.3=h516909a_1002
   - xorg-recordproto=1.14.2=h516909a_1002
   - xorg-renderproto=0.11.1=h14c3975_1002
   - xorg-xextproto=7.3.0=h14c3975_1002
@@ -115,5 +116,5 @@ dependencies:
   - yaml=0.1.7=h14c3975_1001
   - zipp=0.6.0=py_0
   - zlib=1.2.11=h516909a_1006
-  - zstd=1.4.3=h3b9ef0a_0
+  - zstd=1.4.4=h3b9ef0a_1
 
