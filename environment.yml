@@ -22,3 +22,4 @@ dependencies:
   - starcode
   - tqdm
   - importlib_resources
+  - freebayes
