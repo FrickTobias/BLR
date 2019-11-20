@@ -76,7 +76,7 @@ def test_duplicate_markers(tmpdir, duplicate_marker):
     assert n_input_fastq_reads <= count_bam_alignments(workdir / "mapped.sorted.tag.mkdup.bam")
 
 
-def test_final(tmpdir):
+def test_final_compressed_reads_exist(tmpdir):
     workdir = tmpdir / "analysis"
     init(workdir, TESTDATA_READS)
     copy_config(
