@@ -10,6 +10,7 @@ TESTDATA_READS = Path("testdata/reads.1.fastq.gz")
 TEST_CONFIG = Path("tests/test_config.yaml")
 REFERENCE_GENOME = Path("testdata/chr1mini.fasta").absolute()
 
+
 def count_bam_alignments(path):
     with pysam.AlignmentFile(path) as af:
         n = 0
