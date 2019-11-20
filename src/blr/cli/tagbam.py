@@ -5,7 +5,6 @@ Transfers barcode sequence information from the input file alignment name to SAM
 import pysam
 import logging
 from tqdm import tqdm
-from blr import utils
 
 logger = logging.getLogger(__name__)
 
@@ -14,12 +13,11 @@ def main(args):
 
     # Generate dict with bc => bc_cluster consensus sequence
     logger.info("Starting analysis")
-    out_mode = utils.get_output_mode(args.output, args.output_format)
     alignments_missing_bc = 0
 
     # Read SAM/BAM files and transfer barcode information from alignment name to SAM tag
     with pysam.AlignmentFile(args.input, "rb") as infile, \
-            pysam.AlignmentFile(args.output, out_mode, template=infile) as out:
+            pysam.AlignmentFile(args.output, "wb", template=infile) as out:
 
         for read in tqdm(infile.fetch(until_eof=True), desc="Reading input"):
             try:
@@ -53,10 +51,7 @@ def add_arguments(parser):
                              "from stdin use '-'.")
 
     parser.add_argument("-o", "--output", default="-",
-                        help="Write output SAM/BAM to file rather then stdout. Format is inferred from the "
-                             "filename unless -O/--output-format is specified.")
-    parser.add_argument("-O", "--output-format", choices=["SAM", "BAM"],
-                        help="Specify output format.")
+                        help="Write output BAM to file rather then stdout.")
     parser.add_argument("-b", "--barcode-tag", default="BX",
                         help="SAM tag for storing the error corrected barcode. Default: %(default)s")
     parser.add_argument("-s", "--sequence-tag", default="RX",

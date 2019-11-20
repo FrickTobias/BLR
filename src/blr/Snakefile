@@ -157,7 +157,6 @@ rule filterclusters:
     shell:
         "blr filterclusters"
         " {input.bam}"
-        " -O BAM"
         " -m {config[molecule_tag]}"
         " -n {config[num_mol_tag]}"
         " -b {config[cluster_tag]}"

@@ -52,24 +52,3 @@ def get_bamtag(pysam_read, tag):
         return pysam_read.get_tag(tag)
     except KeyError:
         return None
-
-
-def get_output_mode(filename, spec_format):
-    """
-    Get the pySAM mode specification string. Frist from the spec_format and second from the output filename. If
-    neither is specified the DEFAULT_MODE is returned which is SAM ('w').
-    :param filename: String that is used to infer format.
-    :param spec_format: Should be either SAM or BAM.
-    :return: String containing the pySAM mode information. String is 'w' for SAM and 'wb' for BAM.
-    """
-    format_to_mode = {
-        "SAM": "w",
-        "BAM": "wb"
-    }
-
-    DEFAULT_MODE = "w"
-
-    if filename != "-" and not spec_format:
-        spec_format = filename.split(".")[-1].upper()
-
-    return format_to_mode.pop(spec_format, DEFAULT_MODE)

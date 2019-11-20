@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 def main(args):
     summary = Summary()
-    out_mode = utils.get_output_mode(args.output, args.output_format)
 
     # Build molecules from BCs and reads
     with pysam.AlignmentFile(args.input, "rb") as infile:
@@ -28,7 +27,7 @@ def main(args):
 
     # Writes filtered out
     with pysam.AlignmentFile(args.input, "rb") as openin, \
-            pysam.AlignmentFile(args.output, out_mode, template=openin) as openout:
+            pysam.AlignmentFile(args.output, "wb", template=openin) as openout:
         logger.info("Writing filtered bam file")
         for read in tqdm(openin.fetch(until_eof=True)):
             name = read.query_name
@@ -276,10 +275,7 @@ def add_arguments(parser):
                              "-b/--barcode-tag.")
 
     parser.add_argument("-o", "--output", default="-",
-                        help="Write output SAM/BAM to file rather then stdout. Format is inferred from the "
-                             "filename unless -O/--output-format is specified.")
-    parser.add_argument("-O", "--output-format", choices=["SAM", "BAM"],
-                        help="Specify output format.")
+                        help="Write output BAM to file rather then stdout.")
     parser.add_argument("-t", "--threshold", type=int, default=4,
                         help="Threshold for how many reads are required for including given molecule in statistics "
                              "(except_reads_per_molecule). Default: %(default)s")

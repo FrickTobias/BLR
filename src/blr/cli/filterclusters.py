@@ -15,14 +15,12 @@ logger = logging.getLogger(__name__)
 
 def main(args):
     tags_to_remove = [args.barcode_tag, args.molecule_tag, args.number_tag]
-    out_mode = utils.get_output_mode(args.output, args.output_format)
     summary = Summary(tags_to_remove)
     logger.info("Starting")
 
-    logger.info(f"Writing filtered {args.output_format} file")
     # Writes filtered out
     with pysam.AlignmentFile(args.input, "rb") as openin, \
-            pysam.AlignmentFile(args.output, out_mode, template=openin) as openout:
+            pysam.AlignmentFile(args.output, "wb", template=openin) as openout:
         for read in tqdm(openin.fetch(until_eof=True)):
             summary.tot_reads += 1
             no_mols = utils.get_bamtag(pysam_read=read, tag=args.number_tag)
@@ -94,10 +92,7 @@ def add_arguments(parser):
                              "To read from stdin use '-'.")
 
     parser.add_argument("-o", "--output", default="-",
-                        help="Write output SAM/BAM to file rather then stdout. Format is inferred from the "
-                             "filename unless -O/--output-format is specified.")
-    parser.add_argument("-O", "--output-format", choices=["SAM", "BAM"],
-                        help="Specify output format.")
+                        help="Write output BAM to file rather then stdout.")
     parser.add_argument("-b", "--barcode-tag", default="BX",
                         help="SAM tag for storing the error corrected barcode. Default: %(default)s")
     parser.add_argument("-M", "--max_molecules", type=int, default=500,

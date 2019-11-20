@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 
 def main(args):
     logger.info("Starting Analysis")
-    out_mode = utils.get_output_mode(args.output, args.output_format)
     summary = Summary()
 
     current_cache_rp = dict()
@@ -104,7 +103,7 @@ def main(args):
     bc_seq_already_written = set()
     with open(args.merge_log, "w") as bc_merge_file, \
             pysam.AlignmentFile(args.input, "rb") as infile, \
-            pysam.AlignmentFile(args.output, out_mode, template=infile) as out:
+            pysam.AlignmentFile(args.output, "wb", template=infile) as out:
         for read in tqdm(infile.fetch(until_eof=True), desc="Writing output", total=summary.tot_reads):
 
             # If read barcode in merge dict, change tag and header to compensate.
@@ -299,10 +298,7 @@ def add_arguments(parser):
                              "{old barcode id},{new barcode id}")
 
     parser.add_argument("-o", "--output", default="-",
-                        help="Write output SAM/BAM to file rather then stdout. Format is inferred from the "
-                             "filename unless -O/--output-format is specified.")
-    parser.add_argument("-O", "--output-format", choices=["SAM", "BAM"],
-                        help="Specify output format.")
+                        help="Write output BAM to file rather then stdout.")
     parser.add_argument("-b", "--barcode-tag", default="BX",
                         help="SAM tag for storing the error corrected barcode. Default: %(default)s")
     parser.add_argument("-w", "--window", type=int, default=100000,
