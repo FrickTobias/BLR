@@ -7,7 +7,8 @@ from blr.cli.init import init
 from blr.cli.run import run
 
 TESTDATA_READS = Path("testdata/reads.1.fastq.gz")
-
+TEST_CONFIG = Path("tests/test_config.yaml")
+REFERENCE_GENOME = "testdata/chr1mini.fasta"
 
 def count_bam_alignments(path):
     with pysam.AlignmentFile(path) as af:
@@ -50,9 +51,9 @@ def test_mappers(tmpdir, read_mapper):
     workdir = tmpdir / "analysis"
     init(workdir, TESTDATA_READS)
     copy_config(
-        "tests/test_config.yaml",
+        TEST_CONFIG,
         workdir / "blr.yaml",
-        genome_reference=str(Path("testdata/chr1mini.fasta").absolute()),
+        genome_reference=REFERENCE_GENOME,
         read_mapper=read_mapper,
     )
     run(workdir=workdir, targets=["mapped.sorted.bam"])
@@ -65,9 +66,9 @@ def test_duplicate_markers(tmpdir, duplicate_marker):
     workdir = tmpdir / "analysis"
     init(workdir, TESTDATA_READS)
     copy_config(
-        "tests/test_config.yaml",
+        TEST_CONFIG,
         workdir / "blr.yaml",
-        genome_reference=str(Path("testdata/chr1mini.fasta").absolute()),
+        genome_reference=REFERENCE_GENOME,
         read_mapper="bwa",
         duplicate_marker=duplicate_marker
     )
@@ -80,9 +81,9 @@ def test_final_compressed_reads_exist(tmpdir):
     workdir = tmpdir / "analysis"
     init(workdir, TESTDATA_READS)
     copy_config(
-        "tests/test_config.yaml",
+        TEST_CONFIG,
         workdir / "blr.yaml",
-        genome_reference=str(Path("testdata/chr1mini.fasta").absolute()),
+        genome_reference=REFERENCE_GENOME,
         read_mapper="bwa"
     )
     targets = ("reads.1.final.fastq.gz", "reads.2.final.fastq.gz")
