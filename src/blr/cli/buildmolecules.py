@@ -1,5 +1,5 @@
 """
-Tags .bam file with molecule information based on barcode sequence and genomic proximity.
+Tags SAM/BAM file with molecule information based on barcode sequence and genomic proximity.
 
 A molecule is defined by having 1) minimum --threshold reads and including all reads with the same barcode which are 2)
 a maximum distance of --window between any given reads.
@@ -19,14 +19,14 @@ def main(args):
     summary = Summary()
 
     # Build molecules from BCs and reads
-    with pysam.AlignmentFile(args.bam, "rb") as infile:
+    with pysam.AlignmentFile(args.input, "rb") as infile:
         bc_to_mol_dict, header_to_mol_dict = build_molecules(pysam_openfile=infile,
                                                              barcode_tag=args.barcode_tag,
                                                              window=args.window, min_reads=args.threshold,
                                                              summary=summary)
 
     # Writes filtered out
-    with pysam.AlignmentFile(args.bam, "rb") as openin, \
+    with pysam.AlignmentFile(args.input, "rb") as openin, \
             pysam.AlignmentFile(args.output, "wb", template=openin) as openout:
         logger.info("Writing filtered bam file")
         for read in tqdm(openin.fetch(until_eof=True)):
@@ -270,12 +270,12 @@ class Summary:
 
 
 def add_arguments(parser):
-    parser.add_argument("bam",
-                        help="Sorted BAM file tagged with barcode in the same tag as specified in -b/--barcode-tag.")
-    parser.add_argument("output",
-                        help="Output BAM file with molecule tags found under the tag specified at -m/--molecule-tag "
-                             "and molecules number for each barcode under the specified -n/--number-tag.")
+    parser.add_argument("input",
+                        help="Sorted SAM/BAM file tagged with barcode in the same tag as specified in "
+                             "-b/--barcode-tag.")
 
+    parser.add_argument("-o", "--output", default="-",
+                        help="Write output BAM to file rather then stdout.")
     parser.add_argument("-t", "--threshold", type=int, default=4,
                         help="Threshold for how many reads are required for including given molecule in statistics "
                              "(except_reads_per_molecule). Default: %(default)s")
