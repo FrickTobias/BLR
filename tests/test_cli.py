@@ -69,7 +69,6 @@ def test_duplicate_markers(tmpdir, duplicate_marker):
         TEST_CONFIG,
         workdir / "blr.yaml",
         genome_reference=REFERENCE_GENOME,
-        read_mapper="bwa",
         duplicate_marker=duplicate_marker
     )
     run(workdir=workdir, targets=["mapped.sorted.tag.mkdup.bam"])
@@ -84,7 +83,6 @@ def test_final_compressed_reads_exist(tmpdir):
         TEST_CONFIG,
         workdir / "blr.yaml",
         genome_reference=REFERENCE_GENOME,
-        read_mapper="bwa"
     )
     targets = ("reads.1.final.fastq.gz", "reads.2.final.fastq.gz")
     run(workdir=workdir, targets=targets)
