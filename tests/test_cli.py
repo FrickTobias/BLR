@@ -34,8 +34,7 @@ def copy_config(source, target, genome_reference=None, read_mapper=None, duplica
         with open(target, "w") as outfile:
             for line in infile:
                 if genome_reference is not None and line.startswith("genome_reference:"):
-                    path = Path(genome_reference).absolute()
-                    line = f"genome_reference: {path}\n"
+                    line = f"genome_reference: {genome_reference}\n"
                 if read_mapper is not None and line.startswith("read_mapper:"):
                     line = f"read_mapper: {read_mapper}\n"
                 if duplicate_marker is not None and line.startswith("duplicate_marker:"):
