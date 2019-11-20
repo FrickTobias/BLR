@@ -170,8 +170,8 @@ rule filterclusters:
 rule bam_to_fastq:
     # Convert final BAM file to FASTQ files for read 1 and 2
     output:
-        r1_fastq = "reads.1.final.fastq",
-        r2_fastq = "reads.2.final.fastq"
+        r1_fastq = pipe("reads.1.final.fastq"),
+        r2_fastq = pipe("reads.2.final.fastq")
     input:
         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
     log: "picard_samtofastq.log"
