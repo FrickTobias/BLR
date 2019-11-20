@@ -74,3 +74,18 @@ def test_duplicate_markers(tmpdir, duplicate_marker):
     run(workdir=workdir, targets=["mapped.sorted.tag.mkdup.bam"])
     n_input_fastq_reads = 2 * count_fastq_reads(Path(workdir / "trimmed_barcoded.1.fastq.gz"))
     assert n_input_fastq_reads <= count_bam_alignments(workdir / "mapped.sorted.tag.mkdup.bam")
+
+
+def test_final(tmpdir):
+    workdir = tmpdir / "analysis"
+    init(workdir, TESTDATA_READS)
+    copy_config(
+        "tests/test_config.yaml",
+        workdir / "blr.yaml",
+        genome_reference=str(Path("testdata/chr1mini.fasta").absolute()),
+        read_mapper="bwa"
+    )
+    targets = ("reads.1.final.fastq.gz", "reads.2.final.fastq.gz")
+    run(workdir=workdir, targets=targets)
+    for filename in targets:
+        assert Path(workdir / filename).exists()
