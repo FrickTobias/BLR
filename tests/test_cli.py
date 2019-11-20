@@ -8,7 +8,7 @@ from blr.cli.run import run
 
 TESTDATA_READS = Path("testdata/reads.1.fastq.gz")
 TEST_CONFIG = Path("tests/test_config.yaml")
-REFERENCE_GENOME = "testdata/chr1mini.fasta"
+REFERENCE_GENOME = Path("testdata/chr1mini.fasta").absolute()
 
 def count_bam_alignments(path):
     with pysam.AlignmentFile(path) as af:
@@ -27,13 +27,13 @@ def count_fastq_reads(path):
 
 
 def copy_config(source, target, genome_reference=None, read_mapper=None, duplicate_marker=None):
-    """Copy config, possibly changing genome_reference or read_mapper"""
+    """Copy config, possibly changing any non-None arguments"""
 
     with open(source) as infile:
         with open(target, "w") as outfile:
             for line in infile:
                 if genome_reference is not None and line.startswith("genome_reference:"):
-                    path = Path("testdata/chr1mini.fasta").absolute()
+                    path = Path(genome_reference).absolute()
                     line = f"genome_reference: {path}\n"
                 if read_mapper is not None and line.startswith("read_mapper:"):
                     line = f"read_mapper: {read_mapper}\n"
