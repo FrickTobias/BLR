@@ -27,7 +27,7 @@ def count_fastq_reads(path):
     return n
 
 
-def copy_config(source, target, genome_reference=None, read_mapper=None, duplicate_marker=None):
+def copy_config(source, target, genome_reference=None, read_mapper=None, duplicate_marker=None, reference_variants=None):
     """Copy config, possibly changing any non-None arguments"""
 
     with open(source) as infile:
@@ -39,6 +39,9 @@ def copy_config(source, target, genome_reference=None, read_mapper=None, duplica
                     line = f"read_mapper: {read_mapper}\n"
                 if duplicate_marker is not None and line.startswith("duplicate_marker:"):
                     line = f"duplicate_marker: {duplicate_marker}\n"
+                if reference_variants is not None and line.startswith("reference_variants"):
+                    path = Path(reference_variants).absolute()
+                    line = f"reference_variants: {path}\n"
                 outfile.write(line)
 
 
@@ -88,3 +91,17 @@ def test_final_compressed_reads_exist(tmpdir):
     run(workdir=workdir, targets=targets)
     for filename in targets:
         assert Path(workdir / filename).exists()
+
+@pytest.mark.parametrize("reference_variants", ["testdata/HG002_GRCh38_GIAB_highconf.chr1mini.vcf", None])
+def test_reference_variants(tmpdir, reference_variants):
+    workdir = tmpdir / "analysis"
+    init(workdir, TESTDATA_READS)
+    copy_config(
+        TEST_CONFIG,
+        workdir / "blr.yaml",
+        genome_reference=REFERENCE_GENOME,
+        reference_variants=reference_variants
+    )
+    target = "reference.vcf"
+    run(workdir=workdir, targets=["reference.vcf"])
+    assert Path(workdir / target).exists()
