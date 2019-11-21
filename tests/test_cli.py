@@ -7,6 +7,8 @@ from blr.cli.init import init
 from blr.cli.run import run
 
 TESTDATA_READS = Path("testdata/reads.1.fastq.gz")
+TEST_CONFIG = Path("tests/test_config.yaml")
+REFERENCE_GENOME = Path("testdata/chr1mini.fasta").absolute()
 
 
 def count_bam_alignments(path):
@@ -26,14 +28,13 @@ def count_fastq_reads(path):
 
 
 def copy_config(source, target, genome_reference=None, read_mapper=None, duplicate_marker=None):
-    """Copy config, possibly changing genome_reference or read_mapper"""
+    """Copy config, possibly changing any non-None arguments"""
 
     with open(source) as infile:
         with open(target, "w") as outfile:
             for line in infile:
                 if genome_reference is not None and line.startswith("genome_reference:"):
-                    path = Path("testdata/chr1mini.fasta").absolute()
-                    line = f"genome_reference: {path}\n"
+                    line = f"genome_reference: {genome_reference}\n"
                 if read_mapper is not None and line.startswith("read_mapper:"):
                     line = f"read_mapper: {read_mapper}\n"
                 if duplicate_marker is not None and line.startswith("duplicate_marker:"):
@@ -50,9 +51,9 @@ def test_mappers(tmpdir, read_mapper):
     workdir = tmpdir / "analysis"
     init(workdir, TESTDATA_READS)
     copy_config(
-        "tests/test_config.yaml",
+        TEST_CONFIG,
         workdir / "blr.yaml",
-        genome_reference=str(Path("testdata/chr1mini.fasta").absolute()),
+        genome_reference=REFERENCE_GENOME,
         read_mapper=read_mapper,
     )
     run(workdir=workdir, targets=["mapped.sorted.bam"])
@@ -65,10 +66,9 @@ def test_duplicate_markers(tmpdir, duplicate_marker):
     workdir = tmpdir / "analysis"
     init(workdir, TESTDATA_READS)
     copy_config(
-        "tests/test_config.yaml",
+        TEST_CONFIG,
         workdir / "blr.yaml",
-        genome_reference=str(Path("testdata/chr1mini.fasta").absolute()),
-        read_mapper="bwa",
+        genome_reference=REFERENCE_GENOME,
         duplicate_marker=duplicate_marker
     )
     run(workdir=workdir, targets=["mapped.sorted.tag.mkdup.bam"])
@@ -80,10 +80,9 @@ def test_final_compressed_reads_exist(tmpdir):
     workdir = tmpdir / "analysis"
     init(workdir, TESTDATA_READS)
     copy_config(
-        "tests/test_config.yaml",
+        TEST_CONFIG,
         workdir / "blr.yaml",
-        genome_reference=str(Path("testdata/chr1mini.fasta").absolute()),
-        read_mapper="bwa"
+        genome_reference=REFERENCE_GENOME,
     )
     targets = ("reads.1.final.fastq.gz", "reads.2.final.fastq.gz")
     run(workdir=workdir, targets=targets)
