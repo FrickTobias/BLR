@@ -4,7 +4,6 @@ set -xeuo pipefail
 samtools --version
 bowtie2 --version
 minimap2 --version
-picard SamToFastq --version || true
 cutadapt --version
 starcode --version
 snakemake --version
