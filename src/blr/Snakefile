@@ -188,5 +188,5 @@ else:
         log: "call_variants_freebayes.log"
         shell:
              "freebayes"
-             " -f {config[reference]}.fasta"
+             " -f {config[genome_reference]}"
              " {input.bam} 1> {output.vcf} 2> {log}"
