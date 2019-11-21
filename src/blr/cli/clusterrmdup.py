@@ -12,15 +12,16 @@ sharing more than one barcode (share = union(bc_set_pos1, bc_set_pos2)).
 import pysam
 import logging
 from tqdm import tqdm
+from collections import Counter
 
 from blr import utils
 
 logger = logging.getLogger(__name__)
+summary = Counter()
 
 
 def main(args):
     logger.info("Starting Analysis")
-    summary = Summary()
 
     current_cache_rp = dict()
     cache_reads = dict()
@@ -30,7 +31,7 @@ def main(args):
     cache_dup_pos = dict()
     with pysam.AlignmentFile(args.input, "rb") as openin:
         for read in tqdm(openin.fetch(until_eof=True), desc="Processing reads"):
-            summary.tot_reads += 1
+            summary["Total reads"] += 1
 
             # Wait for mate of read until process
             if read.query_name not in cache_reads:
@@ -41,11 +42,10 @@ def main(args):
                 del cache_reads[read.query_name]
 
             # Requirements: read mapped, mate mapped and read has barcode tag
-            rp_meet_requirements, bc_new, summary = meet_requirements(read=read, mate=mate, summary=summary,
-                                                                      barcode_tag=args.barcode_tag)
+            rp_meet_requirements, bc_new = meet_requirements(read=read, mate=mate, barcode_tag=args.barcode_tag)
             if rp_meet_requirements:
                 chrom_new = read.reference_name
-                summary.reads_analyzed += 2
+                summary["Reads analyced"] += 2
 
                 pos_new = read.reference_start
                 rp_pos_tuple = (mate.reference_start, mate.reference_end, read.reference_start, read.reference_end)
@@ -65,7 +65,7 @@ def main(args):
                     # If duplicates are found, try and find bc duplicates
                     for cache_read_pair_tracker in current_cache_rp.values():
                         if cache_read_pair_tracker.duplicate_read_pair():
-                            summary.reads_at_analyzed_dup_position += len(cache_read_pair_tracker.current_reads) * 2
+                            summary["Reads at duplicate position"] += len(cache_read_pair_tracker.current_reads) * 2
                             merge_dict, cache_dup_pos = seed_duplicates(
                                 merge_dict=merge_dict,
                                 cache_dup_pos=cache_dup_pos,
@@ -84,7 +84,7 @@ def main(args):
                 pos_prev = pos_new
                 chrom_prev = chrom_new
 
-        summary.unmapped_reads += (len(cache_reads))
+        summary["Unmapped reads"] += len(cache_reads)
 
         # Last chunk
         for cache_read_pair_tracker in current_cache_rp.values():
@@ -97,19 +97,19 @@ def main(args):
 
     # Remove several step redundancy (5 -> 3, 3 -> 1) => (5 -> 1, 3 -> 1)
     reduce_several_step_redundancy(merge_dict)
-    summary.barcodes_removed = len(merge_dict)
+    summary["Barcodes removed"] = len(merge_dict)
 
     # Write outputs
     bc_seq_already_written = set()
     with open(args.merge_log, "w") as bc_merge_file, \
             pysam.AlignmentFile(args.input, "rb") as infile, \
             pysam.AlignmentFile(args.output, "wb", template=infile) as out:
-        for read in tqdm(infile.fetch(until_eof=True), desc="Writing output", total=summary.tot_reads):
+        for read in tqdm(infile.fetch(until_eof=True), desc="Writing output", total=summary["Total reads"]):
 
             # If read barcode in merge dict, change tag and header to compensate.
             previous_barcode_id = utils.get_bamtag(pysam_read=read, tag=args.barcode_tag)
             if previous_barcode_id in merge_dict:
-                summary.reads_with_new_tag += 1
+                summary["Reads with new barcode"] += 1
                 new_barcode_id = str(merge_dict[previous_barcode_id])
                 read.set_tag(args.barcode_tag, new_barcode_id, value_type="Z")
 
@@ -120,11 +120,11 @@ def main(args):
 
             out.write(read)
 
-    summary.print_stats(barcode_tag=args.barcode_tag)
     logger.info("Finished")
+    utils.print_stats(summary, name=__name__)
 
 
-def meet_requirements(read, mate, summary, barcode_tag):
+def meet_requirements(read, mate, barcode_tag):
     """
     Checks so read pair meets requirements before being used in analysis.
     :param read: pysam read
@@ -137,18 +137,18 @@ def meet_requirements(read, mate, summary, barcode_tag):
 
     if read.is_unmapped or mate.is_unmapped:
         if read.is_unmapped != mate.is_unmapped:
-            summary.unmapped_mates += 1
-            summary.unmapped_reads += 1
+            summary["Unmapped mates"] += 1
+            summary["Unmapped reads"] += 1
         else:
-            summary.unmapped_reads += 2
+            summary["Unmapped reads"] += 2
         rp_meet_requirements = False
 
     bc_new = utils.get_bamtag(pysam_read=read, tag=barcode_tag)
     if not bc_new:
-        summary.non_tagged_reads += 2
+        summary["Non tagged reads"] += 2
         rp_meet_requirements = False
 
-    return rp_meet_requirements, bc_new, summary
+    return rp_meet_requirements, bc_new
 
 
 class CacheReadPairTracker:
@@ -259,35 +259,6 @@ def reduce_several_step_redundancy(merge_dict):
             merge_dict[barcode_to_remove] = real_min
 
     return merge_dict
-
-
-class Summary:
-
-    def __init__(self):
-        self.tot_reads = int()
-        self.reads_with_new_tag = int()
-        self.unmapped_reads = int()
-        self.unpaired_reads = int()
-        self.non_tagged_reads = int()
-        self.reads_analyzed = int()
-        self.unmapped_mates = int()
-        self.reads_at_analyzed_dup_position = int()
-        self.barcodes_removed = int()
-
-    def print_stats(self, barcode_tag):
-        """
-        Prints stats to terminal
-        """
-
-        # Read stats
-        logger.info(f"Total Reads in file: {self.tot_reads}")
-        logger.info(f"  Unmapped reads: {self.unmapped_reads}")
-        logger.info(f"  Reads with unmapped mate: {self.unmapped_mates}")
-        logger.info(f"  Reads without {barcode_tag} tag: {self.non_tagged_reads}")
-        logger.info(f"  Reads analyzed: {self.reads_analyzed}")
-        logger.info(f"Reads at dup pos: {self.reads_at_analyzed_dup_position}")
-        logger.info(f"Reads with new tag: {self.reads_with_new_tag}")
-        logger.info(f"{barcode_tag} tags removed: {self.barcodes_removed}")
 
 
 def add_arguments(parser):
