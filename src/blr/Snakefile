@@ -166,13 +166,12 @@ rule bam_to_fastq:
         r2_fastq = "reads.2.final.fastq.gz"
     input:
         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
-    log: "picard_samtofastq.log"
+    log: "bamtofq.log"
     shell:
-        "picard -Xms{config[heap_space]}g SamToFastq"
-        " I={input.bam}"
-        " FASTQ={output.r1_fastq}"
-        " SECOND_END_FASTQ={output.r2_fastq} 2>> {log}"
-
+        "blr bamtofq"
+        " {input.bam}"
+        " {output.r1_fastq}"
+        " {output.r2_fastq} 2>> {log}"
 
 if config["reference_variants"]:
     rule link:
