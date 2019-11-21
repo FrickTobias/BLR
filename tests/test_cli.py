@@ -39,8 +39,11 @@ def copy_config(source, target, genome_reference=None, read_mapper=None, duplica
                     line = f"read_mapper: {read_mapper}\n"
                 if duplicate_marker is not None and line.startswith("duplicate_marker:"):
                     line = f"duplicate_marker: {duplicate_marker}\n"
-                if reference_variants is not None and line.startswith("reference_variants"):
-                    path = Path(reference_variants).absolute()
+                if line.startswith("reference_variants"):
+                    if reference_variants is not None:
+                        path = Path(reference_variants).absolute()
+                    else:
+                        path = ""
                     line = f"reference_variants: {path}\n"
                 outfile.write(line)
 
