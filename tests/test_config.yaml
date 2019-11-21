@@ -1,4 +1,3 @@
-heap_space: 3
 cluster_tag: BX    # Used to store barcode cluster id in bam file. 'BX' is 10x genomic default
 molecule_tag: MI  # Used to store molecule ID, same as 10x default.
 num_mol_tag: MN # Used to store number of molecules per barcode

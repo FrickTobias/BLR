@@ -1,10 +1,6 @@
 $schema: "http://json-schema.org/draft-06/schema#"
 description: Configuration parameters for running BLR pipeline
 properties:
-  heap_space:
-    type: integer
-    description: Heap space to use for picard commands.
-    default: 90
   cluster_tag:
     type: string
     description: SAM tag to use for store barcode cluster id in bam file. 'BX' is 10x genomic default
