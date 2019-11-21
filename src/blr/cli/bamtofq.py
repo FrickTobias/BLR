@@ -15,7 +15,7 @@ def main(args):
     read_pair_cache = dict()
     summary = Summary()
     with pysam.AlignmentFile(args.bam, "rb") as reader, \
-            dnaio.open(args.r1_out, file2=args.r2_out, interleaved=out_interleaved, mode="w",
+            dnaio.open(args.r1_out, file2=args.r2_out, mode="w",
                        fileformat="fastq") as writer:
         for query in tqdm(reader):
             summary.tot_reads_in += 1
@@ -25,15 +25,14 @@ def main(args):
                 read_pair_cache[query.query_name] = query
                 continue
             else:
-                query_1 = read_pair_cache.pop(query.query_name)
-                query_2 = query
+                mate = read_pair_cache.pop(query.query_name)
 
             # Fetch and add bam tag to header (if not found header is not modified)
             if args.tag:
-                add_tag_to_header(query_1, query_2, args.tag)
+                add_tag_to_header(mate, query, args.tag)
 
             # Find out which query is read 1 and read 2 (so they will be output to correct file)
-            r1, r2 = turn_readpair(query_1, query_2)
+            r1, r2 = find_r1_r2(mate, query)
 
             r1_as_dnaio_object = dnaio._core.Sequence(name=r1.query_name, sequence=r1.seq, qualities=r1.qual)
             r2_as_dnaio_object = dnaio._core.Sequence(name=r2.query_name, sequence=r2.seq, qualities=r2.qual)
@@ -58,7 +57,7 @@ def add_tag_to_header(query_1, query_2, tag):
         query_2.query_name = query_1.query_name
 
 
-def turn_readpair(query_1, query_2):
+def find_r1_r2(query_1, query_2):
     """
     Finds and set which BAM alignment is read 1 and read 2. Returns None if not read 1 and read 2 found.
     :param query_1: paired pysam alignment object
