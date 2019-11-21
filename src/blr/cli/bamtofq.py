@@ -1,8 +1,7 @@
-"Writes fq files from bam files"
+"Writes fq files from BAM files"
 
 import logging
 import pysam
-
 from tqdm import tqdm
 import dnaio
 
@@ -12,10 +11,9 @@ logger = logging.getLogger(__name__)
 
 
 def main(args):
-    logger.info(f"Starting analysis")
-    query_cache = dict()
+    logger.info("Starting analysis")
+    read_pair_cache = dict()
     summary = Summary()
-    out_interleaved = not args.r2_out
     with pysam.AlignmentFile(args.bam, "rb") as reader, \
             dnaio.open(args.r1_out, file2=args.r2_out, interleaved=out_interleaved, mode="w",
                        fileformat="fastq") as writer:
@@ -23,13 +21,12 @@ def main(args):
             summary.tot_reads_in += 1
 
             # Read pair cache system
-            if query.query_name not in query_cache:
-                query_cache[query.query_name] = query
+            if query.query_name not in read_pair_cache:
+                read_pair_cache[query.query_name] = query
                 continue
             else:
-                query_1 = query_cache[query.query_name]
+                query_1 = read_pair_cache.pop(query.query_name)
                 query_2 = query
-                del query_cache[query.query_name]
 
             # Fetch and add bam tag to header (if not found header is not modified)
             if args.tag:
@@ -45,7 +42,7 @@ def main(args):
             summary.tot_reads_out += 2
 
     summary.print_stats()
-    logger.info(f"Finished")
+    logger.info("Finished")
 
 
 def add_tag_to_header(query_1, query_2, tag):
@@ -69,13 +66,9 @@ def turn_readpair(query_1, query_2):
     :return: read1 and read2 as pysam alignment bjects
     """
     if query_1.is_read1 and query_2.is_read2:
-        read1, read2 = query_1, query_2
-    elif query_1.is_read2 and query_2.is_read1:
-        read1, read2 = query_2, query_1
+        return query_1, query_2
     else:
-        read1, read2 = None, None
-
-    return read1, read2
+        return query_2, query_1
 
 
 class Summary:
