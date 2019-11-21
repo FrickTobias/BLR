@@ -87,7 +87,5 @@ def test_final_compressed_reads_exist(tmpdir):
     )
     targets = ("reads.1.final.fastq.gz", "reads.2.final.fastq.gz")
     run(workdir=workdir, targets=targets)
-    import time
-    time.sleep(2)
     for filename in targets:
         assert Path(workdir / filename).exists()
