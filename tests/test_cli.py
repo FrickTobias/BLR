@@ -109,4 +109,7 @@ def test_reference_variants(tmpdir, reference_variants):
     )
     target = "reference.vcf"
     run(workdir=workdir, targets=["reference.vcf"])
-    assert Path(workdir / target).exists()
+    if reference_variants:
+        assert Path(workdir / target).is_symlink()
+    else:
+        assert Path(workdir / target).is_file()
