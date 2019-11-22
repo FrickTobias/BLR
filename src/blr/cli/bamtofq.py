@@ -1,4 +1,4 @@
-"Writes paired FASTQ files from BAM files"
+"Writes paired fq files from BAM files"
 
 import logging
 import pysam
@@ -14,8 +14,9 @@ def main(args):
     logger.info("Starting analysis")
     read_pair_cache = dict()
     summary = Summary()
-    with pysam.AlignmentFile(args.bam, "rb") as reader, \
-            dnaio.open(args.r1_out, file2=args.r2_out, mode="w",
+    out_interleaved = not args.output2
+    with pysam.AlignmentFile(args.input, "rb") as reader, \
+            dnaio.open(args.output1, file2=args.output2, interleaved=out_interleaved, mode="w",
                        fileformat="fastq") as writer:
         for query in tqdm(reader):
             summary.tot_reads_in += 1
@@ -28,15 +29,15 @@ def main(args):
                 mate = read_pair_cache.pop(query.query_name)
 
             # Fetch and add bam tag to header (if not found header is not modified)
-            if args.tag:
-                add_tag_to_header(mate, query, args.tag)
+            if args.tags:
+                add_tag_to_header(mate, query, args.tags)
 
             # Find out which query is read 1 and read 2 (so they will be output to correct file)
             r1, r2 = find_r1_r2(mate, query)
 
-            r1_as_dnaio_object = dnaio._core.Sequence(name=r1.query_name, sequence=r1.seq, qualities=r1.qual)
-            r2_as_dnaio_object = dnaio._core.Sequence(name=r2.query_name, sequence=r2.seq, qualities=r2.qual)
-
+            # Write output
+            r1_as_dnaio_object = dnaio._core.Sequence(name=r1.query_name + " 1", sequence=r1.seq, qualities=r1.qual)
+            r2_as_dnaio_object = dnaio._core.Sequence(name=r2.query_name + " 2", sequence=r2.seq, qualities=r2.qual)
             writer.write(r1_as_dnaio_object, r2_as_dnaio_object)
             summary.tot_reads_out += 2
 
@@ -44,17 +45,18 @@ def main(args):
     logger.info("Finished")
 
 
-def add_tag_to_header(query_1, query_2, tag):
+def add_tag_to_header(query_1, query_2, tags):
     """
     Fetches a BAM tag and if present, appends to header of read.
     :param query_1: paired pysam alignment object
     :param query_2: paired pysam alignment object
     :return: None, objects are modified and not explicitly returned.
     """
-    tag_string = utils.get_bamtag(query_1, tag)
-    if tag_string:
-        query_1.query_name = f"{query_1.query_name.rstrip()} {tag}:{tag_string}"
-        query_2.query_name = query_1.query_name
+    for tag in tags:
+        tag_string = utils.get_bamtag(query_1, tag)
+        if tag_string:
+            query_1.query_name += f" {tag}:{tag_string}"
+    query_2.query_name = query_1.query_name
 
 
 def find_r1_r2(query_1, query_2):
@@ -82,7 +84,9 @@ class Summary:
 
 
 def add_arguments(parser):
-    parser.add_argument("bam", help="BAM file input")
-    parser.add_argument("r1_out", help="Name for r1 .fq output")
-    parser.add_argument("r2_out", help="Name for r2 .fq output")
-    parser.add_argument("-t", "--tag", type=str, metavar="<STRING>", help="BAM tag to add to header in fq out.")
+    parser.add_argument("input", help="SAM/BAM file to be written as FASTQ.")
+    group_output = parser.add_argument_group("Output")
+    group_output.add_argument("-o","--output1", default="-", help="Output FASTQ file name. Default: stdout")
+    group_output.add_argument("-p","--output2", help="Output FASTQ file name for read2. If not used, writes as interleaved.")
+    group_format = parser.add_argument_group("Output format options")
+    group_format.add_argument("-t", "--tags", type=str, nargs="*", help="BAM tags to add to header in fq out.")
