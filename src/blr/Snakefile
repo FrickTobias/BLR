@@ -170,8 +170,8 @@ rule bam_to_fastq:
     shell:
         "blr bamtofq"
         " {input.bam}"
-        " {output.r1_fastq}"
-        " {output.r2_fastq} 2>> {log}"
+        " -o {output.r1_fastq}"
+        " -p {output.r2_fastq} 2>> {log}"
 
 if config["reference_variants"]:
     rule link:
