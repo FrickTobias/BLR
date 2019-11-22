@@ -48,9 +48,9 @@ def main(args):
     summary.print_stats()
 
     # Write molecule/barcode file stats
-    if args.stats_file:
+    if args.stats_files:
         logger.info("Writing statistics files")
-        summary.write_molecule_stats(output_prefix=args.stats_file, molecule_dict=bc_to_mol_dict)
+        write_molecule_stats(bc_to_mol_dict)
 
 
 def build_molecules(pysam_openfile, barcode_tag, window, min_reads, summary):
@@ -246,27 +246,33 @@ class Summary:
         logger.info(f"  Duplicate reads: {self.duplicates}")
         logger.info(f"Reads tagged: {self.reads_tagged}")
 
-    def write_molecule_stats(self, output_prefix, molecule_dict):
-        """
-        Writes stats file for molecules and barcode with information like how many reads, barcodes, molecules etc they
-        have
-        """
 
-        # Opening all files
-        molecules_per_bc = open((output_prefix + ".molecules_per_bc"), "w")
-        molecule_stats = open((output_prefix + ".molecule_stats"), "w")
+def write_molecule_stats(molecule_dict):
+    """
+    Writes stats file for molecules and barcode with information like how many reads, barcodes, molecules etc they
+    have
+    """
 
-        # Writing molecule-dependant stats
-        for barcode in tqdm(molecule_dict):
-            number_of_molecules = len(molecule_dict[barcode])
-            print(number_of_molecules, file=molecules_per_bc)
-            for molecule in (molecule_dict[barcode]):
-                print(f"{molecule.number_of_reads}\t{molecule.length()}\t{barcode}\t{number_of_molecules}",
-                      file=molecule_stats)
+    # Opening all files
+    molecules_per_bc = open("molecules_per_bc.tsv", "w")
+    molecule_stats = open("molecule_stats.tsv", "w")
 
-        # Close files
-        for output_file in (molecules_per_bc, molecule_stats):
-            output_file.close()
+    # Write headers
+    print(f"Barcode\tNrMolecules", file=molecules_per_bc)
+    print(f"Reads\tLength\tBarcode\tNrMolecules",
+          file=molecule_stats)
+
+    # Writing molecule-dependant stats
+    for barcode in tqdm(molecule_dict):
+        number_of_molecules = len(molecule_dict[barcode])
+        print(f"{barcode}\t{number_of_molecules}", file=molecules_per_bc)
+        for molecule in (molecule_dict[barcode]):
+            print(f"{molecule.number_of_reads}\t{molecule.length()}\t{barcode}\t{number_of_molecules}",
+                  file=molecule_stats)
+
+    # Close files
+    for output_file in (molecules_per_bc, molecule_stats):
+        output_file.close()
 
 
 def add_arguments(parser):
@@ -284,7 +290,7 @@ def add_arguments(parser):
                              "%(default)s")
     parser.add_argument("-b", "--barcode-tag", default="BX",
                         help="SAM tag for storing the error corrected barcode. Default: %(default)s")
-    parser.add_argument("-s", "--stats-file",
+    parser.add_argument("-s", "--stats-files", action="store_true",
                         help="Write barcode/molecule statistics files.")
     parser.add_argument("-m", "--molecule-tag", default="MI",
                         help="SAM tag for storing molecule index specifying a identified molecule for each barcode. "

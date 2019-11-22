@@ -125,7 +125,8 @@ rule clusterrmdup:
 rule buildmolecules:
     # Groups reads into molecules depending on their genomic position and barcode
     output:
-        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.bam"
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.bam",
+        stats = expand("{stat}.tsv", stat=['molecules_per_bc', 'molecule_stats'])
     input:
         bam = "mapped.sorted.tag.mkdup.bcmerge.bam"
     log: "buildmolecules.log"
@@ -133,6 +134,7 @@ rule buildmolecules:
         "blr buildmolecules"
         " {input.bam}"
         " -o {output.bam}"
+        " --stats-files"
         " -m {config[molecule_tag]}"
         " -n {config[num_mol_tag]}"
         " -b {config[cluster_tag]}"
