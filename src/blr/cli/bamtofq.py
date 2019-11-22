@@ -1,4 +1,4 @@
-"Writes paired fq files from BAM files"
+"Writes paired FASTQ files from BAM files"
 
 import logging
 import pysam
