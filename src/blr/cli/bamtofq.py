@@ -86,7 +86,8 @@ class Summary:
 def add_arguments(parser):
     parser.add_argument("input", help="SAM/BAM file to be written as FASTQ.")
     group_output = parser.add_argument_group("Output")
-    group_output.add_argument("-o","--output1", default="-", help="Output FASTQ file name. Default: stdout")
-    group_output.add_argument("-p","--output2", help="Output FASTQ file name for read2. If not used, writes as interleaved.")
+    group_output.add_argument("-o", "--output1", default="-", help="Output FASTQ file name. Default: stdout")
+    group_output.add_argument("-p", "--output2",
+                              help="Output FASTQ file name for read2. If not used, writes as interleaved.")
     group_format = parser.add_argument_group("Output format options")
     group_format.add_argument("-t", "--tags", type=str, nargs="*", help="BAM tags to add to header in fq out.")
