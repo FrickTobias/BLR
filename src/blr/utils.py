@@ -1,5 +1,6 @@
 import re
 from pathlib import Path
+import sys
 
 
 def is_1_2(s, t):
@@ -52,3 +53,27 @@ def get_bamtag(pysam_read, tag):
         return pysam_read.get_tag(tag)
     except KeyError:
         return None
+
+
+def print_stats(summary, name=None, value_width=15, print_to=sys.stderr):
+    """
+    Prints stats in nice table with two column for the key and value pairs in summary
+    :param summary: collections.Coutner object
+    :param name: name of script for header e.g. '__name__'
+    :param value_width: width for values column in table
+    :param print_to: Where to direct output
+    """
+    # Get widths for formatting
+    max_name_width = max(map(len, summary.keys()))
+    width = value_width + max_name_width + 1
+
+    # Header
+    print("="*width, file=print_to)
+    print(f"STATS SUMMARY - {name}", file=print_to)
+    print("-"*width, file=print_to)
+
+    # Print stats in columns
+    for name, value in summary.items():
+        print(f"{name:<{max_name_width}} {value:>{value_width},}", file=print_to)
+
+    print("="*width, file=print_to)

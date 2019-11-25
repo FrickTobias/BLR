@@ -5,40 +5,47 @@ which had more than -M molecules in one and the same droplet).
 
 import pysam
 import logging
-
+from collections import Counter
 from tqdm import tqdm
 
 from blr import utils
 
 logger = logging.getLogger(__name__)
+summary = Counter()
 
 
 def main(args):
     tags_to_remove = [args.barcode_tag, args.molecule_tag, args.number_tag]
-    summary = Summary(tags_to_remove)
+    removed_tags = {tag: set() for tag in tags_to_remove}
+
     logger.info("Starting")
 
     # Writes filtered out
     with pysam.AlignmentFile(args.input, "rb") as openin, \
             pysam.AlignmentFile(args.output, "wb", template=openin) as openout:
         for read in tqdm(openin.fetch(until_eof=True)):
-            summary.tot_reads += 1
+            summary["Total reads"] += 1
             no_mols = utils.get_bamtag(pysam_read=read, tag=args.number_tag)
 
             # If barcode is not in all_molecules the barcode does not have enough proximal reads to make a single
             # molecule. If the barcode has more than <max_molecules> molecules, remove it from the read.
             if no_mols and no_mols > args.max_molecules:
-                read, summary = strip_barcode(pysam_read=read, tags_to_be_removed=tags_to_remove,
-                                              summary=summary)
+                # Stats
+                summary["Removed tags"] += len(tags_to_remove)
+                summary["Reads with removed tags"] += 1
+
+                strip_barcode(pysam_read=read, tags_to_be_removed=tags_to_remove, removed_tags=removed_tags)
 
             openout.write(read)
 
-    summary.print_stats()
+    summary.update({f"Unique {tag} tags removed": len(removed_tags[tag]) for tag in tags_to_remove})
 
     logger.info("Finished")
 
+    utils.print_stats(summary, name=__name__)
 
-def strip_barcode(pysam_read, tags_to_be_removed, summary):
+
+def strip_barcode(pysam_read, tags_to_be_removed, removed_tags):
     """
     Strips an alignment from its barcode sequence. Keeps information in header but adds FILTERED prior to bc info.
     """
@@ -48,41 +55,9 @@ def strip_barcode(pysam_read, tags_to_be_removed, summary):
 
     # Remove tags
     for bam_tag in tags_to_be_removed:
-        # Stats
-        removed_tag = pysam_read.get_tag(bam_tag)
-        summary.removal_dict[bam_tag].add(removed_tag)
-        summary.reads_with_removed_tags += 1
-
+        removed_tags[bam_tag].add(pysam_read.get_tag(bam_tag))
         # Strip read from tag
         pysam_read.set_tag(bam_tag, None, value_type="Z")
-
-    return pysam_read, summary
-
-
-class Summary:
-    """
-    Gathers all stats generated during analysis
-    """
-
-    def __init__(self, tags_to_be_removed):
-
-        self.tot_reads = int()
-        self.reads_with_removed_tags = int()
-        self.removal_dict = dict()
-        for bam_tag in tags_to_be_removed:
-            self.removal_dict[bam_tag] = set()
-
-    def print_stats(self):
-        """
-        Prints stats to terminal
-        """
-
-        # Read stats
-        logger.info(f"Total Reads in file:\t{self.tot_reads:,}")
-        for bam_tag, removed_set in self.removal_dict.items():
-            logger.info(f"Unique {bam_tag} tags removed: {len(removed_set)}")
-        logger.info(f"Reads with barcodes removed:\t{self.reads_with_removed_tags} "
-                    f"({self.reads_with_removed_tags / self.tot_reads:.2%})")
 
 
 def add_arguments(parser):
