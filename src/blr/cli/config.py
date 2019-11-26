@@ -8,7 +8,6 @@ from ruamel.yaml import YAML
 from snakemake.utils import validate
 import pkg_resources
 
-
 logger = logging.getLogger(__name__)
 DEFAULT_PATH = "blr.yaml"
 SCHEMA_FILE = "config.schema.yaml"
@@ -18,69 +17,58 @@ def main(args):
     # Script is based on repos NBISSweden/IgDisover config script.
     # Link https://github.com/NBISweden/IgDiscover/blob/master/src/igdiscover/cli/config.py
 
-    # Get configs from file.
-    yaml_config = YAML()
-    with open(args.file) as configfile:
-        configs = yaml_config.load(configfile)
-
-    # Udpate configs with SET or print current configs.
     if args.set:
-        # Get schema form package data
-        schema_path = pkg_resources.resource_filename("blr", SCHEMA_FILE)
-        yaml_schema = YAML(typ="safe")
-        with open(schema_path) as schemafile:
-            schema = yaml_schema.load(schemafile)
-
-        # Update configs
-        for key, value in args.set:
-            if key in schema['properties']:
-                configs[key] = update_value(key, value, schema)
-            else:
-                logging.warning(f"KEY = {key} not in schema. Config not updated with set ({key}, {value})")
-
-        # Confirm that data is valid.
-        validate(configs, schema_path)
-
-        # Write first to tmp then overwrite target.
-        tmpfile = args.file + ".tmp"
-        with open(tmpfile, "w") as file:
-            yaml_config.dump(configs, stream=file)
-        os.rename(tmpfile, args.file)
+        change_config(args.file, args.set)
     else:
-        print(f"--------Configs in: {args.file}--------")
-        yaml_config.dump(configs, stream=sys.stdout)
+        configs, yaml = load_yaml(args.file)
+        print(f"--- CONFIGS IN: {args.file} ---")
+        yaml.dump(configs, stream=sys.stdout)
 
 
-def update_value(key, value, schema):
+def change_config(filename, changes_set):
     """
-    Update value to match allowed type in schema.
-    :param key: Strint with name of parameter to update
-    :param value: String with value to updates
-    :param schema: dict with type information about parameter.
-    :return: value
+    Change config YAML file at filename using the changes_set key-value pairs.
+    :param filename: string with path to YAML config file to change.
+    :param changes_set: dict with changes to incorporate.
     """
-    properties = schema['properties'][key]
+    # Get configs from file.
+    configs, yaml = load_yaml(filename)
 
-    print(properties["type"])
-    print(value == "null")
-    print("null" in properties["type"])
-    if value == "null" and "null" in properties["type"]:
-        print("HEAF")
-        return None
+    # Update configs
+    for key, value in changes_set:
+        if key in configs:
+            value = YAML(typ='safe').load(value)
+            logger.info(f"Changing value of '{key}': {configs[key]} --> {value}.")
+            configs[key] = value
+        else:
+            logger.warning(f"KEY = {key} not in config. Config not updated with set ({key}, {value})")
 
-    if "integer" in properties["type"]:
-        return int(value)
+    # Confirm that configs is valid.
+    schema_path = pkg_resources.resource_filename("blr", SCHEMA_FILE)
+    validate(configs, schema_path)
 
-    if "number" in properties["type"]:
-        return float(value)
+    # Write first to temporary file then overwrite filename.
+    tmpfile = filename + ".tmp"
+    with open(tmpfile, "w") as file:
+        yaml.dump(configs, stream=file)
+    os.rename(tmpfile, filename)
 
-    return value
+
+def load_yaml(filename):
+    """
+    Load YAML file and return the yaml object and data.
+    :param filename: Path to YAML file
+    :return: (data, yaml).
+    """
+    with open(filename) as file:
+        yaml = YAML()
+        data = yaml.load(file)
+    return data, yaml
 
 
 def add_arguments(parser):
-    arg = parser.add_argument
-    arg("--set", nargs=2, default=[], metavar=("KEY", "VALUE"), action="append",
-        help="Set KEY to VALUE. Use KEY.SUBKEY[.SUBSUBKEY...] for nested keys. To leave VALUE empty write 'null'"
-             "Can be given multiple times.")
-    arg("--file", default=DEFAULT_PATH,
-        help="Configuration file to modify. Default: %(default)s in current directory.")
+    parser.add_argument("--set", nargs=2, default=[], metavar=("KEY", "VALUE"), action="append",
+                        help="Set KEY to VALUE. Use KEY.SUBKEY[.SUBSUBKEY...] for nested keys."
+                             "Can be given multiple times.")
+    parser.add_argument("--file", default=DEFAULT_PATH,
+                        help="Configuration file to modify. Default: %(default)s in current directory.")
