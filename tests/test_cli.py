@@ -82,7 +82,7 @@ def test_final_compressed_reads_exist(tmpdir):
         assert Path(workdir / filename).exists()
 
 
-@pytest.mark.parametrize("reference_variants", [REFERENCE_VARIANTS, None])
+@pytest.mark.parametrize("reference_variants", [REFERENCE_VARIANTS, "null"])
 def test_reference_variants(tmpdir, reference_variants):
     workdir = tmpdir / "analysis"
     init(workdir, TESTDATA_READS)
@@ -93,7 +93,7 @@ def test_reference_variants(tmpdir, reference_variants):
     )
     target = "reference.vcf"
     run(workdir=workdir, targets=["reference.vcf"])
-    if reference_variants:
+    if reference_variants != "null":
         assert Path(workdir / target).is_symlink()
     else:
         assert Path(workdir / target).is_file()

@@ -68,7 +68,7 @@ def load_yaml(filename):
 
 def add_arguments(parser):
     parser.add_argument("--set", nargs=2, default=[], metavar=("KEY", "VALUE"), action="append",
-                        help="Set KEY to VALUE. Use KEY.SUBKEY[.SUBSUBKEY...] for nested keys."
-                             "Can be given multiple times.")
+                        help="Set KEY to VALUE. Use KEY.SUBKEY[.SUBSUBKEY...] for nested keys. For empty values "
+                             "write 'null'. Can be given multiple times.")
     parser.add_argument("--file", default=DEFAULT_PATH,
                         help="Configuration file to modify. Default: %(default)s in current directory.")
