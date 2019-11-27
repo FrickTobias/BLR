@@ -2,14 +2,13 @@ from pathlib import Path
 import pysam
 import pytest
 import dnaio
-from shutil import copyfile
 
 from blr.cli.init import init
 from blr.cli.run import run
 from blr.cli.config import change_config
 
 TESTDATA_READS = Path("testdata/reads.1.fastq.gz")
-TEST_CONFIG = Path("tests/test_config.yaml")
+DEFAULT_CONFIG = "blr.yaml"
 REFERENCE_GENOME = str(Path("testdata/chr1mini.fasta").absolute())
 REFERENCE_VARIANTS = str(Path("testdata/HG002_GRCh38_GIAB_highconf.chr1mini.vcf").absolute())
 
@@ -44,9 +43,8 @@ def test_config(tmpdir):
 def test_mappers(tmpdir, read_mapper):
     workdir = tmpdir / "analysis"
     init(workdir, TESTDATA_READS)
-    copyfile(TEST_CONFIG, workdir / "blr.yaml")
     change_config(
-        workdir / "blr.yaml",
+        workdir / DEFAULT_CONFIG,
         [("genome_reference", REFERENCE_GENOME), ("read_mapper", read_mapper)]
     )
     run(workdir=workdir, targets=["mapped.sorted.bam"])
@@ -58,9 +56,8 @@ def test_mappers(tmpdir, read_mapper):
 def test_duplicate_markers(tmpdir, duplicate_marker):
     workdir = tmpdir / "analysis"
     init(workdir, TESTDATA_READS)
-    copyfile(TEST_CONFIG, workdir / "blr.yaml")
     change_config(
-        workdir / "blr.yaml",
+        workdir / DEFAULT_CONFIG,
         [("genome_reference", REFERENCE_GENOME), ("duplicate_marker", duplicate_marker)]
     )
     run(workdir=workdir, targets=["mapped.sorted.tag.mkdup.bam"])
@@ -71,10 +68,9 @@ def test_duplicate_markers(tmpdir, duplicate_marker):
 def test_final_compressed_reads_exist(tmpdir):
     workdir = tmpdir / "analysis"
     init(workdir, TESTDATA_READS)
-    copyfile(TEST_CONFIG, workdir / "blr.yaml")
     change_config(
-        workdir / "blr.yaml",
-        [("genome_reference", REFERENCE_GENOME)]
+        workdir / DEFAULT_CONFIG,
+        [("genome_reference", REFERENCE_GENOME), ("heap_space", "3")]
     )
     targets = ("reads.1.final.fastq.gz", "reads.2.final.fastq.gz")
     run(workdir=workdir, targets=targets)
@@ -86,9 +82,8 @@ def test_final_compressed_reads_exist(tmpdir):
 def test_reference_variants(tmpdir, reference_variants):
     workdir = tmpdir / "analysis"
     init(workdir, TESTDATA_READS)
-    copyfile(TEST_CONFIG, workdir / "blr.yaml")
     change_config(
-        workdir / "blr.yaml",
+        workdir / DEFAULT_CONFIG,
         [("genome_reference", REFERENCE_GENOME), ("reference_variants", reference_variants)]
     )
     target = "reference.vcf"
