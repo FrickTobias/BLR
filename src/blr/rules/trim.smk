@@ -64,7 +64,7 @@ rule extract_DBS:
     output:
         fastq="barcodes.fasta.gz",
     input:
-        fastq="reads.1.fastq.gz",
+         fastq="reads.1.fastq.gz"
     log: "cutadapt_extract_DBS.log"
     threads: 20
     shell:
