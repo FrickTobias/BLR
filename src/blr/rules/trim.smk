@@ -62,7 +62,7 @@ rule trim_and_tag:
 rule extract_DBS:
     # Extract barcode sequence from read1 FASTQ
     output:
-        fastq="barcodes.fasta.gz",
+        fastq="barcodes.fasta.gz"
     input:
          fastq="reads.1.fastq.gz"
     log: "cutadapt_extract_DBS.log"
