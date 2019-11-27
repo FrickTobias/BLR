@@ -20,7 +20,6 @@ rm -rf outdir-bowtie2
 blr init --r1=testdata/reads.1.fastq.gz outdir-bowtie2
 blr config \
     --file outdir-bowtie2/blr.yaml \
-    --set heap_space 3 \
     --set genome_reference ../testdata/chr1mini.fasta \
     --set reference_variants ../testdata/HG002_GRCh38_GIAB_highconf.chr1mini.vcf \
     --set phasing_ground_truth ../testdata/HG002_GRCh38_GIAB_highconf_triophased.chr1mini.vcf
