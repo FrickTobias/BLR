@@ -22,3 +22,4 @@ dependencies:
   - tqdm
   - importlib_resources
   - freebayes
+  - ruamel.yaml

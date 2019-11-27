@@ -63,6 +63,8 @@ dependencies:
   - ratelimiter=1.2.0=py36_1000
   - readline=8.0=hcfe32e1_0
   - requests=2.22.0=py36_1
+  - ruamel.yaml=0.16.5=py36h0b31af3_1
+  - ruamel.yaml.clib=0.2.0=py36h0b31af3_0
   - sambamba=0.6.6=2
   - samblaster=0.1.24=h770b8ee_3
   - samtools=1.9=h8aa4d43_12
