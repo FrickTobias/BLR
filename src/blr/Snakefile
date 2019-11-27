@@ -169,6 +169,7 @@ rule bam_to_fastq:
     input:
         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
     log: "samtools-fastq.log"
+    threads: 20
     shell:
         "samtools fastq"
         " -@ {threads}"
