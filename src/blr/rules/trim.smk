@@ -30,7 +30,7 @@ rule trim_and_tag:
     input:
         r1_fastq="reads.1.fastq.gz",
         r2_fastq="reads.2.fastq.gz",
-        uncorrected_barcodes="barcodes.fasta",
+        uncorrected_barcodes="barcodes.fasta.gz",
         corrected_barcodes="barcodes.clstr"
     log:
         cutadapt="cutadapt_trim.log",
@@ -62,9 +62,9 @@ rule trim_and_tag:
 rule extract_DBS:
     # Extract barcode sequence from read1 FASTQ
     output:
-        fastq="barcodes.fasta",
+        fastq="barcodes.fasta.gz"
     input:
-        fastq="reads.1.fastq.gz",
+         fastq="reads.1.fastq.gz"
     log: "cutadapt_extract_DBS.log"
     threads: 20
     shell:

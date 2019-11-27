@@ -19,12 +19,12 @@ rule starcode_clustering:
     output:
         "barcodes.clstr"
     input:
-        "barcodes.fasta"
+        "barcodes.fasta.gz"
     threads: 20
     log: "starcode_clustering.log"
     shell:
-        "starcode"
-        " -i {input}"
+        "pigz -cd {input} |"
+        " starcode"
         " -o {output}"
         " -t {threads}"
         " -d 2"
