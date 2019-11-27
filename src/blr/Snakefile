@@ -27,7 +27,7 @@ rule starcode_clustering:
         " starcode"
         " -o {output}"
         " -t {threads}"
-        " -d 2"
+        " -d {config[barcode_max_dist]}"
         " --print-clusters"
         " 2> {log}"
 
@@ -155,7 +155,7 @@ rule filterclusters:
         " -m {config[molecule_tag]}"
         " -n {config[num_mol_tag]}"
         " -b {config[cluster_tag]}"
-        " -M 260"
+        " -M {config[max_molecules_per_bc]}"
         " 2>> {log} |"
         " tee {output.bam} |"
         " samtools index  - {output.bai}"
