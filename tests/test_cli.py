@@ -99,4 +99,4 @@ def test_call_variants(tmpdir):
     )
     target = "variants.called.vcf"
     run(workdir=workdir, targets=[target])
-    assert Path(workdir / target).exists()
+    assert Path(workdir / target).is_file()
