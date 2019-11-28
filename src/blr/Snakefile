@@ -195,6 +195,7 @@ rule bam_to_fastq:
     shell:
         "samtools fastq"
         " -@ {threads}"
+        " -T {config[cluster_tag]},{config[sequence_tag]}"
         " {input.bam}"
         " -1 {output.r1_fastq}"
         " -2 {output.r2_fastq} 2>> {log}"
