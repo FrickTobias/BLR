@@ -11,3 +11,5 @@ example/testdata_analysis
 __pycache__/
 
 /src/blr.egg-info/
+
+.idea/
