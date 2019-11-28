@@ -46,3 +46,10 @@ properties:
   phasing_ground_truth:
     type: [ "string", "null" ]
     description: Path to phased variants used to compute phasing stats.
+  barcode_max_dist:
+    type: integer
+    description: Max edit distance (Leveshtein distance) allowed to cluster two barcode sequences together
+  max_molecules_per_bc:
+    type: integer
+    description: Max number of molecules allowed for a single barcode (removes if bc has > 260 molecules).
+
