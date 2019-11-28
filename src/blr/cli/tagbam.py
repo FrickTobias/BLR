@@ -6,6 +6,9 @@ import pysam
 import logging
 import re
 from tqdm import tqdm
+from collections import Counter
+
+from blr.utils import print_stats
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +18,7 @@ ALLOWED_BAM_TAG_TYPES = "ABfHiZ" # From SAM format specs https://samtools.github
 def main(args):
     logger.info("Starting analysis")
     alignments_missing_bc = 0
+    summary = Counter()
 
     # Read SAM/BAM files and transfer barcode information from alignment name to SAM tag
     with pysam.AlignmentFile(args.input, "rb") as infile, \
@@ -31,23 +35,20 @@ def main(args):
                     divider = read.query_name[match.start()-1]
                     read.query_name = read.query_name.replace(divider + full_tag_string, "")
                     read.set_tag(match.group("tag"), match.group("value"), value_type=match.group("type"))
-
-                    # summary: add +1 to reads with [tag]
+                    summary[f"reads with tag {tag}"] += 1
 
             out.write(read)
 
-    logger.info(f"Alignments missing barcodes: {alignments_missing_bc}")
+    print_stats(summary, name="stats")
     logger.info("Finished")
 
 
 def find_tag(header, bam_tag, allowed_value_chars="ATGCN"):
     """
-
-    :param header: pysam header
-    :param bam_tag: SAM tag to search for
-    :param allowed_value_chars: characters allowed in SAM value
-    :param value_length: max length of SAM value
-    :param len_variance:
+    Finds BAM tags in header and returns regex match objects.
+    :param header: strm pysam header
+    :param bam_tag: str, SAM tag to search for
+    :param allowed_value_chars: str, characters allowed in SAM value
     :return:
     """
 
