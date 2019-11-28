@@ -12,12 +12,11 @@ from blr.utils import print_stats
 
 logger = logging.getLogger(__name__)
 
-ALLOWED_BAM_TAG_TYPES = "ABfHiZ" # From SAM format specs https://samtools.github.io/hts-specs/SAMtags.pdf
+ALLOWED_BAM_TAG_TYPES = "ABfHiZ"  # From SAM format specs https://samtools.github.io/hts-specs/SAMtags.pdf
 
 
 def main(args):
     logger.info("Starting analysis")
-    alignments_missing_bc = 0
     summary = Counter()
 
     # Read SAM/BAM files and transfer barcode information from alignment name to SAM tag
@@ -32,7 +31,7 @@ def main(args):
                 # If tag string is found, remove from header and set SAM tag value
                 if match:
                     full_tag_string = match.group(0)
-                    divider = read.query_name[match.start()-1]
+                    divider = read.query_name[match.start() - 1]
                     read.query_name = read.query_name.replace(divider + full_tag_string, "")
                     read.set_tag(match.group("tag"), match.group("value"), value_type=match.group("type"))
                     summary[f"reads with tag {tag}"] += 1
@@ -62,15 +61,22 @@ def find_tag(header, bam_tag, allowed_value_chars="ATGCN"):
     regex_tag_value = add_regex_name(pattern=pattern_tag_value, name="value")
 
     # regex pattern search for tag:type:value
-    regex_string = r":".join([regex_bam_tag,regex_allowed_types,regex_tag_value])
+    regex_string = r":".join([regex_bam_tag, regex_allowed_types, regex_tag_value])
     return re.search(regex_string, header)
 
 
 def add_regex_name(pattern, name):
+    """
+    Formats a string to fit the regex pattern for getting named match objects
+    :param pattern: str, regex pattern
+    :param name: str
+    :return: named regex string
+    """
     prefix = "(?P<"
     infix = ">"
     suffix = ")"
     return prefix + name + infix + pattern + suffix
+
 
 def add_arguments(parser):
     parser.add_argument("input",
