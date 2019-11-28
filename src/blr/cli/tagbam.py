@@ -1,49 +1,75 @@
 """
-Transfers barcode sequence information from the input file alignment name to SAM tags in output file.
+Transfers SAM tags from query_names to SAM tags. Tags in query_names must follow SAM tag format, e.g. BC:Z:<string>.
 """
 
 import pysam
 import logging
+import re
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
+ALLOWED_BAM_TAG_TYPES = "ABfHiZ" # From SAM format specs https://samtools.github.io/hts-specs/SAMtags.pdf
+
 
 def main(args):
-
-    # Generate dict with bc => bc_cluster consensus sequence
     logger.info("Starting analysis")
     alignments_missing_bc = 0
 
     # Read SAM/BAM files and transfer barcode information from alignment name to SAM tag
     with pysam.AlignmentFile(args.input, "rb") as infile, \
             pysam.AlignmentFile(args.output, "wb", template=infile) as out:
-
         for read in tqdm(infile.fetch(until_eof=True), desc="Reading input"):
-            try:
-                name, raw_barcode_tag, corr_barcode_tag = read.query_name.split()[0].split('_')
-            except ValueError:
-                alignments_missing_bc += 1
-                name, raw_barcode_tag, corr_barcode_tag = read.query_name.split()[0], None, None
+            for tag in args.tags:
 
-            # Rename aligment to exclude barcode information.
-            read.query_name = name
+                # Search for tag and return
+                match = find_tag(header=read.query_name, bam_tag=tag)
 
-            if corr_barcode_tag:
-                assert corr_barcode_tag.startswith(f"{args.barcode_tag}:Z:")
-                corr_barcode = corr_barcode_tag.split(":")[-1]
-                read.set_tag(args.barcode_tag, corr_barcode, value_type='Z')
+                # If tag string is found, remove from header and set SAM tag value
+                if match:
+                    full_tag_string = match.group(0)
+                    divider = read.query_name[match.start()-1]
+                    read.query_name = read.query_name.replace(divider + full_tag_string, "")
+                    read.set_tag(match.group("tag"), match.group("value"), value_type=match.group("type"))
 
-            if raw_barcode_tag:
-                assert raw_barcode_tag.startswith(f"{args.sequence_tag}:Z:")
-                raw_barcode = raw_barcode_tag.split(":")[-1]
-                read.set_tag(args.sequence_tag, raw_barcode, value_type='Z')
+                    # summary: add +1 to reads with [tag]
 
             out.write(read)
 
     logger.info(f"Alignments missing barcodes: {alignments_missing_bc}")
     logger.info("Finished")
 
+
+def find_tag(header, bam_tag, allowed_value_chars="ATGCN"):
+    """
+
+    :param header: pysam header
+    :param bam_tag: SAM tag to search for
+    :param allowed_value_chars: characters allowed in SAM value
+    :param value_length: max length of SAM value
+    :param len_variance:
+    :return:
+    """
+
+    # Build regex pattern strings
+    pattern_tag_value = f"[{allowed_value_chars}]+"
+    pattern_tag_types = f"[{ALLOWED_BAM_TAG_TYPES}]"
+
+    # Add strings to name match object variables to match.group(<name>)
+    regex_bam_tag = add_regex_name(pattern=bam_tag, name="tag")
+    regex_allowed_types = add_regex_name(pattern=pattern_tag_types, name="type")
+    regex_tag_value = add_regex_name(pattern=pattern_tag_value, name="value")
+
+    # regex pattern search for tag:type:value
+    regex_string = r":".join([regex_bam_tag,regex_allowed_types,regex_tag_value])
+    return re.search(regex_string, header)
+
+
+def add_regex_name(pattern, name):
+    prefix = "(?P<"
+    infix = ">"
+    suffix = ")"
+    return prefix + name + infix + pattern + suffix
 
 def add_arguments(parser):
     parser.add_argument("input",
@@ -52,7 +78,4 @@ def add_arguments(parser):
 
     parser.add_argument("-o", "--output", default="-",
                         help="Write output BAM to file rather then stdout.")
-    parser.add_argument("-b", "--barcode-tag", default="BX",
-                        help="SAM tag for storing the error corrected barcode. Default: %(default)s")
-    parser.add_argument("-s", "--sequence-tag", default="RX",
-                        help="SAM tag for storing the uncorrected barcode sequence. Default: %(default)s")
+    parser.add_argument("-t", "--tags", default=["BX"], nargs="*", help="List of SAM tags. Default: %(default)s")
