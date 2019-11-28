@@ -111,7 +111,7 @@ rule tagbam:
         "blr tagbam"
         " {input.bam}"
         " -o {output.bam}"
-        " -b {config[cluster_tag]} 2> {log}"
+        " -t {config[cluster_tag]} {config[sequence_tag]} 2> {log}"
 
 
 rule mark_duplicates:
