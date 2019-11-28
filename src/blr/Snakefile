@@ -176,19 +176,19 @@ rule bam_to_fastq:
         " SECOND_END_FASTQ={output.r2_fastq} 2>> {log}"
 
 
-if config["reference_variants"]:
-    rule link:
-        output: "reference.vcf"
-        shell:
-            "ln -s {config[reference_variants]} {output}"
-else:
-    rule call_variants_freebayes:
-        output:
-             vcf = "reference.vcf"
-        input:
-             bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
-        log: "call_variants_freebayes.log"
-        shell:
-             "freebayes"
-             " -f {config[genome_reference]}"
-             " {input.bam} 1> {output.vcf} 2> {log}"
+rule symlink_reference_variants:
+    output: "variants.reference.vcf"
+    shell:
+        "ln -s {config[reference_variants]} {output}"
+
+
+rule call_variants_freebayes:
+    output:
+         vcf = "variants.called.vcf"
+    input:
+         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
+    log: "call_variants_freebayes.log"
+    shell:
+         "freebayes"
+         " -f {config[genome_reference]}"
+         " {input.bam} 1> {output.vcf} 2> {log}"

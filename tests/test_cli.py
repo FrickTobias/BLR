@@ -78,17 +78,25 @@ def test_final_compressed_reads_exist(tmpdir):
         assert Path(workdir / filename).exists()
 
 
-@pytest.mark.parametrize("reference_variants", [REFERENCE_VARIANTS, "null"])
-def test_reference_variants(tmpdir, reference_variants):
+def test_link_reference_variants(tmpdir):
     workdir = tmpdir / "analysis"
     init(workdir, TESTDATA_READS)
     change_config(
         workdir / DEFAULT_CONFIG,
-        [("genome_reference", REFERENCE_GENOME), ("reference_variants", reference_variants)]
+        [("genome_reference", REFERENCE_GENOME), ("reference_variants", REFERENCE_VARIANTS)]
     )
-    target = "reference.vcf"
-    run(workdir=workdir, targets=["reference.vcf"])
-    if reference_variants != "null":
-        assert Path(workdir / target).is_symlink()
-    else:
-        assert Path(workdir / target).is_file()
+    target = "variants.reference.vcf"
+    run(workdir=workdir, targets=[target])
+    assert Path(workdir / target).is_symlink()
+
+
+def test_call_variants(tmpdir):
+    workdir = tmpdir / "analysis"
+    init(workdir, TESTDATA_READS)
+    change_config(
+        workdir / DEFAULT_CONFIG,
+        [("genome_reference", REFERENCE_GENOME), ("reference_variants", "null")]
+    )
+    target = "variants.called.vcf"
+    run(workdir=workdir, targets=[target])
+    assert Path(workdir / target).exists()

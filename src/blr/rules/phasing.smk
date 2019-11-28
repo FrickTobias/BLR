@@ -1,10 +1,12 @@
 
+variants = "variants.reference.vcf" if config["reference_variants"] else "variants.called.vcf"
+
 rule hapcut2_extracthairs:
     output:
         unlinked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked.txt"
     input:
         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
-        vcf = "reference.vcf"
+        vcf = variants
     log: "hapcut2_extracthairs.log"
     shell:
          "extractHAIRS"
@@ -19,7 +21,7 @@ rule hapcut2_linkfragments:
         linked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked.txt"
     input:
         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
-        vcf = "reference.vcf",
+        vcf = variants,
         unlinked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked.txt"
     log: "hapcut2_linkfragments.log"
     shell:
@@ -36,7 +38,7 @@ rule hapcut2_phasing:
         phased_vcf = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.VCF"
     input:
         linked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked.txt",
-        vcf = "reference.vcf"
+        vcf = variants
     log: "hapcut2_phasing.log"
     shell:
          "hapcut2"
