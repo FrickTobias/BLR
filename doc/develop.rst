@@ -6,8 +6,8 @@ Conda environment files
 
 There are two types of files that describe Conda environments.
 
-- The file ``environment.yml`` contains abstract dependencies such as ``pysam``,
-  ``bowtie2`` or ``picard=2.10``. This file is managed manually and needs to be
+- The file ``environment.yml`` contains abstract dependencies such as ``pysam`` or
+  ``bowtie2``. This file is managed manually and needs to be
   updated whenever there are new dependencies or when the required version for a
   dependency changes.
 

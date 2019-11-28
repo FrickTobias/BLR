@@ -70,7 +70,7 @@ def test_final_compressed_reads_exist(tmpdir):
     init(workdir, TESTDATA_READS)
     change_config(
         workdir / DEFAULT_CONFIG,
-        [("genome_reference", REFERENCE_GENOME), ("heap_space", "3")]
+        [("genome_reference", REFERENCE_GENOME)]
     )
     targets = ("reads.1.final.fastq.gz", "reads.2.final.fastq.gz")
     run(workdir=workdir, targets=targets)

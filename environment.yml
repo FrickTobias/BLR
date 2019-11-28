@@ -12,7 +12,6 @@ dependencies:
   - bwa
   - minimap2
   - pysam
-  - picard=2.10
   - cutadapt=2.5
   - sambamba=0.6.6
   - samblaster
