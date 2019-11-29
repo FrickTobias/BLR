@@ -1,5 +1,6 @@
 """
-Transfers tags from query headers to SAM tags. Currently tags in header must follow SAM tag format, e.g. BC:Z:<SEQUENCE>.
+Transfers SAM tags from query headers to SAM tags. Currently tags in header must follow SAM tag format, e.g.
+BC:Z:<SEQUENCE>.
 """
 
 import pysam
