@@ -26,14 +26,21 @@ def main(args):
     summary = Counter()
     regex_function = REGEX_FUNCTION_DICT[args.pattern_type]
 
+    # Compile regex patterns for all tags
+    regex_patterns_dict = dict()
+    for tag in args.tags:
+        # Make regex expression, compile and save
+        pattern = regex_function(bam_tag=tag)
+        compiled_pattern = re.compile(pattern)
+        regex_patterns_dict[tag] = compiled_pattern
+
     # Read SAM/BAM files and transfer barcode information from alignment name to SAM tag
     with pysam.AlignmentFile(args.input, "rb") as infile, \
             pysam.AlignmentFile(args.output, "wb", template=infile) as out:
-        for read in tqdm(infile.fetch(until_eof=True), desc="Reading input"):
-            for tag in args.tags:
+        for read in tqdm(infile.fetch(until_eof=True), desc="Reading input", unit=" reads"):
+            for tag, pattern in regex_patterns_dict.items():
 
-                # Make regex expression and search for tag
-                pattern = regex_function(bam_tag=tag)
+                # Search for regex
                 match = re.search(pattern, read.query_name)
 
                 # If tag string is found, remove from header and set SAM tag value
