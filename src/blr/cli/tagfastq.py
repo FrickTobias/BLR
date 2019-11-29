@@ -57,7 +57,8 @@ def main(args):
 
         for read1, read2 in tqdm(reader, desc="Read pairs processed"):
             # Header parsing
-            name_and_pos, _ = read1.name.split(maxsplit=1)
+            name_and_pos, nr_and_index1 = read1.name.split(maxsplit=1)
+            _, nr_and_index2 = read2.name.split(maxsplit=1)
 
             uncorrected_barcode_seq = uncorrected_barcode_reader.get_barcode(name_and_pos)
 
@@ -74,16 +75,15 @@ def main(args):
                     # @READNAME:AAAAAAAATATCTACGCTCA BX:Z:AAAAAAAATATCTACGCTCA
                     new_name = ":".join([name_and_pos, corrected_barcode_seq])
                     new_name = " ".join((new_name, corr_barcode_id))
+                    read1.name, read2.name = new_name, new_name
                 else:
                     new_name = "_".join([name_and_pos, raw_barcode_id, corr_barcode_id])
-
-                # Save header to read instances
-                read1.name, read2.name = new_name, new_name
-
+                    read1.name = " ".join([new_name, nr_and_index1])
+                    read2.name = " ".join([new_name, nr_and_index2])
             else:
                 reads_missing_barcode += 1
 
-                # EMA aligner cannot handle reads without barcodes.
+                # EMA aligner cannot handle reads without barcodes so these are skipped.
                 if args.mapper == "ema":
                     continue
 
