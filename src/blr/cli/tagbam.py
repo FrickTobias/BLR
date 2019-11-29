@@ -25,16 +25,19 @@ def main(args):
         for read in tqdm(infile.fetch(until_eof=True), desc="Reading input"):
             for tag in args.tags:
 
-                # Search for tag and return
-                match = find_tag(header=read.query_name, bam_tag=tag)
+                # Make regex expression and search for tag
+                pattern = build_regex_bam_tag(bam_tag=tag)
+                match = re.search(pattern, read.query_name)
 
                 # If tag string is found, remove from header and set SAM tag value
                 if match:
                     full_tag_string = match.group(0)
                     divider = read.query_name[match.start() - 1]
                     read.query_name = read.query_name.replace(divider + full_tag_string, "")
-                    read.set_tag(match.group("tag"), match.group("value"), value_type=match.group("type"))
+                    read.set_tag(tag, match.group("value"), value_type=match.group("type"))
                     summary[f"reads with tag {tag}"] += 1
+                else:
+                    summary[f"reads without tag {tag}"] += 1
 
             out.write(read)
 
@@ -42,13 +45,12 @@ def main(args):
     logger.info("Finished")
 
 
-def find_tag(header, bam_tag, allowed_value_chars="ATGCN"):
+def build_regex_bam_tag(bam_tag, allowed_value_chars="ATGCN"):
     """
-    Finds BAM tags in header and returns regex match objects.
-    :param header: strm pysam header
-    :param bam_tag: str, SAM tag to search for
-    :param allowed_value_chars: str, characters allowed in SAM value
-    :return:
+    Buidls regex string for BAM tags.
+    :param bam_tag: str, BAM tag to search for
+    :param allowed_value_chars: str, characters allowed in BAM value
+    :return: str, regex expression of a BAM tag
     """
 
     # Build regex pattern strings
@@ -62,15 +64,15 @@ def find_tag(header, bam_tag, allowed_value_chars="ATGCN"):
 
     # regex pattern search for tag:type:value
     regex_string = r":".join([regex_bam_tag, regex_allowed_types, regex_tag_value])
-    return re.search(regex_string, header)
+    return regex_string
 
 
 def add_regex_name(pattern, name):
     """
-    Formats a string to fit the regex pattern for getting named match objects
+    Formats a string to fit the regex pattern for getting named match objects groups
     :param pattern: str, regex pattern
-    :param name: str
-    :return: named regex string
+    :param name: str, name of the match group
+    :return: str, named regex string
     """
     prefix = "(?P<"
     infix = ">"
