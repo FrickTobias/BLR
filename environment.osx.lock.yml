@@ -9,8 +9,8 @@ dependencies:
   - bowtie2=2.3.5=py36h5c9b4e4_0
   - bwa=0.7.17=h2573ce8_6
   - bzip2=1.0.8=h01d97ff_1
-  - ca-certificates=2019.9.11=hecc5488_0
-  - certifi=2019.9.11=py36_0
+  - ca-certificates=2019.11.28=hecc5488_0
+  - certifi=2019.11.28=py36_0
   - cffi=1.13.2=py36h33e799b_0
   - chardet=3.0.4=py36_1003
   - configargparse=0.13.0=py_1
@@ -78,6 +78,7 @@ dependencies:
   - tk=8.6.10=hbbe82c9_0
   - tqdm=4.39.0=py_0
   - urllib3=1.25.7=py36_0
+  - vcflib=1.0.0_rc2=he0122c3_2
   - wheel=0.33.6=py36_0
   - wrapt=1.11.2=py36h0b31af3_0
   - xopen=0.8.4=py36_0
