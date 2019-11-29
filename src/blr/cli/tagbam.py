@@ -1,5 +1,5 @@
 """
-Transfers tags from SAM headers to SAM tags. Currently tags in header must follow SAM tag format, e.g. BC:Z:<SEQUENCE>.
+Transfers tags from query headers to SAM tags. Currently tags in header must follow SAM tag format, e.g. BC:Z:<SEQUENCE>.
 """
 
 import pysam
@@ -8,7 +8,7 @@ import re
 from tqdm import tqdm
 from collections import Counter
 
-from blr.utils import print_stats, get_bamtag
+from blr.utils import print_stats
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +16,14 @@ ALLOWED_SAM_TAG_TYPES = "ABfHiZ"  # From SAM format specs https://samtools.githu
 
 
 def main(args):
+    # Can't be at top since function are defined later
+    REGEX_FUNCTION_DICT = {
+        "sam": build_regex_sam_tag
+    }
+
     logger.info("Starting analysis")
     summary = Counter()
+    regex_function = REGEX_FUNCTION_DICT[args.pattern_type]
 
     # Read SAM/BAM files and transfer barcode information from alignment name to SAM tag
     with pysam.AlignmentFile(args.input, "rb") as infile, \
@@ -26,7 +32,7 @@ def main(args):
             for tag in args.tags:
 
                 # Make regex expression and search for tag
-                pattern = build_regex_bam_tag(bam_tag=tag)
+                pattern = regex_function(bam_tag=tag)
                 match = re.search(pattern, read.query_name)
 
                 # If tag string is found, remove from header and set SAM tag value
@@ -46,7 +52,7 @@ def main(args):
     logger.info("Finished")
 
 
-def build_regex_bam_tag(bam_tag, allowed_value_chars="ATGCN"):
+def build_regex_sam_tag(bam_tag, allowed_value_chars="ATGCN"):
     """
     Buidls regex string for SAM tags.
     :param bam_tag: str, SAM tag to search for, e.g. BX
@@ -89,3 +95,5 @@ def add_arguments(parser):
                         help="Write output BAM to file rather then stdout.")
     parser.add_argument("-t", "--tags", default=["BX"], nargs="*", help="List of SAM tags. Default: %(default)s")
     parser.add_argument("--only-remove", action="store_true", help="Only remove tag from header, will set SAM tag.")
+    parser.add_argument("--pattern-type", default="sam", choices=["sam"],
+                        help="Specify what tag pattern to search for in query headers. Default: %(default)s")
