@@ -54,6 +54,7 @@ rule trim_and_tag:
         " --o2 {output.r2_fastq}"
         " -b {config[cluster_tag]}"
         " -s {config[sequence_tag]}"
+        " --mapper {config[read_mapper]}"
         " {input.uncorrected_barcodes}"
         " {input.corrected_barcodes}"
         " -"

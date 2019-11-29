@@ -23,6 +23,8 @@ before_install:
 install:
   - conda env create -n testenv -f environment.${TRAVIS_OS_NAME}.lock.yml
   - conda activate testenv
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then conda install ema; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install brewsci/bio/ema; fi
   - conda install pytest
   - pip install --no-deps .
 

@@ -63,6 +63,13 @@ rule map_reads:
                 " {config[genome_reference]}"
                 " {input.r1_fastq}"
                 " {input.r2_fastq}",
+            "ema":
+                "ema align"
+                " -1 <(pigz -cd {input.r1_fastq})"
+                " -2 <(pigz -cd {input.r2_fastq})"
+                " -r {config[genome_reference]}"
+                " -t {threads}"
+                " -p 10x"
         }
         command = commands[config["read_mapper"]].format(**locals(), **globals())
 

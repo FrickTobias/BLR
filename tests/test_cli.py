@@ -39,7 +39,7 @@ def test_config(tmpdir):
     change_config(workdir / "blr.yaml", [("read_mapper", "bwa")])
 
 
-@pytest.mark.parametrize("read_mapper", ["bwa", "bowtie2", "minimap2"])
+@pytest.mark.parametrize("read_mapper", ["bwa", "bowtie2", "minimap2", "ema"])
 def test_mappers(tmpdir, read_mapper):
     workdir = tmpdir / "analysis"
     init(workdir, TESTDATA_READS)
