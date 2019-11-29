@@ -45,7 +45,7 @@ def main(args):
                         read.set_tag(tag, match.group("value"), value_type=match.group("type"))
                     summary[f"Reads with tag {tag}"] += 1
                 else:
-                    summary[f"reads without tag {tag}"] += 1
+                    summary[f"Reads without tag {tag}"] += 1
 
             out.write(read)
 
