@@ -43,7 +43,7 @@ def main(args):
                     read.query_name = read.query_name.replace(divider + full_tag_string, "")
                     if not args.only_remove:
                         read.set_tag(tag, match.group("value"), value_type=match.group("type"))
-                    summary[f"reads with tag {tag}"] += 1
+                    summary[f"Reads with tag {tag}"] += 1
                 else:
                     summary[f"reads without tag {tag}"] += 1
 
