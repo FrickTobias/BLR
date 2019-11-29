@@ -193,4 +193,6 @@ rule call_variants_freebayes:
     shell:
          "freebayes"
          " -f {config[genome_reference]}"
-         " {input.bam} 1> {output.vcf} 2> {log}"
+         " {input.bam} |"
+         "vcffilter -f 'AC > 0' 1>"
+         " {output.vcf} 2> {log}"
