@@ -1,5 +1,5 @@
 """
-Transfers SAM tags from query_names to SAM tags. Tags in query_names must follow SAM tag format, e.g. BC:Z:<string>.
+Transfers tags from SAM headers to SAM tags. Currently tags in header must follow SAM tag format, e.g. BC:Z:<SEQUENCE>.
 """
 
 import pysam
@@ -8,11 +8,11 @@ import re
 from tqdm import tqdm
 from collections import Counter
 
-from blr.utils import print_stats
+from blr.utils import print_stats, get_bamtag
 
 logger = logging.getLogger(__name__)
 
-ALLOWED_BAM_TAG_TYPES = "ABfHiZ"  # From SAM format specs https://samtools.github.io/hts-specs/SAMtags.pdf
+ALLOWED_SAM_TAG_TYPES = "ABfHiZ"  # From SAM format specs https://samtools.github.io/hts-specs/SAMtags.pdf
 
 
 def main(args):
@@ -34,7 +34,8 @@ def main(args):
                     full_tag_string = match.group(0)
                     divider = read.query_name[match.start() - 1]
                     read.query_name = read.query_name.replace(divider + full_tag_string, "")
-                    read.set_tag(tag, match.group("value"), value_type=match.group("type"))
+                    if not args.only_remove:
+                        read.set_tag(tag, match.group("value"), value_type=match.group("type"))
                     summary[f"reads with tag {tag}"] += 1
                 else:
                     summary[f"reads without tag {tag}"] += 1
@@ -47,15 +48,15 @@ def main(args):
 
 def build_regex_bam_tag(bam_tag, allowed_value_chars="ATGCN"):
     """
-    Buidls regex string for BAM tags.
-    :param bam_tag: str, BAM tag to search for
-    :param allowed_value_chars: str, characters allowed in BAM value
-    :return: str, regex expression of a BAM tag
+    Buidls regex string for SAM tags.
+    :param bam_tag: str, SAM tag to search for, e.g. BX
+    :param allowed_value_chars: str, characters allowed in SAM value
+    :return: str, regex expression of a SAM tag
     """
 
     # Build regex pattern strings
     pattern_tag_value = f"[{allowed_value_chars}]+"
-    pattern_tag_types = f"[{ALLOWED_BAM_TAG_TYPES}]"
+    pattern_tag_types = f"[{ALLOWED_SAM_TAG_TYPES}]"
 
     # Add strings to name match object variables to match.group(<name>)
     regex_bam_tag = add_regex_name(pattern=bam_tag, name="tag")
@@ -82,9 +83,9 @@ def add_regex_name(pattern, name):
 
 def add_arguments(parser):
     parser.add_argument("input",
-                        help="SAM/BAM file with mapped reads which is to be tagged with barcode information. To read "
-                             "from stdin use '-'.")
+                        help="BAM file with SAM tag info in header. To read from stdin use '-'.")
 
     parser.add_argument("-o", "--output", default="-",
                         help="Write output BAM to file rather then stdout.")
     parser.add_argument("-t", "--tags", default=["BX"], nargs="*", help="List of SAM tags. Default: %(default)s")
+    parser.add_argument("--only-remove", action="store_true", help="Only remove tag from header, will set SAM tag.")
