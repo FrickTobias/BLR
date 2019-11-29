@@ -49,7 +49,7 @@ def main(args):
 
             out.write(read)
 
-    print_stats(summary, name="stats")
+    print_stats(summary, name=__name__)
     logger.info("Finished")
 
 
