@@ -69,8 +69,8 @@ def build_regex_sam_tag(bam_tag, allowed_value_chars="ATGCN", length=None):
     """
 
     # Build regex pattern strings
-    length_car = "+" if not length else str(length)
-    pattern_tag_value = f"[{allowed_value_chars}]{length_car}"
+    length_str = "+" if not length else "{" + str(length) + "}"
+    pattern_tag_value = f"[{allowed_value_chars}]{length_str}"
     pattern_tag_types = f"[{ALLOWED_SAM_TAG_TYPES}]"
 
     # Add strings to name match object variables to match.group(<name>)
