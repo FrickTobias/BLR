@@ -30,7 +30,7 @@ def main(args):
     regex_patterns_dict = dict()
     for tag in args.tags:
         # Make regex expression, compile and save
-        pattern = regex_function(bam_tag=tag)
+        pattern = regex_function(bam_tag=tag, length=args.tag_length)
         compiled_pattern = re.compile(pattern)
         regex_patterns_dict[tag] = compiled_pattern
 
@@ -60,7 +60,7 @@ def main(args):
     logger.info("Finished")
 
 
-def build_regex_sam_tag(bam_tag, allowed_value_chars="ATGCN"):
+def build_regex_sam_tag(bam_tag, allowed_value_chars="ATGCN", length=None):
     """
     Buidls regex string for SAM tags.
     :param bam_tag: str, SAM tag to search for, e.g. BX
@@ -69,7 +69,8 @@ def build_regex_sam_tag(bam_tag, allowed_value_chars="ATGCN"):
     """
 
     # Build regex pattern strings
-    pattern_tag_value = f"[{allowed_value_chars}]+"
+    length_car = "+" if not length else str(length)
+    pattern_tag_value = f"[{allowed_value_chars}]{length_car}"
     pattern_tag_types = f"[{ALLOWED_SAM_TAG_TYPES}]"
 
     # Add strings to name match object variables to match.group(<name>)
@@ -105,3 +106,4 @@ def add_arguments(parser):
     parser.add_argument("--only-remove", action="store_true", help="Only remove tag from header, will set SAM tag.")
     parser.add_argument("--pattern-type", default="sam", choices=["sam"],
                         help="Specify what tag pattern to search for in query headers. Default: %(default)s")
+    parser.add_argument("--tag-length", help="Specify the length of the value in the SAM tag.")
