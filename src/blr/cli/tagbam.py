@@ -1,11 +1,9 @@
 """
-Transfers SAM tags from query headers to SAM tags. Currently tags in header must follow SAM tag format, e.g.
-BC:Z:<SEQUENCE>.
+Strips headers from tags and depending on mode, set the appropriate SAM tag.
 """
 
 import pysam
 import logging
-import re
 from tqdm import tqdm
 from collections import Counter
 
@@ -13,61 +11,63 @@ from blr.utils import print_stats
 
 logger = logging.getLogger(__name__)
 
-ALLOWED_SAM_TAG_TYPES = "ABfHiZ"  # From SAM format specs https://samtools.github.io/hts-specs/SAMtags.pdf
-
 
 def main(args):
     # Can't be at top since function are defined later
     FUNCTION_DICT = {
-        "rx-bx": rx_bx,
-        "ema": ema
+        "sam": mode_samtags_underline_separation,
+        "ema": mode_ema
     }
 
     logger.info("Starting analysis")
     summary = Counter()
-    adjust_header_and_set_tag = FUNCTION_DICT[args.format]
+    processing_function = FUNCTION_DICT[args.format]
 
     # Read SAM/BAM files and transfer barcode information from alignment name to SAM tag
     with pysam.AlignmentFile(args.input, "rb") as infile, \
             pysam.AlignmentFile(args.output, "wb", template=infile) as out:
         for read in tqdm(infile.fetch(until_eof=True), desc="Reading input", unit=" reads"):
-
-            adjust_header_and_set_tag(read, args.separator)
-
-            for tag in tags:
-                read.query_name.split(args.separator, maxsplit=1)[0]
-                if not args.only_remove:
-                    read.set_tag(tag, match.group("value"), value_type=match.group("type"))
-                summary[f"Reads with tag {tag}"] += 1
-            summary["Total read count"] += 1
-
+            # Strips header from tag and depending on script mode, possibly sets SAM tag
+            processing_function(read, summary)
             out.write(read)
 
     print_stats(summary, name=__name__)
     logger.info("Finished")
 
 
-def rx_bx(read, separator, first_tag, second_tag):
+def mode_samtags_underline_separation(read, summary):
     """
-    Adjusts headers for any format
-    :param read:
-    :param separator:
+    Trims header from tags and sets SAM tags according to values found in header.
+    Assumes format: @header_<tag1>:Z:<seq>_tag2:Z:<seq>. Constrictions are: Header includes exactly three elements
+    separated by "_" and both tags follow SAM format.
+    :param read: pysam read alignment
+    :param summary: Collections's Counter object
     :return:
     """
 
-    try:
-        name, rx, bx = read.query_name.split(separator)
-    except ValueError:
-        return
+    # Strip header
+    summary["Total reads"] += 1
+    header = read.query_name.split("_")
+    read.query_name = header[0]
 
-    read.query_name = name
-    for tag in [rx,bx]
+    # Set SAM tags
+    for tag in header[1:]:
         tag, tag_type, val = tag.split(":")
         read.set_tag(tag, val, value_type=tag_type)
+        summary[f"Reads with tag {tag}"] += 1
 
 
-def ema(read)
+def mode_ema(read, summary):
+    """
+    Trims header from barcode sequences.
+    Assumes format @header:and:more...:header:<seq>. Constrictions: There must be exactly 9 elements separated by ":"
+    :param read: pysam read alignment
+    :param summary: Collections's Counter object
+    :return:
+    """
 
+    # Strip header
+    summary["Total reads"] += 1
     read.query_name = "".join(query_name.rsplit(":", 1))
 
 
@@ -77,7 +77,6 @@ def add_arguments(parser):
 
     parser.add_argument("-o", "--output", default="-",
                         help="Write output BAM to file rather then stdout.")
-    parser.add_argument("-f", "--format", default="two_tags", choices=["two_tags", "ema"],
-                        help="Specify what tag search function to use for finding tags. Default: %(default)s")
-    parser.add_argument("-s", "--separator")
-    parser.add_argument("--tag-list", )
+    parser.add_argument("-f", "--format", default="sam", choices=["sam", "ema"],
+                        help="Specify what tag search function to use for finding tags. 'sam' requires SAM tags "
+                             "separated by '_'. 'ema' requires ':<bc-seq>' Default: %(default)s")
