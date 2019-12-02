@@ -18,41 +18,28 @@ ALLOWED_SAM_TAG_TYPES = "ABfHiZ"  # From SAM format specs https://samtools.githu
 
 def main(args):
     # Can't be at top since function are defined later
-    REGEX_FUNCTION_DICT = {
-        "sam": build_regex_sam_tag
+    FUNCTION_DICT = {
+        "rx-bx": rx_bx,
+        "ema": ema
     }
 
     logger.info("Starting analysis")
     summary = Counter()
-    regex_function = REGEX_FUNCTION_DICT[args.pattern_type]
-
-    # Compile regex patterns for all tags
-    regex_patterns_dict = dict()
-    for tag in args.tags:
-        # Make regex expression, compile and save
-        pattern = regex_function(bam_tag=tag, length=args.tag_length)
-        compiled_pattern = re.compile(pattern)
-        regex_patterns_dict[tag] = compiled_pattern
+    adjust_header_and_set_tag = FUNCTION_DICT[args.format]
 
     # Read SAM/BAM files and transfer barcode information from alignment name to SAM tag
     with pysam.AlignmentFile(args.input, "rb") as infile, \
             pysam.AlignmentFile(args.output, "wb", template=infile) as out:
         for read in tqdm(infile.fetch(until_eof=True), desc="Reading input", unit=" reads"):
-            for tag, pattern in regex_patterns_dict.items():
 
-                # Search for regex
-                match = re.search(pattern, read.query_name)
+            adjust_header_and_set_tag(read, args.separator)
 
-                # If tag string is found, remove from header and set SAM tag value
-                if match:
-                    full_tag_string = match.group(0)
-                    divider = read.query_name[match.start() - 1]
-                    read.query_name = read.query_name.replace(divider + full_tag_string, "")
-                    if not args.only_remove:
-                        read.set_tag(tag, match.group("value"), value_type=match.group("type"))
-                    summary[f"Reads with tag {tag}"] += 1
-                else:
-                    summary[f"Reads without tag {tag}"] += 1
+            for tag in tags:
+                read.query_name.split(args.separator, maxsplit=1)[0]
+                if not args.only_remove:
+                    read.set_tag(tag, match.group("value"), value_type=match.group("type"))
+                summary[f"Reads with tag {tag}"] += 1
+            summary["Total read count"] += 1
 
             out.write(read)
 
@@ -60,40 +47,28 @@ def main(args):
     logger.info("Finished")
 
 
-def build_regex_sam_tag(bam_tag, allowed_value_chars="ATGCN", length=None):
+def rx_bx(read, separator, first_tag, second_tag):
     """
-    Buidls regex string for SAM tags.
-    :param bam_tag: str, SAM tag to search for, e.g. BX
-    :param allowed_value_chars: str, characters allowed in SAM value
-    :return: str, regex expression of a SAM tag
+    Adjusts headers for any format
+    :param read:
+    :param separator:
+    :return:
     """
 
-    # Build regex pattern strings
-    length_str = "+" if not length else "{" + str(length) + "}"
-    pattern_tag_value = f"[{allowed_value_chars}]{length_str}"
-    pattern_tag_types = f"[{ALLOWED_SAM_TAG_TYPES}]"
+    try:
+        name, rx, bx = read.query_name.split(separator)
+    except ValueError:
+        return
 
-    # Add strings to name match object variables to match.group(<name>)
-    regex_bam_tag = add_regex_name(pattern=bam_tag, name="tag")
-    regex_allowed_types = add_regex_name(pattern=pattern_tag_types, name="type")
-    regex_tag_value = add_regex_name(pattern=pattern_tag_value, name="value")
-
-    # regex pattern search for tag:type:value
-    regex_string = r":".join([regex_bam_tag, regex_allowed_types, regex_tag_value])
-    return regex_string
+    read.query_name = name
+    for tag in [rx,bx]
+        tag, tag_type, val = tag.split(":")
+        read.set_tag(tag, val, value_type=tag_type)
 
 
-def add_regex_name(pattern, name):
-    """
-    Formats a string to fit the regex pattern for getting named match objects groups
-    :param pattern: str, regex pattern
-    :param name: str, name of the match group
-    :return: str, named regex string
-    """
-    prefix = "(?P<"
-    infix = ">"
-    suffix = ")"
-    return prefix + name + infix + pattern + suffix
+def ema(read)
+
+    read.query_name = "".join(query_name.rsplit(":", 1))
 
 
 def add_arguments(parser):
@@ -102,8 +77,7 @@ def add_arguments(parser):
 
     parser.add_argument("-o", "--output", default="-",
                         help="Write output BAM to file rather then stdout.")
-    parser.add_argument("-t", "--tags", default=["BX"], nargs="*", help="List of SAM tags. Default: %(default)s")
-    parser.add_argument("--only-remove", action="store_true", help="Only remove tag from header, will set SAM tag.")
-    parser.add_argument("--pattern-type", default="sam", choices=["sam"],
-                        help="Specify what tag pattern to search for in query headers. Default: %(default)s")
-    parser.add_argument("--tag-length", help="Specify the length of the value in the SAM tag.")
+    parser.add_argument("-f", "--format", default="two_tags", choices=["two_tags", "ema"],
+                        help="Specify what tag search function to use for finding tags. Default: %(default)s")
+    parser.add_argument("-s", "--separator")
+    parser.add_argument("--tag-list", )
