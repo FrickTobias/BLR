@@ -76,6 +76,7 @@ rule extract_DBS:
         " -j {threads}"
         " -m 19"
         " -M 21"
+	" --max-n 0"
         " -o {output.fastq}"
         " {input.fastq}"
         " > {log}"
