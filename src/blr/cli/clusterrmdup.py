@@ -24,76 +24,51 @@ def main(args):
     logger.info("Starting Analysis")
 
     current_cache_rp = dict()
-    cache_reads = dict()
     chrom_prev = None
     pos_prev = None
     merge_dict = dict()
     cache_dup_pos = dict()
-    with pysam.AlignmentFile(args.input, "rb") as openin:
-        for read in tqdm(openin.fetch(until_eof=True), desc="Processing reads"):
-            summary["Total reads"] += 1
+    for read1, read2 in tqdm(parse_filtered_read_pairs(args.input), desc="Reading pairs"):
 
-            # Wait for mate of read until process
-            if read.query_name not in cache_reads:
-                cache_reads[read.query_name] = read
-                continue
+        bc_new = utils.get_bamtag(read1, args.barcode_tag)
+        if not bc_new:
+            summary["Non tagged reads"] += 2
+            continue
+
+        summary["Reads analyced"] += 2
+
+        chrom_new = read1.reference_name
+        pos_new = read1.reference_start
+        rp_pos_tuple = (read1.reference_start, read1.reference_end, read2.reference_start, read2.reference_end)
+
+        # Save all rp until position is new to know if any are marked as duplicates.
+        if chrom_new == chrom_prev and pos_new == pos_prev:
+
+            if rp_pos_tuple in current_cache_rp:
+                current_cache_rp[rp_pos_tuple].add_read_pair_and_bc(read=read1, mate=read2, bc=bc_new)
             else:
-                mate = cache_reads[read.query_name]
-                del cache_reads[read.query_name]
+                current_cache_rp[rp_pos_tuple] = CacheReadPairTracker(rp_pos_tuple=rp_pos_tuple,
+                                                                      chromosome=chrom_new, read=read1,
+                                                                      mate=read2, bc=bc_new)
 
-            # Requirements: read mapped, mate mapped and read has barcode tag
-            rp_meet_requirements, bc_new = meet_requirements(read=read, mate=mate, barcode_tag=args.barcode_tag)
-            if rp_meet_requirements:
-                chrom_new = read.reference_name
-                summary["Reads analyced"] += 2
+        # New pos tuple => Reset rp cache tracker
+        else:
+            # If duplicates are found, try and find bc duplicates
+            find_barcode_duplicates(current_cache_rp, cache_dup_pos, merge_dict, args.window)
+            current_cache_rp = dict()
+            current_cache_rp[rp_pos_tuple] = CacheReadPairTracker(rp_pos_tuple=rp_pos_tuple,
+                                                                  chromosome=chrom_new, read=read1, mate=read2,
+                                                                  bc=bc_new)
 
-                pos_new = read.reference_start
-                rp_pos_tuple = (mate.reference_start, mate.reference_end, read.reference_start, read.reference_end)
+            # New chr => reset dup pos cache and rp cache tracker
+            if not chrom_new == chrom_prev:
+                cache_dup_pos = dict()
 
-                # Save all rp until position is new to know if any are marked as duplicates.
-                if chrom_new == chrom_prev and pos_new == pos_prev:
+            pos_prev = pos_new
+            chrom_prev = chrom_new
 
-                    if rp_pos_tuple in current_cache_rp:
-                        current_cache_rp[rp_pos_tuple].add_read_pair_and_bc(read=read, mate=mate, bc=bc_new)
-                    else:
-                        current_cache_rp[rp_pos_tuple] = CacheReadPairTracker(rp_pos_tuple=rp_pos_tuple,
-                                                                              chromosome=chrom_new, read=read,
-                                                                              mate=mate, bc=bc_new)
-
-                # New pos tuple => Reset rp cache tracker
-                else:
-                    # If duplicates are found, try and find bc duplicates
-                    for cache_read_pair_tracker in current_cache_rp.values():
-                        if cache_read_pair_tracker.duplicate_read_pair():
-                            summary["Reads at duplicate position"] += len(cache_read_pair_tracker.current_reads) * 2
-                            merge_dict, cache_dup_pos = seed_duplicates(
-                                merge_dict=merge_dict,
-                                cache_dup_pos=cache_dup_pos,
-                                pos_new=cache_read_pair_tracker.position_tuple_ID,
-                                bc_new=cache_read_pair_tracker.barcodes,
-                                window=args.window)
-                    current_cache_rp = dict()
-                    current_cache_rp[rp_pos_tuple] = CacheReadPairTracker(rp_pos_tuple=rp_pos_tuple,
-                                                                          chromosome=chrom_new, read=read, mate=mate,
-                                                                          bc=bc_new)
-
-                    # New chr => reset dup pos cache and rp cache tracker
-                    if not chrom_new == chrom_prev:
-                        cache_dup_pos = dict()
-
-                pos_prev = pos_new
-                chrom_prev = chrom_new
-
-        summary["Unmapped reads"] += len(cache_reads)
-
-        # Last chunk
-        for cache_read_pair_tracker in current_cache_rp.values():
-            if cache_read_pair_tracker.duplicate_read_pair():
-                summary.reads_at_analyzed_dup_position += len(cache_read_pair_tracker.current_reads) * 2
-                merge_dict, cache_dup_pos = seed_duplicates(merge_dict=merge_dict, cache_dup_pos=cache_dup_pos,
-                                                            pos_new=cache_read_pair_tracker.position_tuple_ID,
-                                                            bc_new=cache_read_pair_tracker.barcodes,
-                                                            window=args.window)
+    # Last chunk
+    find_barcode_duplicates(current_cache_rp, cache_dup_pos, merge_dict, args.window)
 
     # Remove several step redundancy (5 -> 3, 3 -> 1) => (5 -> 1, 3 -> 1)
     reduce_several_step_redundancy(merge_dict)
@@ -124,31 +99,59 @@ def main(args):
     utils.print_stats(summary, name=__name__)
 
 
-def meet_requirements(read, mate, barcode_tag):
+def parse_filtered_read_pairs(file):
+    """
+    Iterator that yield filtered read pairs .
+    :param file: str, path to SAM file
+    :return: read1, read2: both as pysam AlignedSegment.
+    """
+    cache = dict()
+    with pysam.AlignmentFile(file, "rb") as openin:
+        for read in tqdm(openin.fetch(until_eof=True), desc="Processing reads"):
+            summary["Total reads"] += 1
+            # Requirements: read mapped, mate mapped and read has barcode tag
+            # Cache read if matches requirements, continue with pair.
+            if read.query_name in cache:
+                mate = cache.pop(read.query_name)
+            else:
+                if meet_requirements(read=read):
+                    cache[read.query_name] = read
+                continue
+
+            # Return read1 and 2 in order
+            if mate.is_read1 and read.is_read2:
+                yield mate, read
+            else:
+                yield read, mate
+
+
+def find_barcode_duplicates(current_cache_rp, cache_dup_pos, merge_dict, window):
+    for cache_read_pair_tracker in current_cache_rp.values():
+        if cache_read_pair_tracker.duplicate_read_pair():
+            summary["Reads at duplicate position"] += len(cache_read_pair_tracker.current_reads) * 2
+            seed_duplicates(
+                merge_dict=merge_dict,
+                cache_dup_pos=cache_dup_pos,
+                pos_new=cache_read_pair_tracker.position_tuple_ID,
+                bc_new=cache_read_pair_tracker.barcodes,
+                window=window
+            )
+
+
+def meet_requirements(read):
     """
     Checks so read pair meets requirements before being used in analysis.
     :param read: pysam read
-    :param mate: pysam mate
     :return: bool
     """
+    if read.is_unmapped:
+        summary["Unmapped reads"] += 1
+        return False
 
-    rp_meet_requirements = True
-    bc_new = None
+    if read.mate_is_unmapped:
+        return False
 
-    if read.is_unmapped or mate.is_unmapped:
-        if read.is_unmapped != mate.is_unmapped:
-            summary["Unmapped mates"] += 1
-            summary["Unmapped reads"] += 1
-        else:
-            summary["Unmapped reads"] += 2
-        rp_meet_requirements = False
-
-    bc_new = utils.get_bamtag(pysam_read=read, tag=barcode_tag)
-    if not bc_new:
-        summary["Non tagged reads"] += 2
-        rp_meet_requirements = False
-
-    return rp_meet_requirements, bc_new
+    return True
 
 
 class CacheReadPairTracker:
@@ -196,9 +199,9 @@ def seed_duplicates(merge_dict, cache_dup_pos, pos_new, bc_new, window):
     """
 
     if len(bc_new) >= 2:
-        pos_start_new = min(pos_new)
+        pos_start_new = pos_new[0] if pos_new[0] <= pos_new[2] else pos_new[2]
         for pos_prev, bc_prev in cache_dup_pos.copy().items():
-            pos_stop_prev = max(pos_prev)
+            pos_stop_prev = pos_prev[1] if pos_prev[1] >= pos_prev[3] else pos_prev[3]
             if pos_stop_prev + window >= pos_start_new:
                 bc_union = bc_new & bc_prev
 
