@@ -38,8 +38,8 @@ def main(args):
 def mode_samtags_underline_separation(read, summary):
     """
     Trims header from tags and sets SAM tags according to values found in header.
-    Assumes format: @header_<tag1>:Z:<seq>_tag2:Z:<seq>. Constrictions are: Header includes exactly three elements
-    separated by "_" and both tags follow SAM format.
+    Assumes format: @header_<tag>:<type>:<seq> (can be numerous tags). Constrictions are: Header includes SAM tags
+    separated by "_".
     :param read: pysam read alignment
     :param summary: Collections's Counter object
     :return:
@@ -68,7 +68,7 @@ def mode_ema(read, summary):
 
     # Strip header
     summary["Total reads"] += 1
-    read.query_name = "".join(query_name.rsplit(":", 1))
+    read.query_name = "".join(query_name.rsplit(":", 1))[0]
 
 
 def add_arguments(parser):
