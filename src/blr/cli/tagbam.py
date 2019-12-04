@@ -68,8 +68,7 @@ def mode_ema(read, summary):
 
     # Strip header
     summary["Total reads"] += 1
-    read.query_name = "".join(query_name.rsplit(":", 1))[0]
-
+    read.query_name = read.query_name.rsplit(":", 1)[0]
 
 def add_arguments(parser):
     parser.add_argument("input",
