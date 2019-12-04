@@ -26,7 +26,7 @@ def main(args):
     # Read SAM/BAM files and transfer barcode information from alignment name to SAM tag
     with pysam.AlignmentFile(args.input, "rb") as infile, \
             pysam.AlignmentFile(args.output, "wb", template=infile) as out:
-        for read in tqdm(infile.fetch(until_eof=True), desc="Reading input", unit=" reads"):
+        for read in tqdm(infile.fetch(until_eof=True), desc="Processing reads", unit=" reads"):
             # Strips header from tag and depending on script mode, possibly sets SAM tag
             processing_function(read, summary)
             out.write(read)
