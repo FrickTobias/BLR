@@ -40,13 +40,11 @@ rule barcode_sort_fastq:
     input:
         fastq = "trimmed.barcoded.{nr}.fastq.gz"
     shell:
-        "pigz -cd {input.fastq} |"
+        "pigz -cd -p 1 {input.fastq} |"
         " paste - - - - |"
-        " awk -F ' ' '{{print $2,$0}}' |"
-        " sort -t ' ' -k1,1  |"
-        " cut -d' ' -f 2- |"
+        " sort -t ' ' -k2 |"
         " tr '\t' '\n' |"
-        " gzip > {output.fastq}"
+        " pigz > {output.fastq}"
 
 
 rule map_reads:

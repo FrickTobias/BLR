@@ -3,7 +3,7 @@ molecule_tag: MI  # Used to store molecule ID, same as 10x default.
 num_mol_tag: MN # Used to store number of molecules per barcode
 sequence_tag: RX    # Used to store original barcode sequence in bam file. 'RX' is 10x genomic default
 genome_reference:  # Path to indexed reference
-read_mapper: bowtie2  # Choose bwa, bowtie2, minimap2 and ema
+read_mapper: bowtie2  # Choose bwa, bowtie2, minimap2 or ema
 duplicate_marker: sambamba # Choose sambamba or samblaster
 barcode_max_dist: 2 # Max edit distance (Leveshtein distance) allowed to cluster two barcode sequences together
 max_molecules_per_bc: 260 # Max number of molecules allowed for a single barcode (removes if bc has > 260 molecules).
