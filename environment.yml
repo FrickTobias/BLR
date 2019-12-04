@@ -24,3 +24,4 @@ dependencies:
   - freebayes
   - ruamel.yaml
   - vcflib
+  - ema=0.6.2
