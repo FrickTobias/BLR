@@ -80,6 +80,7 @@ dependencies:
   - tk=8.6.10=hed695b0_0
   - tqdm=4.40.0=py_0
   - urllib3=1.25.7=py36_0
+  - vcflib=1.0.0_rc2=h56106d0_2
   - wheel=0.33.6=py36_0
   - wrapt=1.11.2=py36h516909a_0
   - xopen=0.8.4=py36_0
