@@ -28,12 +28,12 @@ blr config \
 
 pushd outdir-bowtie2
 blr run
-m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
-test $m == e389e3f6e8ba14466f232b19fa1a0ee5
+m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | sort | md5sum | cut -f1 -d" ")
+test $m == 5940df8a11377efcbd65a91c42bb058d
 
 # Test phasing
 blr run phasing_stats.txt
 
 # Cut away columns 2 and 3 as these change order between linux and osx
-m2=$(cut -f1,4- mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase | md5sum | cut -f1 -d" ")
-test $m2 == 70c907df8a996d2b3ba3f06fb942b244
+m2=$(cut -f1,4- mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase | sort | md5sum | cut -f1 -d" ")
+test $m2 == 6fd66ab058ea30efdba1c9295bdf2cfc
