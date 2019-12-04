@@ -70,6 +70,7 @@ def mode_ema(read, summary):
     summary["Total reads"] += 1
     read.query_name = read.query_name.rsplit(":", 1)[0]
 
+
 def add_arguments(parser):
     parser.add_argument("input",
                         help="BAM file with SAM tag info in header. To read from stdin use '-'.")
