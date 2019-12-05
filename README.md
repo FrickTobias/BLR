@@ -47,10 +47,9 @@ One-time installation:
 This will install blr in such a way that you can still modify the source code
 and get any changes immediately without re-installing.
 
-## Pre-print version
+## Old version
 
-To run the analysis described in [Efficient whole genome haplotyping and 
-high-throughput single molecule phasing with barcode-linked reads](https://www.biorxiv.org/content/early/2018/06/26/356121)
+To run the analysis described in [High throughput barcoding method for genome-scale phasing](https://www.nature.com/articles/s41598-019-54446-x),
 look at the [stable branch](https://github.com/FrickTobias/BLR/tree/stable) for this git repository.
 
-BLR Analysis is also available at [OMICtools](https://omictools.com/blr-tool).
+That version of BLR Analysis is also available at [OMICtools](https://omictools.com/blr-tool).
