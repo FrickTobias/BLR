@@ -12,86 +12,87 @@ sharing more than one barcode (share = union(bc_set_pos1, bc_set_pos2)).
 import pysam
 import logging
 from tqdm import tqdm
-from collections import Counter
+from collections import Counter, deque, OrderedDict
 
 from blr import utils
 
 logger = logging.getLogger(__name__)
 summary = Counter()
 
+BUFFER_SIZE = 500
+
 
 def main(args):
     logger.info("Starting Analysis")
 
-    current_cache_rp = dict()
+    positions = OrderedDict()
     chrom_prev = None
-    pos_prev = None
+    pos_prev = 0
     merge_dict = dict()
-    cache_dup_pos = dict()
-    for read1, read2 in tqdm(parse_filtered_read_pairs(args.input), desc="Reading pairs"):
+    buffer_dup_pos = deque()
+    for read, mate in tqdm(parse_filtered_read_pairs(args.input), desc="Reading pairs"):
 
-        bc_new = utils.get_bamtag(read1, args.barcode_tag)
-        if not bc_new:
+        # Get barcode and confirm that its not None
+        barcode = utils.get_bamtag(read, args.barcode_tag)
+        if not barcode:
             summary["Non tagged reads"] += 2
             continue
 
+        # Get orientation of read pair
+        if mate.is_read1 and read.is_read2:
+            orientation = "F"
+        else:
+            orientation = "R"
+
         summary["Reads analyced"] += 2
 
-        chrom_new = read1.reference_name
-        pos_new = read1.reference_start
-        rp_pos_tuple = (read1.reference_start, read1.reference_end, read2.reference_start, read2.reference_end)
+        chrom_new = read.reference_name
+        pos_new = read.reference_start
 
-        # Save all rp until position is new to know if any are marked as duplicates.
-        if chrom_new == chrom_prev and pos_new == pos_prev:
+        # Store position (5'-ends of R1 and R2) and orientation ('F' or 'R') with is used to group duplicates.
+        # Based on picard MarkDuplicates definition, see: https://sourceforge.net/p/samtools/mailman/message/25062576/
+        current_position = (mate.reference_start, read.reference_end, orientation)
 
-            if rp_pos_tuple in current_cache_rp:
-                current_cache_rp[rp_pos_tuple].add_read_pair_and_bc(read=read1, mate=read2, bc=bc_new)
-            else:
-                current_cache_rp[rp_pos_tuple] = CacheReadPairTracker(rp_pos_tuple=rp_pos_tuple,
-                                                                      chromosome=chrom_new, read=read1,
-                                                                      mate=read2, bc=bc_new)
+        if abs(pos_new - pos_prev) > BUFFER_SIZE or not chrom_new == chrom_prev:
+            find_barcode_duplicates(positions, buffer_dup_pos, merge_dict, args.window)
 
-        # New pos tuple => Reset rp cache tracker
-        else:
-            # If duplicates are found, try and find bc duplicates
-            find_barcode_duplicates(current_cache_rp, cache_dup_pos, merge_dict, args.window)
-            current_cache_rp = dict()
-            current_cache_rp[rp_pos_tuple] = CacheReadPairTracker(rp_pos_tuple=rp_pos_tuple,
-                                                                  chromosome=chrom_new, read=read1, mate=read2,
-                                                                  bc=bc_new)
-
-            # New chr => reset dup pos cache and rp cache tracker
             if not chrom_new == chrom_prev:
-                cache_dup_pos = dict()
+                positions.clear()
+                buffer_dup_pos.clear()
+                chrom_prev = chrom_new
 
             pos_prev = pos_new
-            chrom_prev = chrom_new
 
-    # Last chunk
-    find_barcode_duplicates(current_cache_rp, cache_dup_pos, merge_dict, args.window)
+        # Add current possition
+        update_positions(positions, current_position, read, mate, barcode)
+
+    # Process last chunk
+    find_barcode_duplicates(positions, buffer_dup_pos, merge_dict, args.window)
+
 
     # Remove several step redundancy (5 -> 3, 3 -> 1) => (5 -> 1, 3 -> 1)
     reduce_several_step_redundancy(merge_dict)
     summary["Barcodes removed"] = len(merge_dict)
 
     # Write outputs
-    bc_seq_already_written = set()
+    barcodes_written = set()
     with open(args.merge_log, "w") as bc_merge_file, \
             pysam.AlignmentFile(args.input, "rb") as infile, \
             pysam.AlignmentFile(args.output, "wb", template=infile) as out:
+        print(f"Previous_barcode,New_barcode", file=bc_merge_file)
         for read in tqdm(infile.fetch(until_eof=True), desc="Writing output", total=summary["Total reads"]):
 
             # If read barcode in merge dict, change tag and header to compensate.
-            previous_barcode_id = utils.get_bamtag(pysam_read=read, tag=args.barcode_tag)
-            if previous_barcode_id in merge_dict:
+            previous_barcode = utils.get_bamtag(pysam_read=read, tag=args.barcode_tag)
+            if previous_barcode in merge_dict:
                 summary["Reads with new barcode"] += 1
-                new_barcode_id = str(merge_dict[previous_barcode_id])
-                read.set_tag(args.barcode_tag, new_barcode_id, value_type="Z")
+                new_barcode = str(merge_dict[previous_barcode])
+                read.set_tag(args.barcode_tag, new_barcode, value_type="Z")
 
                 # Merge file writing
-                if new_barcode_id not in bc_seq_already_written:
-                    bc_seq_already_written.add(new_barcode_id)
-                    bc_merge_file.write(f"{previous_barcode_id},{new_barcode_id}\n")
+                if previous_barcode not in barcodes_written:
+                    barcodes_written.add(previous_barcode)
+                    print(f"{previous_barcode},{new_barcode}", file=bc_merge_file)
 
             out.write(read)
 
@@ -101,13 +102,13 @@ def main(args):
 
 def parse_filtered_read_pairs(file):
     """
-    Iterator that yield filtered read pairs .
+    Iterator that yield filtered read pairs.
     :param file: str, path to SAM file
-    :return: read1, read2: both as pysam AlignedSegment.
+    :return: read, mate: both as pysam AlignedSegment objects.
     """
     cache = dict()
     with pysam.AlignmentFile(file, "rb") as openin:
-        for read in tqdm(openin.fetch(until_eof=True), desc="Processing reads"):
+        for read in openin.fetch(until_eof=True):
             summary["Total reads"] += 1
             # Requirements: read mapped, mate mapped and read has barcode tag
             # Cache read if matches requirements, continue with pair.
@@ -118,24 +119,8 @@ def parse_filtered_read_pairs(file):
                     cache[read.query_name] = read
                 continue
 
-            # Return read1 and 2 in order
-            if mate.is_read1 and read.is_read2:
-                yield mate, read
-            else:
+            if orentation_ok(read, mate):
                 yield read, mate
-
-
-def find_barcode_duplicates(current_cache_rp, cache_dup_pos, merge_dict, window):
-    for cache_read_pair_tracker in current_cache_rp.values():
-        if cache_read_pair_tracker.duplicate_read_pair():
-            summary["Reads at duplicate position"] += len(cache_read_pair_tracker.current_reads) * 2
-            seed_duplicates(
-                merge_dict=merge_dict,
-                cache_dup_pos=cache_dup_pos,
-                pos_new=cache_read_pair_tracker.position_tuple_ID,
-                bc_new=cache_read_pair_tracker.barcodes,
-                window=window
-            )
 
 
 def meet_requirements(read):
@@ -149,103 +134,174 @@ def meet_requirements(read):
         return False
 
     if read.mate_is_unmapped:
+        summary["Unmapped reads"] += 1
         return False
 
+    if not read.is_proper_pair:
+        summary["Reads not proper pair"] += 1
+        return False
     return True
 
 
-class CacheReadPairTracker:
+def orentation_ok(read, mate):
+    # Proper layout of read pair.
+    # PAIR      |       mate            read
+    # ALIGNMENTS|    ---------->      <--------
+    # CHROMOSOME| ==================================>
+    if not mate.is_reverse and read.is_reverse:
+        return True
+    summary["Reads with wrong orientation"] += 2
+    return False
+
+
+def update_positions(positions, current_position, read, mate, barcode):
     """
-    Stores read pairs and keeps track is reads/mates are marked as duplicate for that set of reads.
+    Update positions list with current positions and read pair information.
+    :param positions: list: Postions buffer.
+    :param current_position: tuple: Position information
+    :param read: pysam.AlignedSegment
+    :param mate: pysam.AlignedSeqment
+    :param barcode: str: Barcode string.
     """
 
-    def __init__(self, rp_pos_tuple, chromosome, read, mate, bc):
+    if current_position in positions:
+        positions[current_position].add_read_pair_and_barcode(read=read, mate=mate, barcode=barcode)
+    else:
+        positions[current_position] = PositionTracker(position=current_position, read=read,
+                                                      mate=mate, barcode=barcode)
 
-        self.position_tuple_ID = rp_pos_tuple
-        self.chromosome = chromosome
-        self.current_reads = dict()
+
+def find_barcode_duplicates(positions, buffer_dup_pos, merge_dict, window):
+    """
+    Parse position to check if they are valid duplicate positions. If so start looking for barcode duplicates.
+    :param positions: list: Position to check for duplicates
+    :param merge_dict: dict: Tracks which barcodes shuold be merged .
+    :param buffer_dup_pos: list: Tracks previous duplicate positions and their barcode sets.
+    :param window: int: Max distance allowed between postions to call barcode duplicate.
+    """
+    positions_to_remove = list()
+    for position in positions.keys():
+        tracked_position = positions[position]
+        if tracked_position.valid_duplicate_position():
+            summary["Reads at duplicate position"] += tracked_position.reads
+            seed_duplicates(
+                merge_dict=merge_dict,
+                buffer_dup_pos=buffer_dup_pos,
+                position=tracked_position.position,
+                position_barcodes=tracked_position.barcodes,
+                window=window
+            )
+        elif tracked_position.checked:
+            positions_to_remove.append(position)
+        else:
+            tracked_position.checked = True
+
+    for position in positions_to_remove:
+        del positions[position]
+
+
+class PositionTracker:
+    """
+    Stores read pairs information relatec to a position and keeps track if reads/mates are marked as duplicate
+    for that set of reads.
+    """
+
+    def __init__(self, position, read, mate, barcode):
+        self.position = position
+        self.reads = int()
         self.barcodes = set()
+        self.checked = False
+        self.updated = bool()
         self.read_pos_has_duplicates = bool()
         self.mate_pos_has_duplciates = bool()
 
-        self.add_read_pair_and_bc(read=read, mate=mate, bc=bc)
+        self.add_read_pair_and_barcode(read=read, mate=mate, barcode=barcode)
 
-    def add_read_pair_and_bc(self, read, mate, bc):
-
+    def add_read_pair_and_barcode(self, read, mate, barcode):
         if read.is_duplicate:
             self.read_pos_has_duplicates = True
         if mate.is_duplicate:
             self.mate_pos_has_duplciates = True
 
-        self.current_reads[read.header] = (read, mate)
-        self.barcodes.add(bc)
+        self.updated = True
+        self.reads += 2
+        self.barcodes.add(barcode)
 
-    def duplicate_read_pair(self):
+    def valid_duplicate_position(self):
+        check = self.read_pos_has_duplicates and self.mate_pos_has_duplciates and len(self.barcodes) >= 2 and \
+                self.updated
+        self.updated = False
+        return check
 
-        return self.read_pos_has_duplicates and self.mate_pos_has_duplciates
 
-
-def seed_duplicates(merge_dict, cache_dup_pos, pos_new, bc_new, window):
+def seed_duplicates(merge_dict, buffer_dup_pos, position, position_barcodes, window):
     """
     Builds up a merge dictionary for which any keys should be overwritten by their value. Also keeps all previous
-    positions saved in a cache dict ([pos_tuple] = bc_set) in which all reads which still are withing the window
+    positions saved in a list in which all reads which still are withing the window
     size are saved.
-    :param merge_dict: Dict for tracking which bc_ids shuold be merged (directional) .
-    :param cache_dup_pos: Dict for tracking previous duplicate positions and their barcode sets.
-    :param pos_new: Position to be analyzed and subsequently saved to cache.
-    :param bc_new: Set of BC:s at new pos
-    :param window: Max distance allowed between prev read tuple stop and new read tuple start to call bc dup.
-    :return: updated merge_dict & updated cache_dup_pos
+    :param merge_dict: dict: Tracks which barcodes should be merged.
+    :param buffer_dup_pos: list: Tracks previous duplicate positions and their barcode sets.
+    :param position: tuple: Positions (start, stop) to be analyzed and subsequently saved to buffer.
+    :param position_barcodes: seq: Barcodes at analyced position
+    :param window: int: Max distance allowed between postions to call barcode duplicate.
     """
 
-    if len(bc_new) >= 2:
-        pos_start_new = pos_new[0] if pos_new[0] <= pos_new[2] else pos_new[2]
-        for pos_prev, bc_prev in cache_dup_pos.copy().items():
-            pos_stop_prev = pos_prev[1] if pos_prev[1] >= pos_prev[3] else pos_prev[3]
-            if pos_stop_prev + window >= pos_start_new:
-                bc_union = bc_new & bc_prev
+    pos_start_new = position[0]
+    # Loop over list to get the positions closest to the analyced position first. When position are out of the window
+    # size of the remaining buffer is removed.
+    for index, (compared_position, compared_barcodes) in enumerate(buffer_dup_pos):
+        compared_position_stop = compared_position[1]
+        if compared_position_stop + window >= pos_start_new:
+            barcode_intersect = position_barcodes & compared_barcodes
 
-                # If two or more unique bc ID:s are found, add [big_clust_ID] = smallest_clust_ID to merge dict
-                if len(bc_union) >= 2:
+            # If two or more unique barcodes are found, update merge dict
+            if len(barcode_intersect) >= 2:
+                update_merge_dict(merge_dict, barcode_intersect)
+        else:
+            # Remove positions outside of window (at end of list) since positions are sorted.
+            for i in range(len(buffer_dup_pos) - index):
+                buffer_dup_pos.pop()
+            break
 
-                    bc_union_sort = sorted(bc_union)
-                    bc_union_min = bc_union_sort[0]
-                    for bc_other in bc_union_sort[1:]:
-
-                        # Never add give one key multiple values (connect the prev/new values instead)
-                        if bc_other in merge_dict:
-                            bc_min_prev = find_min_bc(bc_other, merge_dict)
-                            bc_union_real_min = find_min_bc(bc_union_min, merge_dict)
-                            if not bc_min_prev == bc_union_real_min:
-                                if min(bc_union_real_min, bc_min_prev) == bc_union_real_min:
-                                    merge_dict[bc_min_prev] = bc_union_real_min
-                                else:
-                                    merge_dict[bc_union_real_min] = bc_min_prev
-
-                        # Normal case, just add high_bc_id => min_bc_id
-                        else:
-                            merge_dict[bc_other] = bc_union_min
-            else:
-                del cache_dup_pos[pos_prev]  # remove positions outside of window since pos are sorted
-        cache_dup_pos[pos_new] = bc_new
-
-    return merge_dict, cache_dup_pos
+    # Add new position at the start of the list.
+    buffer_dup_pos.appendleft((position, position_barcodes))
 
 
-def find_min_bc(bc_minimum, merge_dict):
+def update_merge_dict(merge_dict, barcodes):
+    """
+    Add new barcodes to merge_dict.
+    :param merge_dict: dict: Barcode pairs directing merges
+    :param barcodes: set: Barcodes to add
+    """
+    barcodes_sorted = sorted(barcodes)
+    barcodes_real_min = find_min_barcode(barcodes_sorted[0], merge_dict)
+    for barcode_to_merge in barcodes_sorted[1:]:
+        # Never add give one key multiple values (connect the prev/new values instead)
+        if barcode_to_merge in merge_dict:
+            previous_min = find_min_barcode(barcode_to_merge, merge_dict)
+            if not previous_min == barcodes_real_min:
+                if min(barcodes_real_min, previous_min) == barcodes_real_min:
+                    merge_dict[previous_min] = barcodes_real_min
+                else:
+                    merge_dict[barcodes_real_min] = previous_min
+
+        # Normal case, just add high_bc_id => min_bc_id
+        else:
+            merge_dict[barcode_to_merge] = barcodes_real_min
+
+
+def find_min_barcode(barcode, merge_dict):
     """
     Goes through merge dict and finds the alphabetically top string for a chain of key-value entries. E.g if
     merge_dict has TAGA => GGAT, GGAT => CTGA, CTGA => ACGA it will return ACGA if any of the values CTGA, GGAT,
-    TAGA or ACGA are given. :return: lowest clstr id for key-value chain
+    TAGA or ACGA are given.
+    :param: bc_minimum: str: Barcode
+    :param: merge_dict: dict: Barcode pairs directing merges
+    :return: str: alphabetically top barcode string
     """
-
-    while True:
-        try:
-            bc_minimum = merge_dict[bc_minimum]
-        except KeyError:
-            break
-
-    return bc_minimum
+    while barcode in merge_dict:
+        barcode = merge_dict[barcode]
+    return barcode
 
 
 def reduce_several_step_redundancy(merge_dict):
@@ -256,11 +312,7 @@ def reduce_several_step_redundancy(merge_dict):
     """
 
     for barcode_to_remove in sorted(merge_dict.keys()):
-        real_min = find_min_bc(barcode_to_remove, merge_dict)
-        if not real_min == merge_dict[barcode_to_remove]:
-            del merge_dict[barcode_to_remove]
-            merge_dict[barcode_to_remove] = real_min
-
+        merge_dict[barcode_to_remove] = find_min_barcode(barcode_to_remove, merge_dict)
     return merge_dict
 
 
