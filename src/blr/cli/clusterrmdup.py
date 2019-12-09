@@ -17,20 +17,19 @@ from collections import Counter, deque, OrderedDict
 from blr import utils
 
 logger = logging.getLogger(__name__)
-summary = Counter()
 
 BUFFER_SIZE = 500
 
 
 def main(args):
     logger.info("Starting Analysis")
-
+    summary = Counter()
     positions = OrderedDict()
     chrom_prev = None
     pos_prev = 0
     merge_dict = dict()
     buffer_dup_pos = deque()
-    for read, mate in tqdm(parse_filtered_read_pairs(args.input), desc="Reading pairs"):
+    for read, mate in tqdm(parse_filtered_read_pairs(args.input, summary), desc="Reading pairs"):
 
         # Get barcode and confirm that its not None
         barcode = utils.get_bamtag(read, args.barcode_tag)
@@ -54,7 +53,7 @@ def main(args):
         current_position = (mate.reference_start, read.reference_end, orientation)
 
         if abs(pos_new - pos_prev) > BUFFER_SIZE or not chrom_new == chrom_prev:
-            find_barcode_duplicates(positions, buffer_dup_pos, merge_dict, args.window)
+            find_barcode_duplicates(positions, buffer_dup_pos, merge_dict, args.window, summary)
 
             if not chrom_new == chrom_prev:
                 positions.clear()
@@ -67,8 +66,7 @@ def main(args):
         update_positions(positions, current_position, read, mate, barcode)
 
     # Process last chunk
-    find_barcode_duplicates(positions, buffer_dup_pos, merge_dict, args.window)
-
+    find_barcode_duplicates(positions, buffer_dup_pos, merge_dict, args.window, summary)
 
     # Remove several step redundancy (5 -> 3, 3 -> 1) => (5 -> 1, 3 -> 1)
     reduce_several_step_redundancy(merge_dict)
@@ -100,10 +98,11 @@ def main(args):
     utils.print_stats(summary, name=__name__)
 
 
-def parse_filtered_read_pairs(file):
+def parse_filtered_read_pairs(file, summary):
     """
     Iterator that yield filtered read pairs.
     :param file: str, path to SAM file
+    :param summary: dict
     :return: read, mate: both as pysam AlignedSegment objects.
     """
     cache = dict()
@@ -115,18 +114,19 @@ def parse_filtered_read_pairs(file):
             if read.query_name in cache:
                 mate = cache.pop(read.query_name)
             else:
-                if meet_requirements(read=read):
+                if meet_requirements(read, summary):
                     cache[read.query_name] = read
                 continue
 
-            if orentation_ok(read, mate):
+            if orentation_ok(read, mate, summary):
                 yield read, mate
 
 
-def meet_requirements(read):
+def meet_requirements(read, summary):
     """
     Checks so read pair meets requirements before being used in analysis.
     :param read: pysam read
+    :param summary: dict
     :return: bool
     """
     if read.is_unmapped:
@@ -143,7 +143,7 @@ def meet_requirements(read):
     return True
 
 
-def orentation_ok(read, mate):
+def orentation_ok(read, mate, summary):
     # Proper layout of read pair.
     # PAIR      |       mate            read
     # ALIGNMENTS|    ---------->      <--------
@@ -171,13 +171,14 @@ def update_positions(positions, current_position, read, mate, barcode):
                                                       mate=mate, barcode=barcode)
 
 
-def find_barcode_duplicates(positions, buffer_dup_pos, merge_dict, window):
+def find_barcode_duplicates(positions, buffer_dup_pos, merge_dict, window, summary):
     """
     Parse position to check if they are valid duplicate positions. If so start looking for barcode duplicates.
     :param positions: list: Position to check for duplicates
     :param merge_dict: dict: Tracks which barcodes shuold be merged .
     :param buffer_dup_pos: list: Tracks previous duplicate positions and their barcode sets.
     :param window: int: Max distance allowed between postions to call barcode duplicate.
+    :param summary: dict
     """
     positions_to_remove = list()
     for position in positions.keys():
@@ -318,7 +319,7 @@ def reduce_several_step_redundancy(merge_dict):
 
 def add_arguments(parser):
     parser.add_argument("input",
-                        help="Sorted SAM/BAM file tagged with barcodes.")
+                        help="Coordinate-sorted SAM/BAM file tagged with barcodes and duplicates marked.")
     parser.add_argument("merge_log",
                         help="CSV log file containing all merges done. File is in format: "
                              "{old barcode id},{new barcode id}")
