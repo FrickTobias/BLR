@@ -16,21 +16,12 @@ def main(args):
     logger.info("Starting")
 
     summary = Counter()
-    values = set()
-
-    if len(args.values) == 1 and args.values[0].endswith('.txt'):
-        logger.info(f"Values file detected {args.values[0]}.")
-        with open(args.values[0], 'r') as values_file:
-            for value in values_file:
-                values.add(value.strip())
-    else:
-        values = set(args.values)
-
+    values = get_values(args.values)
+    counts = {value: 0 for value in values}
     summary["Values to collect"] = len(values)
 
-    counts = {value: 0 for value in values}
     with pysam.AlignmentFile(args.input, "rb") as openin, \
-            pysam.AlignmentFile(args.output, "wb", template=openin) as openout :
+            pysam.AlignmentFile(args.output, "wb", template=openin) as openout:
         for read in tqdm(openin.fetch(until_eof=True), desc="Processing reads"):
             summary["Reads in"] += 1
             value = get_bamtag(read, args.tag)
@@ -48,9 +39,9 @@ def main(args):
 
 def get_values(values):
     if len(values) == 1 and os.path.isfile(values[0]):
-        logger.info(f"Values file detected {values[0]}.")
+        logger.info(f"Collecting values from file: {values[0]}.")
         with open(values[0], 'r') as values_file:
-            return {v.strip() for v in values_file}
+            return {v.strip() for v in values_file if v is not ""}
     else:
         return set(values)
 
