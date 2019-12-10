@@ -41,7 +41,7 @@ def get_values(values):
     if len(values) == 1 and os.path.isfile(values[0]):
         logger.info(f"Collecting values from file: {values[0]}.")
         with open(values[0], 'r') as values_file:
-            return {v.strip() for v in values_file if v is not ""}
+            return {v.strip() for v in values_file if v != ""}
     else:
         return set(values)
 
@@ -58,7 +58,7 @@ def add_arguments(parser):
     parser.add_argument("input",
                         help="SAM/BAM file")
     parser.add_argument("tag",
-                        help="SAM tag to get reads for")
+                        help="SAM tag")
     parser.add_argument("values", nargs="+",
                         help="Values to match for output. Could be file with entries on separate lines.")
 
