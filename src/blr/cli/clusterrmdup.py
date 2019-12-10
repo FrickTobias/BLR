@@ -18,8 +18,6 @@ from blr import utils
 
 logger = logging.getLogger(__name__)
 
-BUFFER_SIZE = 500
-
 
 def main(args):
     logger.info("Starting Analysis")
@@ -29,14 +27,7 @@ def main(args):
     pos_prev = 0
     merge_dict = dict()
     buffer_dup_pos = deque()
-    for read, mate in tqdm(parse_filtered_read_pairs(args.input, summary), desc="Reading pairs"):
-
-        # Get barcode and confirm that its not None
-        barcode = utils.get_bamtag(read, args.barcode_tag)
-        if not barcode:
-            summary["Non tagged reads"] += 2
-            continue
-
+    for barcode, read, mate in tqdm(parse_and_filter_pairs(args.input, args.barcode_tag, summary), desc="Reading pairs"):
         # Get orientation of read pair
         if mate.is_read1 and read.is_read2:
             orientation = "F"
@@ -52,7 +43,7 @@ def main(args):
         # Based on picard MarkDuplicates definition, see: https://sourceforge.net/p/samtools/mailman/message/25062576/
         current_position = (mate.reference_start, read.reference_end, orientation)
 
-        if abs(pos_new - pos_prev) > BUFFER_SIZE or not chrom_new == chrom_prev:
+        if abs(pos_new - pos_prev) > args.buffer_size or chrom_new != chrom_prev:
             find_barcode_duplicates(positions, buffer_dup_pos, merge_dict, args.window, summary)
 
             if not chrom_new == chrom_prev:
@@ -98,10 +89,11 @@ def main(args):
     utils.print_stats(summary, name=__name__)
 
 
-def parse_filtered_read_pairs(file, summary):
+def parse_and_filter_pairs(file, barcode_tag, summary):
     """
     Iterator that yield filtered read pairs.
     :param file: str, path to SAM file
+    :param barcode_tag: str, SAM tag for barcode.
     :param summary: dict
     :return: read, mate: both as pysam AlignedSegment objects.
     """
@@ -118,8 +110,14 @@ def parse_filtered_read_pairs(file, summary):
                     cache[read.query_name] = read
                 continue
 
-            if orentation_ok(read, mate, summary):
-                yield read, mate
+            # Get barcode and confirm that its not None
+            barcode = utils.get_bamtag(read, barcode_tag)
+            if not barcode:
+                summary["Non tagged reads"] += 2
+                continue
+
+            if valid_pair_orientation(read, mate, summary):
+                yield barcode, read, mate
 
 
 def meet_requirements(read, summary):
@@ -143,7 +141,7 @@ def meet_requirements(read, summary):
     return True
 
 
-def orentation_ok(read, mate, summary):
+def valid_pair_orientation(read, mate, summary):
     # Proper layout of read pair.
     # PAIR      |       mate            read
     # ALIGNMENTS|    ---------->      <--------
@@ -331,3 +329,6 @@ def add_arguments(parser):
     parser.add_argument("-w", "--window", type=int, default=100000,
                         help="Window size. Duplicate positions within this distance will be used to find cluster "
                              "duplicates. Default: %(default)s")
+    parser.add_argument("--buffer-size", type=int, default=500,
+                        help="Buffer size for collecting duplicates. Note that too low numbers might miss some "
+                             "duplicates while larger numbers increase memory requirement. Default: %(default)s")
