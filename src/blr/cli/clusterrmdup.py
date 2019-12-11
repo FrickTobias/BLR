@@ -27,7 +27,8 @@ def main(args):
     pos_prev = 0
     merge_dict = dict()
     buffer_dup_pos = deque()
-    for barcode, read, mate in tqdm(parse_and_filter_pairs(args.input, args.barcode_tag, summary), desc="Reading pairs"):
+    for barcode, read, mate in tqdm(parse_and_filter_pairs(args.input, args.barcode_tag, summary),
+                                    desc="Reading pairs"):
         # Get orientation of read pair
         if mate.is_read1 and read.is_read2:
             orientation = "F"
@@ -182,7 +183,8 @@ def find_barcode_duplicates(positions, buffer_dup_pos, merge_dict, window, summa
     for position in positions.keys():
         tracked_position = positions[position]
         if tracked_position.valid_duplicate_position():
-            summary["Reads at duplicate position"] += tracked_position.reads
+            if not tracked_position.checked:
+                summary["Reads at duplicate position"] += tracked_position.reads
             seed_duplicates(
                 merge_dict=merge_dict,
                 buffer_dup_pos=buffer_dup_pos,
@@ -210,7 +212,7 @@ class PositionTracker:
         self.reads = int()
         self.barcodes = set()
         self.checked = False
-        self.updated = bool()
+        self.updated_since_validation = bool()
         self.read_pos_has_duplicates = bool()
         self.mate_pos_has_duplciates = bool()
 
@@ -222,14 +224,14 @@ class PositionTracker:
         if mate.is_duplicate:
             self.mate_pos_has_duplciates = True
 
-        self.updated = True
+        self.updated_since_validation = True
         self.reads += 2
         self.barcodes.add(barcode)
 
     def valid_duplicate_position(self):
         check = self.read_pos_has_duplicates and self.mate_pos_has_duplciates and len(self.barcodes) >= 2 and \
-                self.updated
-        self.updated = False
+                self.updated_since_validation
+        self.updated_since_validation = False
         return check
 
 
@@ -249,6 +251,11 @@ def seed_duplicates(merge_dict, buffer_dup_pos, position, position_barcodes, win
     # Loop over list to get the positions closest to the analyced position first. When position are out of the window
     # size of the remaining buffer is removed.
     for index, (compared_position, compared_barcodes) in enumerate(buffer_dup_pos):
+
+        # Skip comparison against self.
+        if position == compared_position:
+            continue
+
         compared_position_stop = compared_position[1]
         if compared_position_stop + window >= pos_start_new:
             barcode_intersect = position_barcodes & compared_barcodes
@@ -329,6 +336,6 @@ def add_arguments(parser):
     parser.add_argument("-w", "--window", type=int, default=100000,
                         help="Window size. Duplicate positions within this distance will be used to find cluster "
                              "duplicates. Default: %(default)s")
-    parser.add_argument("--buffer-size", type=int, default=500,
-                        help="Buffer size for collecting duplicates. Note that too low numbers might miss some "
-                             "duplicates while larger numbers increase memory requirement. Default: %(default)s")
+    parser.add_argument("--buffer-size", type=int, default=200,
+                        help="Buffer size for collecting duplicates. Should be around read length. "
+                             "Default: %(default)s")
