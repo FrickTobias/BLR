@@ -46,7 +46,6 @@ def get_bamtag(pysam_read, tag):
     Fetches tags from bam files. Return an empty value of the same type if not found.
     :param pysam_read: pysam read object
     :param tag: bam tag to fetch
-    :param type: what type to return if read does not have the tag
     :return: bam tag value
     """
     try:
