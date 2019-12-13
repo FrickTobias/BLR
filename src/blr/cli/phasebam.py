@@ -53,7 +53,7 @@ def get_phased_snvs(vcf_file):
     """
     Reads VCF files and saves all phased SNVs.
     :param vcf_file: file, vcf format
-    :return: dict, dict[chrom][pos][nucleotide] = phase_info 
+    :return: dict, dict[chrom][pos][nucleotide] = phase_info
     """
     vcf_reader = vcfpy.Reader.from_path(vcf_file)
     phased_snv_dict = dict()
@@ -67,7 +67,7 @@ def get_phased_snvs(vcf_file):
                 continue
 
             # Setup dict for position
-            if not chrom in phased_snv_dict:
+            if chrom not in phased_snv_dict:
                 phased_snv_dict[chrom] = OrderedDict()
 
             # Get call (1 or 0) and translate to nucleotide
@@ -75,7 +75,7 @@ def get_phased_snvs(vcf_file):
             h2 = call.gt_bases[call.gt_alleles[1]]
 
             # Save phasing info
-            if not ref_pos in phased_snv_dict[chrom]:
+            if ref_pos not in phased_snv_dict[chrom]:
                 phased_snv_dict[chrom][ref_pos] = dict()
             phased_snv_dict[chrom][ref_pos][h1] = "h1"  # TODO: Change this to HapCUT2 flags for phase info
             phased_snv_dict[chrom][ref_pos][h2] = "h2"  # TODO: Change this to HapCUT2 flags for phase info
@@ -119,7 +119,7 @@ def phase_molecules(bam_file, molecule_tag, phased_snv_dict, summary):
                 # Increment support for molecule belonging to haplotype
                 molecule = get_bamtag(read, molecule_tag)
                 if molecule:
-                    if not molecule in molecule_phasing_dict:
+                    if molecule not in molecule_phasing_dict:
                         molecule_phasing_dict[molecule] = Counter()
                     molecule_phasing_dict[molecule][haplotype] += 1
                     summary["Phased reads with molecule info"] += 1
@@ -132,7 +132,7 @@ def phase_molecules(bam_file, molecule_tag, phased_snv_dict, summary):
 
 
 def skip_read(read, phased_snv_dict, summary):
-    if read.reference_start != None and read.reference_end == None:
+    if read.reference_start is not None and read.reference_end is None:
         summary["Read with ref start but no ref end"] += 1
         return True
     if read.reference_name not in phased_snv_dict:
