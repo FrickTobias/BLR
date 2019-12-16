@@ -14,20 +14,21 @@ logger = logging.getLogger(__name__)
 
 def main(args):
     # Can't be at top since function are defined later
-    FUNCTION_DICT = {
+    function_dict = {
         "sam": mode_samtags_underline_separation,
         "ema": mode_ema
     }
 
     logger.info("Starting analysis")
     summary = Counter()
-    processing_function = FUNCTION_DICT[args.format]
+    processing_function = function_dict[args.format]
 
     # Read SAM/BAM files and transfer barcode information from alignment name to SAM tag
     with pysam.AlignmentFile(args.input, "rb") as infile, \
             pysam.AlignmentFile(args.output, "wb", template=infile) as out:
         for read in tqdm(infile.fetch(until_eof=True), desc="Processing reads", unit=" reads"):
             # Strips header from tag and depending on script mode, possibly sets SAM tag
+            summary["Total reads"] += 1
             processing_function(read, summary)
             out.write(read)
 
@@ -46,7 +47,6 @@ def mode_samtags_underline_separation(read, summary):
     """
 
     # Strip header
-    summary["Total reads"] += 1
     header = read.query_name.split("_")
     read.query_name = header[0]
 
@@ -67,7 +67,6 @@ def mode_ema(read, summary):
     """
 
     # Strip header
-    summary["Total reads"] += 1
     read.query_name = read.query_name.rsplit(":", 1)[0]
 
 
