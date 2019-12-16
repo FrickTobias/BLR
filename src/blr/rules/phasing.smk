@@ -84,7 +84,7 @@ rule hapcut2_stats:
             shell("touch {output}")
         else:
             shell(
-                " calculate_haplotype_statistics.py"
+                "calculate_haplotype_statistics.py"
                 " -v1 {input}"
                 " -v2 {config[phasing_ground_truth]}"
                 " > {output}"
