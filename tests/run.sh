@@ -27,12 +27,17 @@ blr config \
     --set phasing_ground_truth ../testdata/HG002_GRCh38_GIAB_highconf_triophased.chr1mini.vcf
 
 pushd outdir-bowtie2
+
+echo "chr1mini" > genome.fa
+
+blr config --set chromosomes genome.fa
+
 blr run
 m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
 test $m == de843a922d50db18d73617df1c9884b5
 
 # Test phasing
-blr run phasing_stats.txt
+blr run phasing_stats.csv
 
 # Cut away columns 2 and 3 as these change order between linux and osx
 m2=$(cut -f1,4- mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase | md5sum | cut -f1 -d" ")

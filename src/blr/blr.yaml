@@ -21,3 +21,4 @@ barcode_len: 20 # Length of barcode sequence
 ####################
 reference_variants: #Path to reference variants used for phasing, if not provided then variant will be called by freebayes
 phasing_ground_truth: #Path to phased variants used for calculating stats
+chromosomes: # Chromosomes for phasing analysis.
