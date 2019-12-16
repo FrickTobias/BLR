@@ -6,7 +6,7 @@ def chr_from_file(file):
         return [line.strip() for line in f]
 
 # Get list of chromosomes for phasing analysis.
-chromosomes = [f"chr{nr}" for nr in range(22)] if not config["chromosomes"] else chr_from_file(config["chromosomes"])
+chromosomes = [f"chr{nr}" for nr in range(1, 23)] if not config["chromosomes"] else chr_from_file(config["chromosomes"])
 
 
 rule hapcut2_extracthairs:
