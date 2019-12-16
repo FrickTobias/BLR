@@ -44,7 +44,7 @@ rule hapcut2_linkfragments:
 rule hapcut2_phasing:
     output:
         phase =      "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase",
-        phased_vcf = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.VCF"
+        phased_vcf = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.vcf"
     input:
         linked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked.txt",
         vcf = variants
@@ -55,40 +55,49 @@ rule hapcut2_phasing:
          " --fragments {input.linked}"
          " --vcf {input.vcf}"
          " --out {output.phase}"
-         " --outvcf 1 2> {log}"
+         " --outvcf 1 2> {log};"
+         " mv mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.{{VCF,vcf}}"
+
+
+rule symlink_phasing_ground_truth:
+    output: "ground_truth.phased.vcf"
+    shell:
+        "ln -s {config[phasing_ground_truth]} {output}"
 
 
 rule bzgip_and_index_vcf:
     output:
-        vcf = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.vcf.gz",
-        index = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.vcf.gz.tbi"
+        vcf = "{sample}.phased.vcf.gz",
+        index = "{sample}.phased.vcf.gz.tbi"
     input:
-        vcf = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.VCF"
+        vcf = "{sample}.phased.vcf"
     shell:
-        "bgzip -c {input.vcf} > {output.vcf} &&"
+        "bgzip -c {input.vcf} > {output.vcf};"
         " tabix -p vcf {output.vcf}"
 
 
 rule split_vcf:
-    output: "chromosome_phased_vcf/{chromosome}.phased.vcf"
+    output: "sample_phased_vcf/{chromosome}.phased.vcf"
     input: "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.vcf.gz"
     shell: "tabix {input} {wildcards.chromosome} > {output}"
 
 
+rule split_vcf2:
+    output: "ground_truth_phased_vcf/{chromosome}.phased.vcf"
+    input: "ground_truth.phased.vcf.gz"
+    shell: "tabix {input} {wildcards.chromosome} > {output}"
+
+
 rule hapcut2_stats:
-    output: "chromosome_phased_vcf/{chromosome}.phasing_stats.txt"
-    input: "chromosome_phased_vcf/{chromosome}.phased.vcf"
-    run:
-        # Skip empty files.
-        if os.stat(input[0]).st_size == 0:
-            shell("touch {output}")
-        else:
-            shell(
-                "calculate_haplotype_statistics.py"
-                " -v1 {input}"
-                " -v2 {config[phasing_ground_truth]}"
-                " > {output}"
-            )
+    output: "phasing_stats.txt"
+    input:
+        vcf = expand("sample_phased_vcf/{chromosome}.phased.vcf", chromosome=chromosomes),
+        ref = expand("ground_truth_phased_vcf/{chromosome}.phased.vcf", chromosome=chromosomes)
+    shell:
+        "calculate_haplotype_statistics.py"
+        " -v1 {input.vcf}"
+        " -v2 {input.ref}"
+        " > {output}"
 
 
 rule aggregate_stats:
