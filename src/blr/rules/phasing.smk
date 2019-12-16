@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 variants = "variants.reference.vcf" if config["reference_variants"] else "variants.called.vcf"
 
 def chr_from_file(file):
@@ -69,26 +70,26 @@ rule bzgip_and_index_vcf:
 
 
 rule split_vcf:
-    output: expand("chromosome_phased_vcf/{chromosome}.phased.vcf", chromosome=chromosomes)
+    output: "chromosome_phased_vcf/{chromosome}.phased.vcf"
     input: "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.vcf.gz"
-    run:
-        for chromosome in chromosomes:
-            shell(
-                "tabix {input} {chromosome} > {output}"
-            )
+    shell: "tabix {input} {wildcards.chromosome} > {output}"
+
 
 rule hapcut2_stats:
-    output:
-        stats = "chromosome_phased_vcf/{chromosome}.phasing_stats.txt"
-    input:
-         vcf1 = "chromosome_phased_vcf/{chromosome}.phased.vcf"
-    params:
-          vcf2 = config["phasing_ground_truth"]
-    shell:
-         "calculate_haplotype_statistics.py"
-         " -v1 {input.vcf1}"
-         " -v2 {params.vcf2}"
-         " > {output.stats}"
+    output: "chromosome_phased_vcf/{chromosome}.phasing_stats.txt"
+    input: "chromosome_phased_vcf/{chromosome}.phased.vcf"
+    run:
+        # Skip empty files.
+        if os.stat(input[0]).st_size == 0:
+            shell("touch {output}")
+        else:
+            shell(
+                " calculate_haplotype_statistics.py"
+                " -v1 {input}"
+                " -v2 {config[phasing_ground_truth]}"
+                " > {output}"
+            )
+
 
 rule aggregate_stats:
     output: "phasing_stats.csv"
@@ -104,4 +105,5 @@ rule aggregate_stats:
                     row[l.split(":")[0]] = l.split(":")[1].strip()
             results.append(row)
         df = pd.DataFrame(results).set_index("chromosome")
+        print(df)
         df.to_csv(output[0])
