@@ -29,7 +29,7 @@ blr config \
 pushd outdir-bowtie2
 blr run
 m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
-test $m == e389e3f6e8ba14466f232b19fa1a0ee5
+test $m == de843a922d50db18d73617df1c9884b5
 
 # Test phasing
 blr run phasing_stats.txt
