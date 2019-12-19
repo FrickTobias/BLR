@@ -35,5 +35,5 @@ test $m == e6800be93dad0e09c41fd6dcecf68eb9
 blr run phasing_stats.txt
 
 # Cut away columns 2 and 3 as these change order between linux and osx
-m2=$(cut -f1,4- mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase | sort | md5sum | cut -f1 -d" ")
-test $m2 == 6fd66ab058ea30efdba1c9295bdf2cfc
+m2=$(cut -f1,4- mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase | md5sum | cut -f1 -d" ")
+test $m2 == 70c907df8a996d2b3ba3f06fb942b244
