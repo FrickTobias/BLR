@@ -480,7 +480,7 @@ def error_rate_calc(t_blocklist, a_blocklist, vcf_file, ref_name, indels=False, 
                             x == y and switched):  # current base is mismatched, implying a switch
                         switched = not switched  # flip the "switched" status
 
-                        if last_base_was_switch:  # if last base was a switch then this is actually a single-base mismatch
+                        if last_base_was_switch:  # then this is actually a single-base mismatch
                             # count the 2 switches as a single-base mismatch instead
                             blk_mismatches[a] += 1
                             blk_mmlist[a].append(pos)
