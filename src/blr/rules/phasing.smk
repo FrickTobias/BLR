@@ -48,16 +48,18 @@ rule hapcut2_phasing:
          " --out {output.phase}"
          " --outvcf 1 2> {log}"
 
+rule symlink_reference_phased:
+    output: "ground_truth.phased.vcf"
+    shell: "ln -s {config[phasing_ground_truth]} {output}"
 
 rule hapcut2_stats:
     output:
         stats = "phasing_stats.txt"
     input:
          vcf1 = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.VCF",
-    params:
-          vcf2 = config["phasing_ground_truth"]
+         vcf2 = "ground_truth.phased.vcf"
     shell:
-         "calculate_haplotype_statistics.py"
+         "blr calculate_haplotype_statistics"
          " -v1 {input.vcf1}"
-         " -v2 {params.vcf2}"
+         " -v2 {input.vcf2}"
          " > {output.stats}"
