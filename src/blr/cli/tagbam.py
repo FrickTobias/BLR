@@ -57,7 +57,7 @@ def mode_samtags_underline_separation(read, summary):
         summary[f"Reads with tag {tag}"] += 1
 
 
-def mode_ema(read, summary):
+def mode_ema(read):
     """
     Trims header from barcode sequences.
     Assumes format @header:and:more...:header:<seq>. Constrictions: There must be exactly 9 elements separated by ":"
