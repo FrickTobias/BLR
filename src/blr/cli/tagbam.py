@@ -1,58 +1,81 @@
 """
-Transfers barcode sequence information from the input file alignment name to SAM tags in output file.
+Strips headers from tags and depending on mode, set the appropriate SAM tag.
 """
 
 import pysam
 import logging
 from tqdm import tqdm
+from collections import Counter
+
+from blr.utils import print_stats
 
 logger = logging.getLogger(__name__)
 
 
 def main(args):
+    # Can't be at top since function are defined later
+    function_dict = {
+        "sam": mode_samtags_underline_separation,
+        "ema": mode_ema
+    }
 
-    # Generate dict with bc => bc_cluster consensus sequence
     logger.info("Starting analysis")
-    alignments_missing_bc = 0
+    summary = Counter()
+    processing_function = function_dict[args.format]
 
     # Read SAM/BAM files and transfer barcode information from alignment name to SAM tag
     with pysam.AlignmentFile(args.input, "rb") as infile, \
             pysam.AlignmentFile(args.output, "wb", template=infile) as out:
-
-        for read in tqdm(infile.fetch(until_eof=True), desc="Reading input"):
-            try:
-                name, raw_barcode_tag, corr_barcode_tag = read.query_name.split()[0].split('_')
-            except ValueError:
-                alignments_missing_bc += 1
-                name, raw_barcode_tag, corr_barcode_tag = read.query_name.split()[0], None, None
-
-            # Rename aligment to exclude barcode information.
-            read.query_name = name
-
-            if corr_barcode_tag:
-                assert corr_barcode_tag.startswith(f"{args.barcode_tag}:Z:")
-                corr_barcode = corr_barcode_tag.split(":")[-1]
-                read.set_tag(args.barcode_tag, corr_barcode, value_type='Z')
-
-            if raw_barcode_tag:
-                assert raw_barcode_tag.startswith(f"{args.sequence_tag}:Z:")
-                raw_barcode = raw_barcode_tag.split(":")[-1]
-                read.set_tag(args.sequence_tag, raw_barcode, value_type='Z')
-
+        for read in tqdm(infile.fetch(until_eof=True), desc="Processing reads", unit=" reads"):
+            # Strips header from tag and depending on script mode, possibly sets SAM tag
+            summary["Total reads"] += 1
+            processing_function(read, summary)
             out.write(read)
 
-    logger.info(f"Alignments missing barcodes: {alignments_missing_bc}")
+    print_stats(summary, name=__name__)
     logger.info("Finished")
+
+
+def mode_samtags_underline_separation(read, summary):
+    """
+    Trims header from tags and sets SAM tags according to values found in header.
+    Assumes format: @header_<tag>:<type>:<seq> (can be numerous tags). Constrictions are: Header includes SAM tags
+    separated by "_".
+    :param read: pysam read alignment
+    :param summary: Collections's Counter object
+    :return:
+    """
+
+    # Strip header
+    header = read.query_name.split("_")
+    read.query_name = header[0]
+
+    # Set SAM tags
+    for tag in header[1:]:
+        tag, tag_type, val = tag.split(":")
+        read.set_tag(tag, val, value_type=tag_type)
+        summary[f"Reads with tag {tag}"] += 1
+
+
+def mode_ema(read):
+    """
+    Trims header from barcode sequences.
+    Assumes format @header:and:more...:header:<seq>. Constrictions: There must be exactly 9 elements separated by ":"
+    :param read: pysam read alignment
+    :param summary: Collections's Counter object
+    :return:
+    """
+
+    # Strip header
+    read.query_name = read.query_name.rsplit(":", 1)[0]
 
 
 def add_arguments(parser):
     parser.add_argument("input",
-                        help="SAM/BAM file with mapped reads which is to be tagged with barcode information. To read "
-                             "from stdin use '-'.")
+                        help="BAM file with SAM tag info in header. To read from stdin use '-'.")
 
     parser.add_argument("-o", "--output", default="-",
                         help="Write output BAM to file rather then stdout.")
-    parser.add_argument("-b", "--barcode-tag", default="BX",
-                        help="SAM tag for storing the error corrected barcode. Default: %(default)s")
-    parser.add_argument("-s", "--sequence-tag", default="RX",
-                        help="SAM tag for storing the uncorrected barcode sequence. Default: %(default)s")
+    parser.add_argument("-f", "--format", default="sam", choices=["sam", "ema"],
+                        help="Specify what tag search function to use for finding tags. 'sam' requires SAM tags "
+                             "separated by '_'. 'ema' requires ':<bc-seq>' Default: %(default)s")

@@ -106,12 +106,15 @@ rule tagbam:
         bam = "mapped.sorted.tag.mkdup.bam" if config['duplicate_marker'] == 'samblaster' else "mapped.sorted.tag.bam"
     input:
         bam = "mapped.sorted.bam"
-    log: "tag_bam.stderr"
-    shell:
-        "blr tagbam"
-        " {input.bam}"
-        " -o {output.bam}"
-        " -b {config[cluster_tag]} 2> {log}"
+    log: "tag_bam.log"
+    run:
+        mode = "sam" if config["read_mapper"] != "ema" else "ema"
+        shell(
+            "blr tagbam"
+            " {input.bam}"
+            " -o {output.bam}"
+            " -f {mode}"
+            " 2> {log}")
 
 
 rule mark_duplicates:
@@ -195,6 +198,7 @@ rule bam_to_fastq:
     shell:
         "samtools fastq"
         " -@ {threads}"
+        " -T {config[cluster_tag]},{config[sequence_tag]}"
         " {input.bam}"
         " -1 {output.r1_fastq}"
         " -2 {output.r2_fastq} 2>> {log}"
