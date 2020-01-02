@@ -11,13 +11,12 @@ from tqdm import tqdm
 from blr import utils
 
 logger = logging.getLogger(__name__)
-summary = Counter()
 
 
 def main(args):
     tags_to_remove = [args.barcode_tag, args.molecule_tag, args.number_tag]
     removed_tags = {tag: set() for tag in tags_to_remove}
-
+    summary = Counter()
     logger.info("Starting")
 
     # Writes filtered out

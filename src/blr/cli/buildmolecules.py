@@ -13,15 +13,18 @@ from tqdm import tqdm
 from blr import utils
 
 logger = logging.getLogger(__name__)
-summary = Counter()
 
 
 def main(args):
+    summary = Counter()
+
     # Build molecules from BCs and reads
     with pysam.AlignmentFile(args.input, "rb") as infile:
         bc_to_mol_dict, header_to_mol_dict = build_molecules(pysam_openfile=infile,
                                                              barcode_tag=args.barcode_tag,
-                                                             window=args.window, min_reads=args.threshold)
+                                                             window=args.window,
+                                                             min_reads=args.threshold,
+                                                             summary=summary)
 
     # Writes filtered out
     with pysam.AlignmentFile(args.input, "rb") as openin, \
@@ -60,7 +63,7 @@ def main(args):
         write_molecule_stats(bc_to_mol_dict)
 
 
-def build_molecules(pysam_openfile, barcode_tag, window, min_reads):
+def build_molecules(pysam_openfile, barcode_tag, window, min_reads, summary):
     """
     Builds all_molecules.bc_to_mol ([barcode][moleculeID] = molecule) and
     all_molecules.header_to_mol ([read_name]=mol_ID)
@@ -68,6 +71,7 @@ def build_molecules(pysam_openfile, barcode_tag, window, min_reads):
     :param barcode_tag: Tag used to store barcode in bam file (usually BC).
     :param window: Max distance between reads to include in the same molecule.
     :param min_reads: Minimum reads to include molecule in all_molecules.bc_to_mol
+    :param summary: dict for stats collection
     :return: dict[barcode][molecule] = moleculeInstance, dict[read_name] = mol_ID
     """
 
