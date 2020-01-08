@@ -11,7 +11,11 @@ include: "rules/phasing.smk"
 
 
 rule final:
-   input: "reads.1.final.fastq.gz", "reads.2.final.fastq.gz"
+   input:
+        "reads.1.final.fastq.gz",
+        "reads.2.final.fastq.gz",
+        "phasing_stats.txt",
+        "multiqc_report.html"
 
 
 rule fastqc_raw_reads:
