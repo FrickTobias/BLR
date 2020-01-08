@@ -11,7 +11,43 @@ include: "rules/phasing.smk"
 
 
 rule final:
-    input: "reads.1.final.fastq.gz", "reads.2.final.fastq.gz"
+   input: "reads.1.final.fastq.gz", "reads.2.final.fastq.gz"
+
+
+rule fastqc_raw_reads:
+    # Creates fastqc reports from raw read files. Output names are automatically given by fastqc.
+    output:
+        qc_1 = "reads.1_fastqc.html",
+        qc_2 = "reads.2_fastqc.html",
+        zip_1 = "reads.1_fastqc.zip",
+        zip_2 = "reads.2_fastqc.zip"
+    input:
+        read_1 = "reads.1.fastq.gz",
+        read_2 = "reads.2.fastq.gz"
+    log:
+        "fastqc_raw_reads.log"
+    shell:
+        "fastqc"
+        " {input.read_1}"
+        " {input.read_2}"
+        " 2> {log}"
+
+
+rule multiqc_summarize:
+    # Summarizes all reports into one html report. Automatically identifies input/gives output names but by adding
+    # more input files it controls when snakemake runs the multiqc summary.
+    output:
+        multiqc_data_dir = directory("multiqc_data"),
+        summarized_reports = "multiqc_report.html"
+    input:
+        raw_read_1_qc = "reads.1_fastqc.html",
+        raw_read_2_qc = "reads.2_fastqc.html"
+    log:
+        "multiqc.log"
+    shell:
+        "multiqc"
+        " ."
+        " 2> {log}"
 
 
 rule starcode_clustering:
