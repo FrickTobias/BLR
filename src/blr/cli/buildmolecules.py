@@ -37,13 +37,13 @@ def main(args):
             # If barcode is not in bc_to_mol_dict the barcode does not have enough proximal reads to make a single
             # molecule.
             if barcode in bc_to_mol_dict:
-                summary[f"Reads {args.number_tag} tagged"] += 1
+                summary[f"Output reads {args.number_tag} tagged"] += 1
                 bc_num_molecules = len(bc_to_mol_dict[barcode])
                 read.set_tag(args.number_tag, bc_num_molecules)
 
             # If the read name is in header_to_mol_dict then it is associated to a specific molecule.
             if name in header_to_mol_dict:
-                summary[f"Reads {args.molecule_tag} tagged"] += 1
+                summary[f"Output reads {args.molecule_tag} tagged"] += 1
                 molecule_ID = header_to_mol_dict[name]
                 read.set_tag(args.molecule_tag, molecule_ID)
 
