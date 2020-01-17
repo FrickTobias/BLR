@@ -5,9 +5,10 @@ Strips headers from tags and depending on mode, set the appropriate SAM tag.
 import pysam
 import logging
 from tqdm import tqdm
-from collections import Counter
+from collections import Counter, OrderedDict
+import sys
 
-from blr.utils import print_stats
+from blr.utils import print_stats, create_header
 
 logger = logging.getLogger(__name__)
 
@@ -22,10 +23,11 @@ def main(args):
     logger.info("Starting analysis")
     summary = Counter()
     processing_function = function_dict[args.format]
+    header = create_header(args.input, __name__, sys.argv)
 
     # Read SAM/BAM files and transfer barcode information from alignment name to SAM tag
     with pysam.AlignmentFile(args.input, "rb") as infile, \
-            pysam.AlignmentFile(args.output, "wb", template=infile) as out:
+            pysam.AlignmentFile(args.output, "wb", header=header) as out:
         for read in tqdm(infile.fetch(until_eof=True), desc="Processing reads", unit=" reads"):
             # Strips header from tag and depending on script mode, possibly sets SAM tag
             summary["Total reads"] += 1
