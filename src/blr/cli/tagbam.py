@@ -5,7 +5,7 @@ Strips headers from tags and depending on mode, set the appropriate SAM tag.
 import pysam
 import logging
 from tqdm import tqdm
-from collections import Counter, OrderedDict
+from collections import Counter
 import sys
 
 from blr.utils import print_stats, create_header
