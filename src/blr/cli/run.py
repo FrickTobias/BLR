@@ -23,7 +23,7 @@ def add_arguments(parser):
     # Change the default for --cores (use available_cpu_count() perhaps)
     arg('--cores', '--jobs', '-j', metavar='N', type=int, default=4,
         help='Run on at most N CPU cores in parallel. '
-        'Default: %(default)s')
+             'Default: %(default)s')
     arg('--keepgoing', '-k', default=False, action='store_true',
         help='If one job fails, finish the others.')
     arg('--unlock', default=False, action='store_true',
@@ -37,7 +37,6 @@ def add_arguments(parser):
         help='File(s) to create. If omitted, the full pipeline is run. See --listrules (-l) for possible targets.')
 
 
-
 def main(args):
     targets = args.targets if args.targets else None
     try:
@@ -48,14 +47,14 @@ def main(args):
 
 
 def run(
-    dryrun: bool = False,
-    cores: int = 4,
-    keepgoing: bool = False,
-    unlock: bool = False,
-    printdag: bool = False,
-    targets=None,
-    workdir=None,
-    listrules=False
+        dryrun: bool = False,
+        cores: int = 4,
+        keepgoing: bool = False,
+        unlock: bool = False,
+        printdag: bool = False,
+        targets=None,
+        workdir=None,
+        listrules=False
 ):
     # snakemake sets up its own logging, and this cannot be easily changed
     # (setting keep_logger=True crashes), so remove our own log handler
