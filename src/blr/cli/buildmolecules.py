@@ -9,7 +9,6 @@ import pysam
 import logging
 from collections import Counter
 from tqdm import tqdm
-import sys
 
 from blr import utils
 
@@ -27,7 +26,7 @@ def main(args):
                                                              min_reads=args.threshold,
                                                              summary=summary)
 
-    header = utils.create_header(args.input, __name__, sys.argv)
+    header = utils.create_header(args.input, __name__)
     # Writes filtered out
     with pysam.AlignmentFile(args.input, "rb") as openin, \
             pysam.AlignmentFile(args.output, "wb", header=header) as openout:

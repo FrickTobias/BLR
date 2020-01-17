@@ -6,7 +6,6 @@ import logging
 from collections import Counter
 from tqdm import tqdm
 import os
-import sys
 
 from blr.utils import get_bamtag, print_stats, create_header
 
@@ -20,7 +19,7 @@ def main(args):
     values = get_values(args.values)
     counts = {value: 0 for value in values}
     summary["Values to collect"] = len(values)
-    header = create_header(args.input, __name__, sys.argv)
+    header = create_header(args.input, __name__)
 
     with pysam.AlignmentFile(args.input, "rb") as openin, \
             pysam.AlignmentFile(args.output, "wb", header=header) as openout:

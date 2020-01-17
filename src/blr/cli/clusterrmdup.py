@@ -13,7 +13,6 @@ import pysam
 import logging
 from tqdm import tqdm
 from collections import Counter, deque, OrderedDict
-import sys
 
 from blr import utils
 
@@ -64,7 +63,7 @@ def main(args):
     # Remove several step redundancy (5 -> 3, 3 -> 1) => (5 -> 1, 3 -> 1)
     reduce_several_step_redundancy(merge_dict)
     summary["Barcodes removed"] = len(merge_dict)
-    header = utils.create_header(args.input, __name__, sys.argv)
+    header = utils.create_header(args.input, __name__)
 
     # Write outputs
     barcodes_written = set()

@@ -6,7 +6,6 @@ import pysam
 import logging
 from tqdm import tqdm
 from collections import Counter
-import sys
 
 from blr.utils import print_stats, create_header
 
@@ -23,7 +22,7 @@ def main(args):
     logger.info("Starting analysis")
     summary = Counter()
     processing_function = function_dict[args.format]
-    header = create_header(args.input, __name__, sys.argv)
+    header = create_header(args.input, __name__)
 
     # Read SAM/BAM files and transfer barcode information from alignment name to SAM tag
     with pysam.AlignmentFile(args.input, "rb") as infile, \
