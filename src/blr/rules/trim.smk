@@ -24,6 +24,11 @@ extract_len = len(config["h1"])
 rule trim_and_tag:
     # Trim away 5' and possible 3' handles on read1 and trim possible 3' handles on read2.
     # Tag reads with uncorrected and corrected barcode.
+    """
+    output:
+        r1_fastq="trimmed.barcoded.1.fastq.gz",
+        r2_fastq="trimmed.barcoded.2.fastq.gz"
+    """
     output:
         r1_fastq="trimmed.barcoded.1.fastq.gz",
         r2_fastq="trimmed.barcoded.2.fastq.gz"
@@ -62,6 +67,10 @@ rule trim_and_tag:
 
 rule extract_DBS:
     # Extract barcode sequence from read1 FASTQ
+    """
+    output:
+        fastq="barcodes.fasta.gz"
+    """
     output:
         fastq="barcodes.fasta.gz"
     input:

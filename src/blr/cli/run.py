@@ -31,14 +31,17 @@ def add_arguments(parser):
     arg("--dag", default=False, action='store_true',
         help="Print the dag in the graphviz dot language (requires graphviz to be installed). Default: %(default)s. "
              "To get output to pdf file, pipe output into dot as follows: blr run --dag | dot -Tpdf > dag.pdf")
+    arg('--listrules', '-l', action='store_true',
+        help="List all rules and their outputs (which can be used as targets).")
     arg('targets', nargs='*', default=[],
-        help='File(s) to create. If omitted, the full pipeline is run.')
+        help='File(s) to create. If omitted, the full pipeline is run. See --listrules (-l) for possible targets.')
+
 
 
 def main(args):
     targets = args.targets if args.targets else None
     try:
-        run(args.dryrun, args.cores, args.keepgoing, args.unlock, args.dag, targets)
+        run(args.dryrun, args.cores, args.keepgoing, args.unlock, args.dag, targets, listrules=args.listrules)
     except SnakemakeError:
         sys.exit(1)
     sys.exit(0)
@@ -52,6 +55,7 @@ def run(
     printdag: bool = False,
     targets=None,
     workdir=None,
+    listrules=False
 ):
     # snakemake sets up its own logging, and this cannot be easily changed
     # (setting keep_logger=True crashes), so remove our own log handler
@@ -69,6 +73,7 @@ def run(
             printdag=printdag,
             targets=targets,
             workdir=workdir,
+            listrules=listrules
         )
     if not success:
         raise SnakemakeError()

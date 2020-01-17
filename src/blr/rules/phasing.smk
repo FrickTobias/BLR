@@ -2,6 +2,10 @@
 variants = "variants.reference.vcf" if config["reference_variants"] else "variants.called.vcf"
 
 rule hapcut2_extracthairs:
+    """
+    output:
+        unlinked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked.txt"
+    """
     output:
         unlinked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked.txt"
     input:
@@ -17,6 +21,10 @@ rule hapcut2_extracthairs:
 
 
 rule hapcut2_linkfragments:
+    """
+    output:
+        linked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked.txt"
+    """
     output:
         linked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked.txt"
     input:
@@ -33,8 +41,13 @@ rule hapcut2_linkfragments:
 
 
 rule hapcut2_phasing:
+    """
     output:
-        phase =      "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase",
+        phase = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase",
+        phased_vcf = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.VCF"
+    """
+    output:
+        phase = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase",
         phased_vcf = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.VCF"
     input:
         linked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked.txt",
@@ -50,6 +63,10 @@ rule hapcut2_phasing:
 
 
 rule hapcut2_stats:
+    """
+    output:
+        stats = "phasing_stats.txt"
+    """
     output:
         stats = "phasing_stats.txt"
     input:

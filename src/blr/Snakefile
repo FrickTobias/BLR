@@ -11,15 +11,39 @@ include: "rules/phasing.smk"
 
 
 rule final:
-   input:
+    """
+    blr run default targets:
+        "reads.1.final.fastq.gz",
+        "reads.2.final.fastq.gz",
+        "phasing_stats.txt",
+        "multiqc_report.html"
+    """
+    input:
         "reads.1.final.fastq.gz",
         "reads.2.final.fastq.gz",
         "phasing_stats.txt",
         "multiqc_report.html"
 
 
+rule help:
+    """
+    Print list of all targets with help.
+    """
+    run:
+        for rule in workflow.rules:
+            print(rule.name)
+            print(rule.docstring)
+
+
 rule fastqc_raw_reads:
     # Creates fastqc reports from raw read files. Output names are automatically given by fastqc.
+    """
+    output:
+        qc_1 = "reads.1_fastqc.html",
+        qc_2 = "reads.2_fastqc.html",
+        zip_1 = "reads.1_fastqc.zip",
+        zip_2 = "reads.2_fastqc.zip"
+    """
     output:
         qc_1 = "reads.1_fastqc.html",
         qc_2 = "reads.2_fastqc.html",
@@ -40,6 +64,11 @@ rule fastqc_raw_reads:
 rule multiqc_summarize:
     # Summarizes all reports into one html report. Automatically identifies input/gives output names but by adding
     # more input files it controls when snakemake runs the multiqc summary.
+    """
+    output:
+        multiqc_data_dir = directory("multiqc_data"),
+        summarized_reports = "multiqc_report.html"
+    """
     output:
         multiqc_data_dir = directory("multiqc_data"),
         summarized_reports = "multiqc_report.html"
@@ -56,6 +85,10 @@ rule multiqc_summarize:
 
 rule starcode_clustering:
     # Cluster DBS barcodes using starcode
+    """
+    output:
+        "barcodes.clstr"
+    """
     output:
         "barcodes.clstr"
     input:
@@ -75,6 +108,10 @@ rule starcode_clustering:
 rule barcode_sort_fastq:
     # Assumes barcode read name is followed by barcode sequence.
     # Exmaple: @ST-E00269:339:H27G2CCX2:7:1102:21186:8060:AAAAAAAATATCTACGCTCA BX:Z:AAAAAAAATATCTACGCTCA
+    """
+    output:
+        fastq = "sorted.{nr}.fastq.gz"
+    """
     output:
         fastq = "sorted.{nr}.fastq.gz"
     input:
@@ -88,6 +125,10 @@ rule barcode_sort_fastq:
 
 
 rule map_reads:
+    """
+    output:
+        bam = "mapped.sorted.bam"
+    """
     output:
         bam = "mapped.sorted.bam"
     input:
@@ -142,6 +183,10 @@ rule map_reads:
 
 rule tagbam:
     # Add barcodes to BAM
+    """
+    output:
+        bam = "mapped.sorted.tag.mkdup.bam" if config['duplicate_marker'] == 'samblaster' else "mapped.sorted.tag.bam"
+    """
     output:
         bam = "mapped.sorted.tag.mkdup.bam" if config['duplicate_marker'] == 'samblaster' else "mapped.sorted.tag.bam"
     input:
@@ -158,6 +203,10 @@ rule tagbam:
 
 
 rule mark_duplicates:
+    """
+    output:
+        bam = "mapped.sorted.tag.mkdup.bam"
+    """
     output:
         bam = "mapped.sorted.tag.mkdup.bam"
     input:
@@ -173,6 +222,11 @@ rule mark_duplicates:
 
 rule clusterrmdup:
     # Removes cluster duplicates and indexes output
+    """
+    output:
+        bam = "mapped.sorted.tag.mkdup.bcmerge.bam",
+        merges = "barcode-merges.csv"
+    """
     output:
         bam = "mapped.sorted.tag.mkdup.bcmerge.bam",
         merges = "barcode-merges.csv"
@@ -189,6 +243,11 @@ rule clusterrmdup:
 
 rule buildmolecules:
     # Groups reads into molecules depending on their genomic position and barcode
+    """
+    output:
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.bam",
+        stats = expand("{stat}.tsv", stat=['molecules_per_bc', 'molecule_stats'])
+    """
     output:
         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.bam",
         stats = expand("{stat}.tsv", stat=['molecules_per_bc', 'molecule_stats'])
@@ -208,6 +267,11 @@ rule buildmolecules:
 
 rule filterclusters:
     # Filter clusters based on parameters
+    """
+    output:
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
+        bai = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam.bai"
+    """
     output:
         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
         bai = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam.bai"
@@ -228,6 +292,11 @@ rule filterclusters:
 
 rule bam_to_fastq:
     # Convert final BAM file to FASTQ files for read 1 and 2
+    """
+    output:
+        r1_fastq = "reads.1.final.fastq.gz",
+        r2_fastq = "reads.2.final.fastq.gz"
+    """
     output:
         r1_fastq = "reads.1.final.fastq.gz",
         r2_fastq = "reads.2.final.fastq.gz"
@@ -245,12 +314,20 @@ rule bam_to_fastq:
 
 
 rule symlink_reference_variants:
+    """
+    output:
+        "variants.reference.vcf"
+    """
     output: "variants.reference.vcf"
     shell:
         "ln -s {config[reference_variants]} {output}"
 
 
 rule call_variants_freebayes:
+    """
+    output:
+         vcf = "variants.called.vcf"
+    """
     output:
          vcf = "variants.called.vcf"
     input:
