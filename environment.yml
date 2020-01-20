@@ -25,3 +25,4 @@ dependencies:
   - ruamel.yaml
   - vcflib
   - ema=0.6.2
+  - bcftools

@@ -250,15 +250,40 @@ rule symlink_reference_variants:
         "ln -s {config[reference_variants]} {output}"
 
 
-rule call_variants_freebayes:
+rule call_variants:
     output:
          vcf = "variants.called.vcf"
     input:
          bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
-    log: "call_variants_freebayes.log"
-    shell:
-         "freebayes"
-         " -f {config[genome_reference]}"
-         " {input.bam} |"
-         "vcffilter -f 'AC > 0' 1>"
-         " {output.vcf} 2> {log}"
+    log: "call_variants.log"
+    run:
+        commands = {
+            "freebayes":
+                 "freebayes"
+                 " -f {config[genome_reference]}"
+                 " {input.bam}"
+                 " 2> {log}"
+                 " | "
+                 "vcffilter"
+                 " -f"
+                 " 'AC > 0'"
+                 " 1> {output.vcf} 2>> {log}",
+            "bcftools":
+                "bcftools mpileup"
+                " -f {config[genome_reference]}"
+                " {input.bam}"
+                " --threads {threads}"
+                " 2> {log}"
+                " | "
+                "bcftools call"
+                " -m"
+                " -v"
+                " -O v"
+                " --ploidy GRCh38"
+                " --threads {threads}"
+                " -o {output.vcf} 2>> {log}"
+                }
+        command = commands[config["variant_caller"]].format(**locals(), **globals())
+        shell(
+            "{command}"
+        )
