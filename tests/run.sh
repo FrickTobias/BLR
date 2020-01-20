@@ -24,12 +24,13 @@ blr config \
     --file outdir-bowtie2/blr.yaml \
     --set genome_reference ../testdata/chr1mini.fasta \
     --set reference_variants ../testdata/HG002_GRCh38_GIAB_highconf.chr1mini.vcf \
-    --set phasing_ground_truth ../testdata/HG002_GRCh38_GIAB_highconf_triophased.chr1mini.vcf
+    --set phasing_ground_truth ../testdata/HG002_GRCh38_GIAB_highconf_triophased.chr1mini.vcf \
+    --set max_molecules_per_bc 1
 
 pushd outdir-bowtie2
 blr run
 m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
-test $m == 60b2acc02c872c30d8683bd6a9d3568b
+test $m == 92f61fee39508beadb96f018a6ceac49
 
 # Test phasing
 blr run phasing_stats.txt
