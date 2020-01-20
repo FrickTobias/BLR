@@ -22,7 +22,7 @@ def main(args):
     # Writes filtered out
     with pysam.AlignmentFile(args.input, "rb") as openin, \
             pysam.AlignmentFile(args.output, "wb", template=openin) as openout:
-        for read in tqdm(openin.fetch(until_eof=True)):
+        for read in tqdm(openin.fetch(until_eof=True), desc="Filtering input", unit="reads"):
             summary["Total reads"] += 1
             no_mols = utils.get_bamtag(pysam_read=read, tag=args.number_tag)
 
@@ -33,8 +33,7 @@ def main(args):
                 summary["Removed tags"] += len(tags_to_remove)
                 summary["Reads with removed tags"] += 1
 
-                strip_barcode(pysam_read=read, tags_to_be_removed=tags_to_remove, removed_tags=removed_tags,
-                              summary=summary)
+                strip_barcode(pysam_read=read, tags_to_be_removed=tags_to_remove, removed_tags=removed_tags)
 
             openout.write(read)
 
@@ -45,7 +44,7 @@ def main(args):
     utils.print_stats(summary, name=__name__)
 
 
-def strip_barcode(pysam_read, tags_to_be_removed, removed_tags, summary):
+def strip_barcode(pysam_read, tags_to_be_removed, removed_tags):
     """
     Strips an alignment from its barcode sequence. Keeps information in header but adds FILTERED prior to bc info.
     """
@@ -55,12 +54,9 @@ def strip_barcode(pysam_read, tags_to_be_removed, removed_tags, summary):
 
     # Remove tags
     for bam_tag in tags_to_be_removed:
-
-        if pysam_read.has_tag(bam_tag):
-            removed_tags[bam_tag].add(pysam_read.get_tag(bam_tag))
-            # Strip read from tag
-            pysam_read.set_tag(bam_tag, None, value_type="Z")
-            summary[f"Total {bam_tag} tags removed"] += 1
+        removed_tags[bam_tag].add(pysam_read.get_tag(bam_tag))
+        # Strip read from tag
+        pysam_read.set_tag(bam_tag, None, value_type="Z")
 
 
 def add_arguments(parser):

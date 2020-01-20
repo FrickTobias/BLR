@@ -37,15 +37,18 @@ def main(args):
             # If barcode is not in bc_to_mol_dict the barcode does not have enough proximal reads to make a single
             # molecule.
             if barcode in bc_to_mol_dict:
-                summary[f"Output reads {args.number_tag} tagged"] += 1
                 bc_num_molecules = len(bc_to_mol_dict[barcode])
                 read.set_tag(args.number_tag, bc_num_molecules)
+            else:
+                read.set_tag(args.number_tag, 0)
 
             # If the read name is in header_to_mol_dict then it is associated to a specific molecule.
             if name in header_to_mol_dict:
-                summary[f"Output reads {args.molecule_tag} tagged"] += 1
                 molecule_ID = header_to_mol_dict[name]
                 read.set_tag(args.molecule_tag, molecule_ID)
+            else:
+                # For reads not associated to a specific molecule the molecule id is set to -1.
+                read.set_tag(args.molecule_tag, -1)
 
             openout.write(read)
 
@@ -70,8 +73,8 @@ def parse_reads(pysam_openfile, barcode_tag, summary):
             summary["Reads without barcode"] += 1
             is_good = False
 
-        if read.is_unmapped and barcode:
-            summary[f"Unmapped {barcode_tag} tagged read"] += 1
+        if read.is_unmapped:
+            summary[f"Unmapped reads"] += 1
             is_good = False
 
         if is_good:
