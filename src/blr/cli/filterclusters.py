@@ -18,11 +18,11 @@ def main(args):
     removed_tags = {tag: set() for tag in tags_to_remove}
     summary = Counter()
     logger.info("Starting")
-
+    header = utils.create_header(args.input, __name__)
     # Writes filtered out
     with pysam.AlignmentFile(args.input, "rb") as openin, \
-            pysam.AlignmentFile(args.output, "wb", template=openin) as openout:
-        for read in tqdm(openin.fetch(until_eof=True), desc="Filtering input", unit="reads"):
+            pysam.AlignmentFile(args.output, "wb", header=header) as openout:
+        for read in tqdm(openin.fetch(until_eof=True), desc="Filtering input", unit="reads")):
             summary["Total reads"] += 1
             no_mols = utils.get_bamtag(pysam_read=read, tag=args.number_tag)
 

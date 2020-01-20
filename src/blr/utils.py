@@ -1,6 +1,7 @@
 import re
 from pathlib import Path
 import sys
+import pysam
 
 
 def is_1_2(s, t):
@@ -76,3 +77,51 @@ def print_stats(summary, name=None, value_width=15, print_to=sys.stderr):
         print(f"{name:<{max_name_width}} {value:>{value_width},}", file=print_to)
 
     print("="*width, file=print_to)
+
+
+def create_header(file, name):
+    """
+    Create SAM header dict with new tool and command line argument information based on template file. Appends new PG
+    entry with tool name (ID), software name (PN), command line arguments (CL) to track the tools applied to the file.
+    Use in output SAM/BAM file as 'header' attribute.
+
+    :param file: string. Path to input SAM/BAM file.
+    :param name: string. Pass '__name__' variable to be used to get program and tool name.
+    :return: pysam.AlignmentHeader object
+    """
+    def check_name(identifier, prev_entries):
+        """
+        Check that identifier does not appear in previous header entries. Update with numbered suffix if the name is
+        not unique.
+        :param identifier: string. Program record identifier
+        :param prev_entries: dict. Dictionary of "PG" header entries from pysam.AlignmentFile header.
+        :return: string. Updated identifier
+        """
+        nr = 0
+        updated_identifier = identifier
+        while any(updated_identifier == e["ID"] for e in prev_entries):
+            nr += 1
+            updated_identifier = "_".join([identifier, str(nr)])
+        return updated_identifier
+
+    id_name = name.split(".")[-1]
+    program_name = name.split(".")[0]
+    cmd_line = f"\"{' '.join(sys.argv)}\""
+
+    with pysam.AlignmentFile(file, "rb") as template:
+        header = template.header.to_dict()
+        pg_entries = header["PG"]
+
+        # Check that id is unique and does not appear in header, otherwise add number at end.
+        id_name = check_name(id_name, pg_entries)
+
+        # TODO add version information (VN tag).
+        pg_entries.append({
+            "ID": id_name,          # Program record identifier. Must be unique
+            "PN": program_name,     # Program name
+            "CL": cmd_line          # Command line
+        })
+
+        header["PG"] = pg_entries
+
+    return pysam.AlignmentHeader.from_dict(header)

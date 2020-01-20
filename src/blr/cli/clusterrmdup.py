@@ -63,12 +63,13 @@ def main(args):
     # Remove several step redundancy (5 -> 3, 3 -> 1) => (5 -> 1, 3 -> 1)
     reduce_several_step_redundancy(merge_dict)
     summary["Barcodes removed"] = len(merge_dict)
+    header = utils.create_header(args.input, __name__)
 
     # Write outputs
     barcodes_written = set()
     with open(args.merge_log, "w") as bc_merge_file, \
             pysam.AlignmentFile(args.input, "rb") as infile, \
-            pysam.AlignmentFile(args.output, "wb", template=infile) as out:
+            pysam.AlignmentFile(args.output, "wb", header=header) as out:
         print(f"Previous_barcode,New_barcode", file=bc_merge_file)
         for read in tqdm(infile.fetch(until_eof=True), desc="Writing output", total=summary["Total reads"]):
 

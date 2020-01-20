@@ -7,7 +7,7 @@ from collections import Counter
 from tqdm import tqdm
 import os
 
-from blr.utils import get_bamtag, print_stats
+from blr.utils import get_bamtag, print_stats, create_header
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +19,10 @@ def main(args):
     values = get_values(args.values)
     counts = {value: 0 for value in values}
     summary["Values to collect"] = len(values)
+    header = create_header(args.input, __name__)
 
     with pysam.AlignmentFile(args.input, "rb") as openin, \
-            pysam.AlignmentFile(args.output, "wb", template=openin) as openout:
+            pysam.AlignmentFile(args.output, "wb", header=header) as openout:
         for read in tqdm(openin.fetch(until_eof=True), desc="Processing reads"):
             summary["Reads in"] += 1
             value = get_bamtag(read, args.tag)
