@@ -7,22 +7,39 @@ import logging
 from ruamel.yaml import YAML
 from snakemake.utils import validate
 import pkg_resources
+from shutil import get_terminal_size
 
 logger = logging.getLogger(__name__)
 DEFAULT_PATH = "blr.yaml"
 SCHEMA_FILE = "config.schema.yaml"
 
+# Script is based on repos NBISSweden/IgDisover config script.
+# Link https://github.com/NBISweden/IgDiscover/blob/master/src/igdiscover/cli/config.py
+
 
 def main(args):
-    # Script is based on repos NBISSweden/IgDisover config script.
-    # Link https://github.com/NBISweden/IgDiscover/blob/master/src/igdiscover/cli/config.py
+    run(yaml_file=args.file, changes_set=args.set)
 
-    if args.set:
-        change_config(args.file, args.set)
+
+def run(yaml_file=DEFAULT_PATH, changes_set=None):
+    """
+    Update configs in YAML file if given set with new changes. Otherwise print current configs.
+    :param yaml_file: string. Path to YAML file.
+    :param changes_set: list of tuples. Tuple pairs containing the string of the parameter to be changed and the new
+    value.
+    """
+    if changes_set:
+        change_config(yaml_file, changes_set)
     else:
-        configs, yaml = load_yaml(args.file)
-        print(f"--- CONFIGS IN: {args.file} ---")
+        configs, yaml = load_yaml(yaml_file)
+        width, _ = get_terminal_size()
+        header = f" CONFIGS IN: {yaml_file} "
+        padding = int((width - len(header)) / 2) * "="
+
+        # Print out current setting
+        print(f"{padding}{header}{padding}")
         yaml.dump(configs, stream=sys.stdout)
+        print(f"{'='*width}")
 
 
 def change_config(filename, changes_set):
