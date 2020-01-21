@@ -14,7 +14,7 @@ import logging
 from tqdm import tqdm
 from collections import Counter, deque, OrderedDict
 
-from blr import utils
+from blr.utils import PySAMIO, get_bamtag, print_stats
 
 logger = logging.getLogger(__name__)
 
@@ -63,18 +63,16 @@ def main(args):
     # Remove several step redundancy (5 -> 3, 3 -> 1) => (5 -> 1, 3 -> 1)
     reduce_several_step_redundancy(merge_dict)
     summary["Barcodes removed"] = len(merge_dict)
-    header = utils.create_header(args.input, __name__)
 
     # Write outputs
     barcodes_written = set()
-    with open(args.merge_log, "w") as bc_merge_file, \
-            pysam.AlignmentFile(args.input, "rb") as infile, \
-            pysam.AlignmentFile(args.output, "wb", header=header) as out:
+    with PySAMIO(args.input, "rb", args.output, "wb", __name__) as (infile, out), \
+            open(args.merge_log, "w") as bc_merge_file:
         print(f"Previous_barcode,New_barcode", file=bc_merge_file)
         for read in tqdm(infile.fetch(until_eof=True), desc="Writing output", total=summary["Total reads"]):
 
             # If read barcode in merge dict, change tag and header to compensate.
-            previous_barcode = utils.get_bamtag(pysam_read=read, tag=args.barcode_tag)
+            previous_barcode = get_bamtag(pysam_read=read, tag=args.barcode_tag)
             if previous_barcode in merge_dict:
                 summary["Reads with new barcode"] += 1
                 new_barcode = str(merge_dict[previous_barcode])
@@ -88,7 +86,7 @@ def main(args):
             out.write(read)
 
     logger.info("Finished")
-    utils.print_stats(summary, name=__name__)
+    print_stats(summary, name=__name__)
 
 
 def parse_and_filter_pairs(file, barcode_tag, summary):
@@ -113,7 +111,7 @@ def parse_and_filter_pairs(file, barcode_tag, summary):
                 continue
 
             # Get barcode and confirm that its not None
-            barcode = utils.get_bamtag(read, barcode_tag)
+            barcode = get_bamtag(read, barcode_tag)
             if not barcode:
                 summary["Non tagged reads"] += 2
                 continue
