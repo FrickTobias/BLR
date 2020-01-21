@@ -103,9 +103,9 @@ class PySAMIO:
 
     def _make_header(self, name):
         """
-        Create SAM header dict with new tool and command line argument information based on template file. Appends new PG
-        entry with tool name (ID), software name (PN), command line arguments (CL) to track the tools applied to the file.
-        Use in output SAM/BAM file as 'header' attribute.
+        Create SAM header dict with new tool and command line argument information based on template file. Appends
+        new PG entry with tool name (ID), software name (PN), command line arguments (CL) to track the tools applied
+        to the file. Use in output SAM/BAM file as 'header' attribute.
 
         :param name: string. Pass '__name__' variable to be used to get program and tool name.
         :return: pysam.AlignmentHeader object
