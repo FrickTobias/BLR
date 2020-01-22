@@ -307,7 +307,13 @@ rule call_variants:
                 " -R {config[genome_reference]}"
                 " -I {input.bam}"
                 " -ERC GVCF"
-                " -O {output.vcf} 2> {log}"
+                " -O {output.vcf} 2> {log}",
+            "deepvariant":
+                "deepvariant"
+	            " --model_type=WGS"
+	            " --output_vcf={output.vcf}"
+	            " --reads={output.bam}"
+	            " --ref={config[genome_reference]}"
                 }
 
         command = commands[config["variant_caller"]].format(**locals(), **globals())
