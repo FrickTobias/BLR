@@ -90,7 +90,7 @@ def test_link_reference_variants(tmpdir):
     assert Path(workdir / target).is_symlink()
 
 
-@pytest.mark.parametrize("variant_caller", ["freebayes", "bcftools"])
+@pytest.mark.parametrize("variant_caller", ["freebayes", "bcftools", "gatk"])
 def test_call_variants(tmpdir, variant_caller):
     workdir = tmpdir / "analysis"
     init(workdir, TESTDATA_READS)
