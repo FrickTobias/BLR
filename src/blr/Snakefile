@@ -247,11 +247,34 @@ rule symlink_reference_variants:
         "ln -s {config[reference_variants]} {output}"
 
 
+# TODO: Add rules or something for preprocessing required by GATK:
+# - Add RG tag
+# - Re-index
+
+rule add_RG_tag:
+    output:
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.RG.bam",
+        bai = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.RG.bam.bai"
+    input:
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
+    log: "add_RG_tag.log"
+    shell:
+        "blr addbamtag"
+        " --tag RG"
+        " --type Z"
+        " --value 4"
+        " {input.bam}"
+        " 2> {log} "
+        " | "
+        " tee {output.bam}"
+        " | "
+        " samtools index  - {output.bai}"
+
 rule call_variants:
     output:
          vcf = "variants.called.vcf"
     input:
-         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
+         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam" if not config["variant_caller"] == "gatk" else "mapped.sorted.tag.mkdup.bcmerge.mol.filt.RG.bam",
     log: "call_variants.log"
     run:
         commands = {
@@ -278,9 +301,17 @@ rule call_variants:
                 " -O v"
                 " --ploidy GRCh38"
                 " --threads {threads}"
-                " -o {output.vcf} 2>> {log}"
+                " -o {output.vcf} 2>> {log}",
+            "gatk":
+                "gatk --java-options -Xmx{config[heap_space]}g HaplotypeCaller"
+                " -R {config[genome_reference]}"
+                " -I {input.bam}"
+                " -ERC GVCF"
+                " -O {output.vcf} 2> {log}"
                 }
+
         command = commands[config["variant_caller"]].format(**locals(), **globals())
+
         shell(
             "{command}"
         )
