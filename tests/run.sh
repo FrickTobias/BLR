@@ -15,6 +15,7 @@ ema
 ( cd testdata && bwa index chr1mini.fasta )
 ( cd testdata && bowtie2-build chr1mini.fasta chr1mini.fasta > /dev/null )
 ( cd testdata && samtools faidx chr1mini.fasta )
+( cd testdata && gatk CreateSequenceDictionary -R chr1mini.fasta )
 
 pytest -v tests/
 

@@ -12,10 +12,7 @@ Usage example:
 
 import pysam
 import logging
-from collections import Counter
 from tqdm import tqdm
-
-from blr import utils
 
 logger = logging.getLogger(__name__)
 
