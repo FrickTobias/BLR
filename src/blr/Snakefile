@@ -107,14 +107,11 @@ rule tagbam:
     input:
         bam = "mapped.sorted.bam"
     log: "tag_bam.log"
-    run:
-        mode = "sam" if config["read_mapper"] != "ema" else "ema"
-        shell(
-            "blr tagbam"
-            " {input.bam}"
-            " -o {output.bam}"
-            " -f {mode}"
-            " 2> {log}")
+    shell:
+        "blr tagbam"
+        " {input.bam}"
+        " -o {output.bam}"
+        " 2> {log}"
 
 
 rule mark_duplicates:

@@ -1,5 +1,5 @@
 """
-Strips headers from tags and depending on mode, set the appropriate SAM tag.
+Strips headers from tags and depending on mapper, set the appropriate SAM tag.
 """
 
 import logging
@@ -12,18 +12,23 @@ logger = logging.getLogger(__name__)
 
 
 def main(args):
-    # Can't be at top since function are defined later
-    function_dict = {
-        "sam": mode_samtags_underline_separation,
-        "ema": mode_ema
+    # Processing scheme for each mapper.
+    modes = {
+        "bowtie2": mode_samtags_underline_separation,
+        "ema": mode_ema,
+        "minimap2": mode_samtags_underline_separation,
+        "bwa": mode_samtags_underline_separation
     }
 
     logger.info("Starting analysis")
     summary = Counter()
-    processing_function = function_dict[args.format]
 
     # Read SAM/BAM files and transfer barcode information from alignment name to SAM tag
     with PySAMIO(args.input, "rb", args.output, "wb", __name__) as (infile, outfile):
+        # Get mapper info to select processing scheme.
+        mapper = infile.header.to_dict()["PG"][0]["PN"]
+        processing_function = modes[mapper]
+
         for read in tqdm(infile.fetch(until_eof=True), desc="Processing reads", unit=" reads"):
             # Strips header from tag and depending on script mode, possibly sets SAM tag
             summary["Total reads"] += 1
@@ -41,7 +46,6 @@ def mode_samtags_underline_separation(read, summary):
     separated by "_".
     :param read: pysam read alignment
     :param summary: Collections's Counter object
-    :return:
     """
 
     # Strip header
@@ -55,13 +59,11 @@ def mode_samtags_underline_separation(read, summary):
         summary[f"Reads with tag {tag}"] += 1
 
 
-def mode_ema(read):
+def mode_ema(read, *unused):
     """
     Trims header from barcode sequences.
     Assumes format @header:and:more...:header:<seq>. Constrictions: There must be exactly 9 elements separated by ":"
     :param read: pysam read alignment
-    :param summary: Collections's Counter object
-    :return:
     """
 
     # Strip header
@@ -74,6 +76,3 @@ def add_arguments(parser):
 
     parser.add_argument("-o", "--output", default="-",
                         help="Write output BAM to file rather then stdout.")
-    parser.add_argument("-f", "--format", default="sam", choices=["sam", "ema"],
-                        help="Specify what tag search function to use for finding tags. 'sam' requires SAM tags "
-                             "separated by '_'. 'ema' requires ':<bc-seq>' Default: %(default)s")
