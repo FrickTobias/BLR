@@ -247,10 +247,6 @@ rule symlink_reference_variants:
         "ln -s {config[reference_variants]} {output}"
 
 
-# TODO: Add rules or something for preprocessing required by GATK:
-# - Add RG tag
-# - Re-index
-
 rule add_RG_tag:
     output:
         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.RG.bam",
