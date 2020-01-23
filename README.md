@@ -18,7 +18,7 @@ the analysis directory with this command:
 Note that BLR expects paired-end reads. However, only the path to the R1 file
 needs to be provided. The R2 file will be found automatically.
 
-Then, you may need to edit the configuration file `workdir/config.yaml`, in
+Then, you may need to edit the configuration file `workdir/blr.yaml`, in
 particular to enter the path to your reference genome.
 
 Finally, change into the `workdir` folder and run the pipeline:
