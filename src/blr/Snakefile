@@ -314,7 +314,7 @@ rule call_variants:
             "deepvariant":
                 "deepvariant"
 	            " --model_type=WGS"
-	            " --output_vcf={output.vcf}"
+	            " --output_vcf={output.vcf}"p
 	            " --reads={input.bam}"
 	            " --ref={config[genome_reference]}"
                 }
