@@ -82,13 +82,13 @@ def print_stats(summary, name=None, value_width=15, print_to=sys.stderr):
 class PySAMIO:
     """ Reader and writer for BAM/SAM files that automatically attaches processing step information to header """
 
-    def __init__(self, inname: str, inmode: str, outname: str, outmode: str, name: str):
+    def __init__(self, inname: str, outname: str, name: str, inmode: str = "rb", outmode: str = "wb"):
         """
         :param inname: Path to input SAM/BAM file.
-        :param inmode: Reading mode for input file. 'r' for SAM and 'rb' for BAM.
         :param outname: Path to output SAM/BAM file.
-        :param outmode: Reading mode for output file. 'r' for SAM and 'rb' for BAM.
         :param name: __name__ variable from script.
+        :param inmode: Reading mode for input file. 'r' for SAM and 'rb' for BAM.
+        :param outmode: Reading mode for output file. 'r' for SAM and 'rb' for BAM.
         """
         self.infile = pysam.AlignmentFile(inname, inmode)
         self.header = self._make_header(name)

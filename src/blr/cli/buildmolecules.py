@@ -26,7 +26,7 @@ def main(args):
                                                              min_reads=args.threshold,
                                                              summary=summary)
     # Writes filtered out
-    with PySAMIO(args.input, "rb", args.output, "wb", __name__) as (openin, openout):
+    with PySAMIO(args.input, args.output, __name__) as (openin, openout):
         logger.info("Writing filtered bam file")
         for read in tqdm(openin.fetch(until_eof=True)):
             name = read.query_name

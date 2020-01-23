@@ -19,7 +19,7 @@ def main(args):
     logger.info("Starting")
 
     # Writes filtered out
-    with PySAMIO(args.input, "rb", args.output, "wb", __name__) as (openin, openout):
+    with PySAMIO(args.input, args.output, __name__) as (openin, openout):
         for read in tqdm(openin.fetch(until_eof=True), desc="Filtering input", unit="reads"):
             summary["Total reads"] += 1
             no_mols = get_bamtag(pysam_read=read, tag=args.number_tag)

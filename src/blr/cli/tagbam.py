@@ -23,7 +23,7 @@ def main(args):
     processing_function = function_dict[args.format]
 
     # Read SAM/BAM files and transfer barcode information from alignment name to SAM tag
-    with PySAMIO(args.input, "rb", args.output, "wb", __name__) as (infile, outfile):
+    with PySAMIO(args.input, args.output, __name__) as (infile, outfile):
         for read in tqdm(infile.fetch(until_eof=True), desc="Processing reads", unit=" reads"):
             # Strips header from tag and depending on script mode, possibly sets SAM tag
             summary["Total reads"] += 1

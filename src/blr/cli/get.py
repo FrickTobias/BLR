@@ -19,7 +19,7 @@ def main(args):
     counts = {value: 0 for value in values}
     summary["Values to collect"] = len(values)
 
-    with PySAMIO(args.input, "rb", args.output, "wb", __name__) as (openin, openout):
+    with PySAMIO(args.input, args.output, __name__) as (openin, openout):
         for read in tqdm(openin.fetch(until_eof=True), desc="Processing reads"):
             summary["Reads in"] += 1
             value = get_bamtag(read, args.tag)
