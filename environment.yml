@@ -15,7 +15,7 @@ dependencies:
   - cutadapt=2.5
   - sambamba=0.6.6
   - samblaster
-  - hapcut2
+  - hapcut2=1.2
   - samtools
   - snakemake-minimal
   - starcode
@@ -25,3 +25,5 @@ dependencies:
   - ruamel.yaml
   - vcflib
   - ema=0.6.2
+  - fastqc
+  - multiqc
