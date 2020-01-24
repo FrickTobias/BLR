@@ -10,7 +10,7 @@ import logging
 from collections import Counter
 from tqdm import tqdm
 
-from blr import utils
+from blr.utils import PySAMIO, get_bamtag, print_stats
 
 logger = logging.getLogger(__name__)
 
@@ -25,15 +25,12 @@ def main(args):
                                                              window=args.window,
                                                              min_reads=args.threshold,
                                                              summary=summary)
-
-    header = utils.create_header(args.input, __name__)
     # Writes filtered out
-    with pysam.AlignmentFile(args.input, "rb") as openin, \
-            pysam.AlignmentFile(args.output, "wb", header=header) as openout:
+    with PySAMIO(args.input, args.output, __name__) as (openin, openout):
         logger.info("Writing filtered bam file")
         for read in tqdm(openin.fetch(until_eof=True)):
             name = read.query_name
-            barcode = utils.get_bamtag(pysam_read=read, tag=args.barcode_tag)
+            barcode = get_bamtag(pysam_read=read, tag=args.barcode_tag)
 
             # If barcode is not in bc_to_mol_dict the barcode does not have enough proximal reads to make a single
             # molecule.
@@ -53,7 +50,7 @@ def main(args):
 
             openout.write(read)
 
-    utils.print_stats(summary, name=__name__)
+    print_stats(summary, name=__name__)
 
     # Write molecule/barcode file stats
     if args.stats_files:
@@ -69,7 +66,7 @@ def parse_reads(pysam_openfile, barcode_tag, summary):
             summary["Duplicates"] += 1
             is_good = False
 
-        barcode = utils.get_bamtag(pysam_read=read, tag=barcode_tag)
+        barcode = get_bamtag(pysam_read=read, tag=barcode_tag)
         if not barcode:
             summary["Reads without barcode"] += 1
             is_good = False

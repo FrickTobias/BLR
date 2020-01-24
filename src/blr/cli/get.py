@@ -1,13 +1,12 @@
 """
 Filter BAM for select SAM tag values.
 """
-import pysam
 import logging
 from collections import Counter
 from tqdm import tqdm
 import os
 
-from blr.utils import get_bamtag, print_stats, create_header
+from blr.utils import get_bamtag, print_stats, PySAMIO
 
 logger = logging.getLogger(__name__)
 
@@ -19,10 +18,8 @@ def main(args):
     values = get_values(args.values)
     counts = {value: 0 for value in values}
     summary["Values to collect"] = len(values)
-    header = create_header(args.input, __name__)
 
-    with pysam.AlignmentFile(args.input, "rb") as openin, \
-            pysam.AlignmentFile(args.output, "wb", header=header) as openout:
+    with PySAMIO(args.input, args.output, __name__) as (openin, openout):
         for read in tqdm(openin.fetch(until_eof=True), desc="Processing reads"):
             summary["Reads in"] += 1
             value = get_bamtag(read, args.tag)
