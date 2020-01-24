@@ -255,10 +255,13 @@ rule add_RG_tag:
         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
     log: "add_RG_tag.log"
     shell:
-        "blr addbamtag"
-        " --tag RG"
-        " --type Z"
-        " --value 4"
+        "samtools addreplacerg"
+        " -O BAM"
+        " -r ID:1"
+        " -r LB:lib1"
+        " -r PU:unit1"
+        " -r SM:20"
+        " -r PL:ILLUMINA"
         " {input.bam}"
         " 2> {log} "
         " | "
@@ -304,6 +307,10 @@ rule call_variants:
                 " -I {input.bam}"
                 " -ERC GVCF"
                 " -O {output.vcf} 2> {log}",
+            # This option is currently not included in the pipeline documentation, but it will run on any system which
+            # - runs Linux (it's not maintained for any other system)
+            # - has deepvariant installed (e.g. through conda)
+            # TODO: Add a conditional installation of deepvariant for Linux systems and add to pipeline docs.
             "deepvariant":
                 "deepvariant"
 	            " --model_type=WGS"
