@@ -24,9 +24,11 @@ blr init --r1=testdata/reads.1.fastq.gz outdir-bowtie2
 blr config \
     --file outdir-bowtie2/blr.yaml \
     --set genome_reference ../testdata/chr1mini.fasta \
+    --set dbSNP ../testdata/dbSNP.chr1mini.vcf.gz \
     --set reference_variants ../testdata/HG002_GRCh38_GIAB_highconf.chr1mini.vcf \
     --set phasing_ground_truth ../testdata/HG002_GRCh38_GIAB_highconf_triophased.chr1mini.vcf \
-    --set max_molecules_per_bc 1
+    --set max_molecules_per_bc 1 \
+    --set heap_space 1
 
 pushd outdir-bowtie2
 blr run

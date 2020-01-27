@@ -28,6 +28,9 @@ properties:
   genome_reference:
     type: [ "string", "null" ]
     description: Reference index prefix
+  dbSNP:
+    type: ["string", "null" ]
+    description: dbSNP, common SNP positions
   h1:
     type: string
     description: h1 adaptor sequnce, appears before barcode in read1

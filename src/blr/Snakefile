@@ -267,7 +267,7 @@ rule recal_base_qual_scores:
     shell:
         "gatk --java-options -Xmx{config[heap_space]}g BaseRecalibrator"
         " -R {config[genome_reference]}"
-        " --known-sites dbSNP.chr1mini.vcf.gz"
+        " --known-sites {config[dbSNP]}"
         " -I {input.bam}"
         " -O {output.recal_table}"
         " 2> {log}"
