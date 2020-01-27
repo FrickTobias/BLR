@@ -97,7 +97,8 @@ def test_call_variants(tmpdir, variant_caller):
     init(workdir, TESTDATA_READS)
     change_config(
         workdir / DEFAULT_CONFIG,
-        [("genome_reference", REFERENCE_GENOME), ("dbSNP", DB_SNP), ("reference_variants", "null"), ("variant_caller", variant_caller)]
+        [("genome_reference", REFERENCE_GENOME), ("dbSNP", DB_SNP), ("reference_variants", "null"),
+         ("variant_caller", variant_caller)]
     )
     target = "variants.called.vcf"
     run(workdir=workdir, targets=[target])
