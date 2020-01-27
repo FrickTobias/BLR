@@ -42,7 +42,7 @@ rule multiqc_summarize:
     input:
         raw_read_1_qc = "trimmed.barcoded.1_fastqc.html",
         raw_read_2_qc = "trimmed.barcoded.2_fastqc.html",
-        bam = "mapped.sorted.tag.RG.mkdup.bcmerge.mol.filt.bam"
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
     log:
         "multiqc.log"
     shell:
@@ -140,7 +140,7 @@ rule map_reads:
 rule tagbam:
     # Add barcodes to BAM files as SAM tags. Also adds a RG tag.
     output:
-        bam = "mapped.sorted.tag.RG.mkdup.bam" if config['duplicate_marker'] == 'samblaster' else "mapped.sorted.tag.RG.bam"
+        bam = "mapped.sorted.tag.mkdup.bam" if config['duplicate_marker'] == 'samblaster' else "mapped.sorted.tag.bam"
     input:
         bam = "mapped.sorted.bam"
     log: "tag_bam.log"
@@ -167,9 +167,9 @@ rule tagbam:
 
 rule mark_duplicates:
     output:
-        bam = "mapped.sorted.tag.RG.mkdup.bam"
+        bam = "mapped.sorted.tag.mkdup.bam"
     input:
-        bam = "mapped.sorted.tag.RG.bam"
+        bam = "mapped.sorted.tag.bam"
     log: "mark_duplicates.log"
     threads: 20
     shell:
@@ -182,10 +182,10 @@ rule mark_duplicates:
 rule clusterrmdup:
     # Removes cluster duplicates and indexes output
     output:
-        bam = "mapped.sorted.tag.RG.mkdup.bcmerge.bam",
+        bam = "mapped.sorted.tag.mkdup.bcmerge.bam",
         merges = "barcode-merges.csv"
     input:
-        bam = "mapped.sorted.tag.RG.mkdup.bam"
+        bam = "mapped.sorted.tag.mkdup.bam"
     log: "clusterrmdup.log"
     shell:
         "blr clusterrmdup"
@@ -198,10 +198,10 @@ rule clusterrmdup:
 rule buildmolecules:
     # Groups reads into molecules depending on their genomic position and barcode
     output:
-        bam = "mapped.sorted.tag.RG.mkdup.bcmerge.mol.bam",
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.bam",
         stats = expand("{stat}.tsv", stat=['molecules_per_bc', 'molecule_stats'])
     input:
-        bam = "mapped.sorted.tag.RG.mkdup.bcmerge.bam"
+        bam = "mapped.sorted.tag.mkdup.bcmerge.bam"
     log: "buildmolecules.log"
     shell:
         "blr buildmolecules"
@@ -217,10 +217,10 @@ rule buildmolecules:
 rule filterclusters:
     # Filter clusters based on parameters
     output:
-        bam = "mapped.sorted.tag.RG.mkdup.bcmerge.mol.filt.bam",
-        bai = "mapped.sorted.tag.RG.mkdup.bcmerge.mol.filt.bam.bai"
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
+        bai = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam.bai"
     input:
-        bam = "mapped.sorted.tag.RG.mkdup.bcmerge.mol.bam"
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.bam"
     log: "filterclusters.log"
     shell:
         "blr filterclusters"
@@ -240,7 +240,7 @@ rule bam_to_fastq:
         r1_fastq = "reads.1.final.fastq.gz",
         r2_fastq = "reads.2.final.fastq.gz"
     input:
-        bam = "mapped.sorted.tag.RG.mkdup.bcmerge.mol.filt.bam"
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
     log: "samtools-fastq.log"
     threads: 20
     shell:
@@ -262,8 +262,8 @@ rule call_variants:
     output:
          vcf = "variants.called.vcf"
     input:
-         bam = "mapped.sorted.tag.RG.mkdup.bcmerge.mol.filt.bam",
-         index = "mapped.sorted.tag.RG.mkdup.bcmerge.mol.filt.bam.bai"
+         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
+         index = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam.bai"
     log: "call_variants.log"
     run:
         commands = {

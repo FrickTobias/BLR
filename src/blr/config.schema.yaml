@@ -55,6 +55,7 @@ properties:
   variant_caller:
     type: string
     description: Which variant caller to use.
+    pattern: "gatk|bcftools|freebayes|deepvariant"
   heap_space:
     type: integer
     descriptoin: Heap space to run java scripts with (gatk).

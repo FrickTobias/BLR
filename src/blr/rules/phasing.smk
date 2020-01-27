@@ -3,9 +3,9 @@ variants = "variants.reference.vcf" if config["reference_variants"] else "varian
 
 rule hapcut2_extracthairs:
     output:
-        unlinked = "mapped.sorted.tag.RG.mkdup.bcmerge.mol.filt.unlinked.txt"
+        unlinked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked.txt"
     input:
-        bam = "mapped.sorted.tag.RG.mkdup.bcmerge.mol.filt.bam",
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
         vcf = variants
     log: "hapcut2_extracthairs.log"
     shell:
@@ -18,11 +18,11 @@ rule hapcut2_extracthairs:
 
 rule hapcut2_linkfragments:
     output:
-        linked = "mapped.sorted.tag.RG.mkdup.bcmerge.mol.filt.linked.txt"
+        linked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked.txt"
     input:
-        bam = "mapped.sorted.tag.RG.mkdup.bcmerge.mol.filt.bam",
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
         vcf = variants,
-        unlinked = "mapped.sorted.tag.RG.mkdup.bcmerge.mol.filt.unlinked.txt"
+        unlinked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked.txt"
     log: "hapcut2_linkfragments.log"
     shell:
          "LinkFragments.py"
@@ -34,10 +34,10 @@ rule hapcut2_linkfragments:
 
 rule hapcut2_phasing:
     output:
-        phase =      "mapped.sorted.tag.RG.mkdup.bcmerge.mol.filt.phase",
-        phased_vcf = "mapped.sorted.tag.RG.mkdup.bcmerge.mol.filt.phase.phased.VCF"
+        phase =      "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase",
+        phased_vcf = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.VCF"
     input:
-        linked = "mapped.sorted.tag.RG.mkdup.bcmerge.mol.filt.linked.txt",
+        linked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked.txt",
         vcf = variants
     log: "hapcut2_phasing.log"
     shell:
@@ -56,7 +56,7 @@ rule hapcut2_stats:
     output:
         stats = "phasing_stats.txt"
     input:
-         vcf1 = "mapped.sorted.tag.RG.mkdup.bcmerge.mol.filt.phase.phased.VCF",
+         vcf1 = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.VCF",
          vcf2 = "ground_truth.phased.vcf"
     shell:
          "blr calculate_haplotype_statistics"
