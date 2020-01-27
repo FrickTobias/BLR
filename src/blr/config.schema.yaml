@@ -52,4 +52,10 @@ properties:
   max_molecules_per_bc:
     type: integer
     description: Max number of molecules allowed for a single barcode (removes if bc has > 260 molecules).
-
+  variant_caller:
+    type: string
+    description: Which variant caller to use.
+    pattern: "gatk|bcftools|freebayes|deepvariant"
+  heap_space:
+    type: integer
+    descriptoin: Heap space to run java scripts with (gatk).

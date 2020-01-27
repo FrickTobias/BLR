@@ -138,7 +138,7 @@ rule map_reads:
 
 
 rule tagbam:
-    # Add barcodes to BAM
+    # Add barcodes to BAM files as SAM tags. Also adds a RG tag.
     output:
         bam = "mapped.sorted.tag.mkdup.bam" if config['duplicate_marker'] == 'samblaster' else "mapped.sorted.tag.bam"
     input:
@@ -149,9 +149,20 @@ rule tagbam:
         shell(
             "blr tagbam"
             " {input.bam}"
-            " -o {output.bam}"
+            " -o -"
             " -f {mode}"
-            " 2> {log}")
+            " 2> {log}"
+            " | "
+            "samtools addreplacerg"
+            " -O BAM"
+            " -r ID:1"
+            " -r LB:lib1"
+            " -r PU:unit1"
+            " -r SM:20"
+            " -r PL:ILLUMINA"
+            " -"
+            " 2>> {log} "
+            " > {output.bam}")
 
 
 rule mark_duplicates:
@@ -247,15 +258,59 @@ rule symlink_reference_variants:
         "ln -s {config[reference_variants]} {output}"
 
 
-rule call_variants_freebayes:
+rule call_variants:
     output:
          vcf = "variants.called.vcf"
     input:
-         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
-    log: "call_variants_freebayes.log"
-    shell:
-         "freebayes"
-         " -f {config[genome_reference]}"
-         " {input.bam} |"
-         "vcffilter -f 'AC > 0' 1>"
-         " {output.vcf} 2> {log}"
+         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
+         index = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam.bai"
+    log: "call_variants.log"
+    run:
+        commands = {
+            "freebayes":
+                 "freebayes"
+                 " -f {config[genome_reference]}"
+                 " {input.bam}"
+                 " 2> {log}"
+                 " | "
+                 "vcffilter"
+                 " -f"
+                 " 'AC > 0'"
+                 " 1> {output.vcf} 2>> {log}",
+            "bcftools":
+                "bcftools mpileup"
+                " -f {config[genome_reference]}"
+                " {input.bam}"
+                " --threads {threads}"
+                " 2> {log}"
+                " | "
+                "bcftools call"
+                " -m"
+                " -v"
+                " -O v"
+                " --ploidy GRCh38"
+                " --threads {threads}"
+                " -o {output.vcf} 2>> {log}",
+            "gatk":
+                "gatk --java-options -Xmx{config[heap_space]}g HaplotypeCaller"
+                " -R {config[genome_reference]}"
+                " -I {input.bam}"
+                " -ERC GVCF"
+                " -O {output.vcf} 2> {log}",
+            # This option is currently not included in the pipeline documentation, but it will run on any system which
+            # - runs Linux (it's not maintained for any other system)
+            # - has deepvariant installed (e.g. through conda)
+            # TODO: Add a conditional installation of deepvariant for Linux systems and add to pipeline docs.
+            "deepvariant":
+                "deepvariant"
+	            " --model_type=WGS"
+	            " --output_vcf={output.vcf}"
+	            " --reads={input.bam}"
+	            " --ref={config[genome_reference]}"
+                }
+
+        command = commands[config["variant_caller"]].format(**locals(), **globals())
+
+        shell(
+            "{command}"
+        )

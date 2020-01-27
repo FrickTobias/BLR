@@ -27,3 +27,5 @@ dependencies:
   - ema=0.6.2
   - fastqc
   - multiqc
+  - bcftools
+  - gatk4

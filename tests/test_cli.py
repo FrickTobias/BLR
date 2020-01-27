@@ -90,12 +90,13 @@ def test_link_reference_variants(tmpdir):
     assert Path(workdir / target).is_symlink()
 
 
-def test_call_variants(tmpdir):
+@pytest.mark.parametrize("variant_caller", ["freebayes", "bcftools", "gatk"])
+def test_call_variants(tmpdir, variant_caller):
     workdir = tmpdir / "analysis"
     init(workdir, TESTDATA_READS)
     change_config(
         workdir / DEFAULT_CONFIG,
-        [("genome_reference", REFERENCE_GENOME), ("reference_variants", "null")]
+        [("genome_reference", REFERENCE_GENOME), ("reference_variants", "null"), ("variant_caller", variant_caller)]
     )
     target = "variants.called.vcf"
     run(workdir=workdir, targets=[target])
