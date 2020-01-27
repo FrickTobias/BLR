@@ -31,6 +31,10 @@ properties:
   dbSNP:
     type: ["string", "null" ]
     description: dbSNP, common SNP positions
+  BQSR:
+    type: boolean
+    default: true
+    description: Run gatk base score recalibration or not
   h1:
     type: string
     description: h1 adaptor sequnce, appears before barcode in read1
