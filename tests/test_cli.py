@@ -60,9 +60,9 @@ def test_duplicate_markers(tmpdir, duplicate_marker):
         workdir / DEFAULT_CONFIG,
         [("genome_reference", REFERENCE_GENOME), ("duplicate_marker", duplicate_marker)]
     )
-    run(workdir=workdir, targets=["mapped.sorted.tag.mkdup.bam"])
+    run(workdir=workdir, targets=["mapped.sorted.tag.RG.mkdup.bam"])
     n_input_fastq_reads = 2 * count_fastq_reads(Path(workdir / "trimmed_barcoded.1.fastq.gz"))
-    assert n_input_fastq_reads <= count_bam_alignments(workdir / "mapped.sorted.tag.mkdup.bam")
+    assert n_input_fastq_reads <= count_bam_alignments(workdir / "mapped.sorted.tag.RG.mkdup.bam")
 
 
 def test_final_compressed_reads_exist(tmpdir):

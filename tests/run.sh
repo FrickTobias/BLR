@@ -30,9 +30,9 @@ blr config \
 
 pushd outdir-bowtie2
 blr run
-m=$(samtools view mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
+m=$(samtools view mapped.sorted.tag.RG.mkdup.bcmerge.mol.filt.bam | md5sum | cut -f1 -d" ")
 test $m == 92f61fee39508beadb96f018a6ceac49
 
 # Cut away columns 2 and 3 as these change order between linux and osx
-m2=$(cut -f1,4- mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase | md5sum | cut -f1 -d" ")
+m2=$(cut -f1,4- mapped.sorted.tag.RG.mkdup.bcmerge.mol.filt.phase | md5sum | cut -f1 -d" ")
 test $m2 == 70c907df8a996d2b3ba3f06fb942b244
