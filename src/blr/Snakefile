@@ -258,6 +258,36 @@ rule symlink_reference_variants:
         "ln -s {config[reference_variants]} {output}"
 
 
+rule recal_base_qual_scores:
+    output:
+        recal_table = "gatk_BQSR_table.txt"
+    input:
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
+    log: "recal_base_qual_scores.log"
+    shell:
+        "gatk --java-options -Xmx{config[heap_space]}g BaseRecalibrator"
+        " -R {config[genome_reference]}"
+        " -I {input.bam}"
+        " -O {output.recal_table}"
+        " 2> {log}"
+
+
+rule apply_recal:
+    output:
+        recal_bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.BQSR.bam"
+    input:
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
+        recal_table = "gatk_BQSR_table.txt"
+    log: "apply_recal.log"
+    shell:
+        "gatk --java-options -Xmx{config[heap_space]}g ApplyBQSR"
+        " --bqsr-recal-file {input.recal_table}"
+        " -R {config[genome_reference]}"
+        " -I {input.bam}"
+        " -O {output.recal_bam}"
+        " 2> {log}"
+
+
 rule call_variants:
     output:
          vcf = "variants.called.vcf"
