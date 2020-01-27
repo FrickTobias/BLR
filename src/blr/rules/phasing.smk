@@ -1,11 +1,12 @@
 
 variants = "variants.reference.vcf" if config["reference_variants"] else "variants.called.vcf"
+bamfile_basename = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.BQSR" if config["BQSR"] else "mapped.sorted.tag.mkdup.bcmerge.mol.filt"
 
 rule hapcut2_extracthairs:
     output:
-        unlinked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked.txt"
+        unlinked = bamfile_basename + ".unlinked.txt"
     input:
-        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
+        bam = bamfile_basename + ".bam",
         vcf = variants
     log: "hapcut2_extracthairs.log"
     shell:
@@ -18,11 +19,12 @@ rule hapcut2_extracthairs:
 
 rule hapcut2_linkfragments:
     output:
-        linked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked.txt"
+        linked = bamfile_basename + ".linked.txt"
     input:
-        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
+        bam = bamfile_basename + ".bam",
+        bai = bamfile_basename + ".bam.bai",
         vcf = variants,
-        unlinked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.unlinked.txt"
+        unlinked = bamfile_basename + ".unlinked.txt"
     log: "hapcut2_linkfragments.log"
     shell:
          "LinkFragments.py"
@@ -34,10 +36,10 @@ rule hapcut2_linkfragments:
 
 rule hapcut2_phasing:
     output:
-        phase =      "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase",
-        phased_vcf = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.VCF"
+        phase = bamfile_basename + ".phase",
+        phased_vcf = bamfile_basename + ".phase.phased.VCF"
     input:
-        linked = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.linked.txt",
+        linked = bamfile_basename + ".linked.txt",
         vcf = variants
     log: "hapcut2_phasing.log"
     shell:
@@ -56,7 +58,7 @@ rule hapcut2_stats:
     output:
         stats = "phasing_stats.txt"
     input:
-         vcf1 = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.phase.phased.VCF",
+         vcf1 = bamfile_basename + ".phase.phased.VCF",
          vcf2 = "ground_truth.phased.vcf"
     shell:
          "blr calculate_haplotype_statistics"
