@@ -11,6 +11,7 @@ TESTDATA_READS = Path("testdata/reads.1.fastq.gz")
 DEFAULT_CONFIG = "blr.yaml"
 REFERENCE_GENOME = str(Path("testdata/chr1mini.fasta").absolute())
 REFERENCE_VARIANTS = str(Path("testdata/HG002_GRCh38_GIAB_highconf.chr1mini.vcf").absolute())
+DB_SNP = str(Path("testdata/dbSNP.chr1mini.vcf.gz").absolute())
 
 
 def count_bam_alignments(path):
@@ -96,7 +97,7 @@ def test_call_variants(tmpdir, variant_caller):
     init(workdir, TESTDATA_READS)
     change_config(
         workdir / DEFAULT_CONFIG,
-        [("genome_reference", REFERENCE_GENOME), ("reference_variants", "null"), ("variant_caller", variant_caller)]
+        [("genome_reference", REFERENCE_GENOME), ("dbSNP", DB_SNP), ("reference_variants", "null"), ("variant_caller", variant_caller)]
     )
     target = "variants.called.vcf"
     run(workdir=workdir, targets=[target])

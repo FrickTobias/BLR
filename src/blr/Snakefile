@@ -259,6 +259,7 @@ rule symlink_reference_variants:
 
 
 rule recal_base_qual_scores:
+    "Recalibrate base calling qualities"
     output:
         recal_table = "gatk_BQSR_table.txt"
     input:
@@ -274,6 +275,7 @@ rule recal_base_qual_scores:
 
 
 rule apply_recal:
+    "Adjusts bam file with results from gatk base score recalibration"
     output:
         recal_bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.BQSR.bam"
     input:
@@ -285,16 +287,27 @@ rule apply_recal:
         " --bqsr-recal-file {input.recal_table}"
         " -R {config[genome_reference]}"
         " -I {input.bam}"
-        " -O {output.recal_bam}"
         " 2> {log}"
+        " -O {output.recal_bam}"
+
+rule index_bam_pre_variant_caller:
+    output:
+        bai = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.BQSR.bam.bai"
+    input:
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.BQSR.bam"
+    log: "index_bam_pre_variant_caller.log"
+    shell:
+        "samtools index"
+        " {input.bam}"
+        " {output.bai}"
 
 
 rule call_variants:
     output:
          vcf = "variants.called.vcf"
     input:
-         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
-         index = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam.bai"
+         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.BQSR.bam",
+         index = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.BQSR.bam.bai"
     log: "call_variants.log"
     run:
         commands = {
