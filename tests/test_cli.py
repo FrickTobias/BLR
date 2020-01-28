@@ -11,6 +11,7 @@ TESTDATA_READS = Path("testdata/reads.1.fastq.gz")
 DEFAULT_CONFIG = "blr.yaml"
 REFERENCE_GENOME = str(Path("testdata/chr1mini.fasta").absolute())
 REFERENCE_VARIANTS = str(Path("testdata/HG002_GRCh38_GIAB_highconf.chr1mini.vcf").absolute())
+DB_SNP = str(Path("testdata/dbSNP.chr1mini.vcf.gz").absolute())
 
 
 def count_bam_alignments(path):
@@ -88,6 +89,19 @@ def test_link_reference_variants(tmpdir):
     target = "variants.reference.vcf"
     run(workdir=workdir, targets=[target])
     assert Path(workdir / target).is_symlink()
+
+
+def test_BQSR(tmpdir):
+    workdir = tmpdir / "analysis"
+    init(workdir, TESTDATA_READS)
+    change_config(
+        workdir / DEFAULT_CONFIG,
+        [("genome_reference", REFERENCE_GENOME), ("dbSNP", DB_SNP), ("BQSR", "true"), ("reference_variants", "null"),
+         ("variant_caller", "gatk")]
+    )
+    target = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.BQSR.bam"
+    run(workdir=workdir, targets=[target])
+    assert Path(workdir / target).is_file()
 
 
 @pytest.mark.parametrize("variant_caller", ["freebayes", "bcftools", "gatk"])
