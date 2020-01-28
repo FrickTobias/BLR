@@ -7,8 +7,8 @@
 Content:
 
 - [Usage](#Usage)
-- [One-time installation](#One-time installation)
-- [Old version](#Old version)
+- [One-time installation](#One-time-installation)
+- [Old version](#Old-version)
 
 ## Usage
 
