@@ -7,7 +7,7 @@ num_mol_tag: MN # Used to store number of molecules per barcode
 sequence_tag: RX    # Used to store original barcode sequence in bam file. 'RX' is 10x genomic default
 genome_reference:  # Path to indexed reference
 dbSNP: # Path to dbSNP file (common SNP sites)
-BQSR: true # Adjust base calling accuracys using gatk's BQSR (true or false). Recommended.
+BQSR: false # Adjust base calling accuracys using gatk's BQSR (true or false). Recommended if variant_caller is gatk
 read_mapper: bowtie2  # Choose bwa, bowtie2, minimap2 or ema
 duplicate_marker: sambamba # Choose sambamba or samblaster
 

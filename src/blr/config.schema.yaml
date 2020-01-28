@@ -33,7 +33,7 @@ properties:
     description: dbSNP, common SNP positions
   BQSR:
     type: boolean
-    default: true
+    default: false
     description: Run gatk base score recalibration or not
   h1:
     type: string
