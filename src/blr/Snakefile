@@ -144,25 +144,22 @@ rule tagbam:
     input:
         bam = "mapped.sorted.bam"
     log: "tag_bam.log"
-    run:
-        mode = "sam" if config["read_mapper"] != "ema" else "ema"
-        shell(
-            "blr tagbam"
-            " {input.bam}"
-            " -o -"
-            " -f {mode}"
-            " 2> {log}"
-            " | "
-            "samtools addreplacerg"
-            " -O BAM"
-            " -r ID:1"
-            " -r LB:lib1"
-            " -r PU:unit1"
-            " -r SM:20"
-            " -r PL:ILLUMINA"
-            " -"
-            " 2>> {log} "
-            " > {output.bam}")
+    shell:
+        "blr tagbam"
+        " {input.bam}"
+        " -o -"
+        " 2> {log}"
+        " | "
+        "samtools addreplacerg"
+        " -O BAM"
+        " -r ID:1"
+        " -r LB:lib1"
+        " -r PU:unit1"
+        " -r SM:20"
+        " -r PL:ILLUMINA"
+        " -"
+        " 2>> {log} "
+        " > {output.bam}"
 
 
 rule mark_duplicates:
