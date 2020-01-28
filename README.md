@@ -6,46 +6,80 @@
 
 ## Usage
 
-After installation, activate your Conda environment:
+### Setup an analysis folder
+
+Activate your Conda environment.
 
     conda activate blr
 
-Choose a name for the analysis. It will be `workdir` in this example. Create
+Choose a name for the analysis. It will be `output_folder` in this example. Create
 the analysis directory with this command:
 
-    blr init --reads1=path/to/sample.R1.fastq.gz workdir
+    blr init --reads1=path/to/sample.R1.fastq.gz path/to/output_folder
 
 Note that BLR expects paired-end reads. However, only the path to the R1 file
 needs to be provided. The R2 file will be found automatically.
 
-Then, you may need to edit the configuration file `workdir/blr.yaml`, in
-particular to enter the path to your reference genome.
+To use the other blr commands, make sure you working directory is your 
+newly created analysis folder.
 
-Finally, change into the `workdir` folder and run the pipeline:
+    cd path/to/output_folder
+
+Then, you may need to edit the configuration file `blr.yaml`, in
+particular to enter the path to your reference genome. 
+
+    blr set --genome_reference=path/to/GRCh38.fasta
+
+To see what other configurations can be altered, read the documentation in 
+the `blr.yaml` file.
+
+### Running an analysis
+
+Change working directory to your analysis folder
+
+    cd path/to/output_folder
+
+The pipeline automatically runs all steps.
 
     blr run
 
+For more options, see the documentation.
 
-## Install and Setup
+    blr run -h
 
-One-time installation:
-- Clone the current repository
+## One-time installation guide
 
-        git clone https://github.com/FrickTobias/BLR.git
+### Prerequisite: Conda
 
 - [Install miniconda](https://docs.conda.io/en/latest/miniconda.html)
 - Enable the [bioconda channel](http://bioconda.github.io/)
-- Create a new Conda environment with the dependencies:
+
+### Install
+
+Clone the git repository.
+
+      git clone https://github.com/FrickTobias/BLR.git
+
+Create & activate a new Conda environment, in which all dependencies will be 
+installed.
 
       conda env create -n blr -f environment.yml
-
-- Install blr into the environment in "editable install" mode:
-
       conda activate blr
+
+Install blr into the environment in "editable install" mode.
+
       pip install -e .
 
 This will install blr in such a way that you can still modify the source code
 and get any changes immediately without re-installing.
+
+### Updating
+
+Change working directory to your blr git folder and update.
+
+    cd path/to/BLR
+    git pull
+    
 
 ## Old version
 
