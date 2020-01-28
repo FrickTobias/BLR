@@ -19,8 +19,9 @@ if test ! -f testdata/chr1mini.dict; then ( cd testdata && gatk CreateSequenceDi
 
 pytest -v tests/
 
+# Test full run on BLR library.
 rm -rf outdir-bowtie2
-blr init --r1=testdata/reads.1.fastq.gz outdir-bowtie2
+blr init --r1=testdata/blr_reads.1.fastq.gz outdir-bowtie2
 blr config \
     --file outdir-bowtie2/blr.yaml \
     --set genome_reference ../testdata/chr1mini.fasta \

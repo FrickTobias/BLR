@@ -7,7 +7,10 @@ from blr.cli.init import init
 from blr.cli.run import run
 from blr.cli.config import change_config
 
-TESTDATA_READS = Path("testdata/reads.1.fastq.gz")
+TESTDATA_READS = Path("testdata/blr_reads.1.fastq.gz")
+TESTDATA_TENX_READ1 = Path("testdata/tenx_reads.1.fastq.gz")
+TESTDATA_TENX_READ2 = Path("testdata/tenx_reads.2.fastq.gz")
+TESTDATA_TENX_BARCODES = str(Path("testdata/tenx_barcode_whitelist.txt").absolute())
 DEFAULT_CONFIG = "blr.yaml"
 REFERENCE_GENOME = str(Path("testdata/chr1mini.fasta").absolute())
 REFERENCE_VARIANTS = str(Path("testdata/HG002_GRCh38_GIAB_highconf.chr1mini.vcf").absolute())
@@ -38,6 +41,22 @@ def test_config(tmpdir):
     workdir = tmpdir / "analysis"
     init(workdir, TESTDATA_READS)
     change_config(workdir / "blr.yaml", [("read_mapper", "bwa")])
+
+# TODO add trim test for blr reads.
+
+
+def test_trim_tenx(tmpdir):
+    workdir = tmpdir / "analysis"
+    init(workdir, TESTDATA_TENX_READ1)
+    change_config(
+        workdir / DEFAULT_CONFIG,
+        [("library_type", "10x"),
+         ("barcode_whitelist", TESTDATA_TENX_BARCODES)]
+    )
+    trimmed = ["trimmed.barcoded.1.fastq.gz", "trimmed.barcoded.2.fastq.gz"]
+    run(workdir=workdir, targets=trimmed)
+    for raw, trimmed in zip((TESTDATA_TENX_READ1, TESTDATA_TENX_READ2), trimmed):
+        assert count_fastq_reads(raw) == count_fastq_reads(Path(workdir / trimmed))
 
 
 @pytest.mark.parametrize("read_mapper", ["bwa", "bowtie2", "minimap2", "ema"])

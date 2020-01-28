@@ -60,6 +60,7 @@ rule trim_and_tag:
         " -"
         " 2> {log.tag}"
 
+
 rule extract_DBS:
     # Extract barcode sequence from read1 FASTQ
     output:
@@ -80,3 +81,21 @@ rule extract_DBS:
         " -o {output.fastq}"
         " {input.fastq}"
         " > {log}"
+
+
+rule starcode_clustering:
+    # Cluster DBS barcodes using starcode
+    output:
+        "barcodes.clstr"
+    input:
+        "barcodes.fasta.gz"
+    threads: 20
+    log: "starcode_clustering.log"
+    shell:
+        "pigz -cd {input} |"
+        " starcode"
+        " -o {output}"
+        " -t {threads}"
+        " -d {config[barcode_max_dist]}"
+        " --print-clusters"
+        " 2> {log}"

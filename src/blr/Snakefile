@@ -3,8 +3,14 @@ from snakemake.utils import validate
 configfile: "blr.yaml"
 validate(config, "config.schema.yaml")
 
+# TODO include handling of reads from `longranger basic` that allready have barcodes extracted and trimmed? See issue
+#  in ema when discussed https://github.com/arshajii/ema/issues/15
+
 # Import rules for trimming fastq files.
-include: "rules/trim.smk"
+if config["library_type"] == "blr":
+    include: "rules/trim.smk"
+elif config["library_type"] == "10x":
+    include: "rules/trim_10x.smk"
 
 # Import rules for phasing
 include: "rules/phasing.smk"
@@ -48,24 +54,6 @@ rule multiqc_summarize:
     shell:
         "multiqc"
         " ."
-        " 2> {log}"
-
-
-rule starcode_clustering:
-    # Cluster DBS barcodes using starcode
-    output:
-        "barcodes.clstr"
-    input:
-        "barcodes.fasta.gz"
-    threads: 20
-    log: "starcode_clustering.log"
-    shell:
-        "pigz -cd {input} |"
-        " starcode"
-        " -o {output}"
-        " -t {threads}"
-        " -d {config[barcode_max_dist]}"
-        " --print-clusters"
         " 2> {log}"
 
 
