@@ -4,6 +4,12 @@
 
 # Barcode-Linked Reads Analysis
 
+Content:
+
+- [Usage](#Usage)
+- [One-time installation](#One-time installation)
+- [Old version](#Old version)
+
 ## Usage
 
 ### 1. Setup an analysis folder
@@ -47,7 +53,7 @@ For more options, see the documentation.
 
     blr run -h
 
-## One-time installation guide
+## One-time installation
 
 ### 1. Prerequisite: Conda
 
