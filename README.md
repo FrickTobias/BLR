@@ -6,7 +6,7 @@
 
 ## Usage
 
-### Setup an analysis folder
+### 1. Setup an analysis folder
 
 Activate your Conda environment.
 
@@ -33,7 +33,7 @@ particular to enter the path to your reference genome.
 To see what other configurations can be altered, read the documentation in 
 the `blr.yaml` file.
 
-### Running an analysis
+### 2. Running an analysis
 
 Change working directory to your analysis folder
 
@@ -49,12 +49,12 @@ For more options, see the documentation.
 
 ## One-time installation guide
 
-### Prerequisite: Conda
+### 1. Prerequisite: Conda
 
 - [Install miniconda](https://docs.conda.io/en/latest/miniconda.html)
 - Enable the [bioconda channel](http://bioconda.github.io/)
 
-### Install
+### 2. Install
 
 Clone the git repository.
 
@@ -73,7 +73,7 @@ Install blr into the environment in "editable install" mode.
 This will install blr in such a way that you can still modify the source code
 and get any changes immediately without re-installing.
 
-### Updating
+### 3. Updating
 
 Change working directory to your blr git folder and update.
 
