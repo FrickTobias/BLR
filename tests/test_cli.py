@@ -34,12 +34,12 @@ def count_fastq_reads(path):
 
 
 def test_init(tmpdir):
-    init(tmpdir / "analysis", TESTDATA_READS)
+    init(tmpdir / "analysis", TESTDATA_READS, "blr")
 
 
 def test_config(tmpdir):
     workdir = tmpdir / "analysis"
-    init(workdir, TESTDATA_READS)
+    init(workdir, TESTDATA_READS, "blr")
     change_config(workdir / "blr.yaml", [("read_mapper", "bwa")])
 
 # TODO add trim test for blr reads.
@@ -47,11 +47,10 @@ def test_config(tmpdir):
 
 def test_trim_tenx(tmpdir):
     workdir = tmpdir / "analysis"
-    init(workdir, TESTDATA_TENX_READ1)
+    init(workdir, TESTDATA_TENX_READ1, "10x")
     change_config(
         workdir / DEFAULT_CONFIG,
-        [("library_type", "10x"),
-         ("barcode_whitelist", TESTDATA_TENX_BARCODES)]
+        [("barcode_whitelist", TESTDATA_TENX_BARCODES)]
     )
     trimmed = ["trimmed.barcoded.1.fastq.gz", "trimmed.barcoded.2.fastq.gz"]
     run(workdir=workdir, targets=trimmed)
@@ -62,7 +61,7 @@ def test_trim_tenx(tmpdir):
 @pytest.mark.parametrize("read_mapper", ["bwa", "bowtie2", "minimap2", "ema"])
 def test_mappers(tmpdir, read_mapper):
     workdir = tmpdir / "analysis"
-    init(workdir, TESTDATA_READS)
+    init(workdir, TESTDATA_READS, "blr")
     change_config(
         workdir / DEFAULT_CONFIG,
         [("genome_reference", REFERENCE_GENOME), ("read_mapper", read_mapper)]
@@ -75,7 +74,7 @@ def test_mappers(tmpdir, read_mapper):
 @pytest.mark.parametrize("duplicate_marker", ["sambamba", "samblaster"])
 def test_duplicate_markers(tmpdir, duplicate_marker):
     workdir = tmpdir / "analysis"
-    init(workdir, TESTDATA_READS)
+    init(workdir, TESTDATA_READS, "blr")
     change_config(
         workdir / DEFAULT_CONFIG,
         [("genome_reference", REFERENCE_GENOME), ("duplicate_marker", duplicate_marker)]
@@ -87,7 +86,7 @@ def test_duplicate_markers(tmpdir, duplicate_marker):
 
 def test_final_compressed_reads_exist(tmpdir):
     workdir = tmpdir / "analysis"
-    init(workdir, TESTDATA_READS)
+    init(workdir, TESTDATA_READS, "blr")
     change_config(
         workdir / DEFAULT_CONFIG,
         [("genome_reference", REFERENCE_GENOME)]
@@ -100,7 +99,7 @@ def test_final_compressed_reads_exist(tmpdir):
 
 def test_link_reference_variants(tmpdir):
     workdir = tmpdir / "analysis"
-    init(workdir, TESTDATA_READS)
+    init(workdir, TESTDATA_READS, "blr")
     change_config(
         workdir / DEFAULT_CONFIG,
         [("genome_reference", REFERENCE_GENOME), ("reference_variants", REFERENCE_VARIANTS)]
@@ -112,7 +111,7 @@ def test_link_reference_variants(tmpdir):
 
 def test_BQSR(tmpdir):
     workdir = tmpdir / "analysis"
-    init(workdir, TESTDATA_READS)
+    init(workdir, TESTDATA_READS, "blr")
     change_config(
         workdir / DEFAULT_CONFIG,
         [("genome_reference", REFERENCE_GENOME), ("dbSNP", DB_SNP), ("BQSR", "true"), ("reference_variants", "null"),
@@ -126,7 +125,7 @@ def test_BQSR(tmpdir):
 @pytest.mark.parametrize("variant_caller", ["freebayes", "bcftools", "gatk"])
 def test_call_variants(tmpdir, variant_caller):
     workdir = tmpdir / "analysis"
-    init(workdir, TESTDATA_READS)
+    init(workdir, TESTDATA_READS, "blr")
     change_config(
         workdir / DEFAULT_CONFIG,
         [("genome_reference", REFERENCE_GENOME), ("reference_variants", "null"), ("variant_caller", variant_caller)]

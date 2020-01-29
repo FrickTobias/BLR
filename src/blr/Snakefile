@@ -3,12 +3,12 @@ from snakemake.utils import validate
 configfile: "blr.yaml"
 validate(config, "config.schema.yaml")
 
-# TODO include handling of reads from `longranger basic` that allready have barcodes extracted and trimmed? See issue
+# TODO include handling of reads from `longranger basic` that already have barcodes extracted and trimmed? See issue
 #  in ema when discussed https://github.com/arshajii/ema/issues/15
 
 # Import rules for trimming fastq files.
 if config["library_type"] == "blr":
-    include: "rules/trim.smk"
+    include: "rules/trim_blr.smk"
 elif config["library_type"] == "10x":
     include: "rules/trim_10x.smk"
 
