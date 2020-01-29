@@ -15,9 +15,9 @@ before_install:
   - conda update -q conda
   - conda config --add channels bioconda --add channels conda-forge
   - conda info -a
-  - wget https://export.uppmax.uu.se/uppstore2018173/blr-testdata-0.2.1.tar.gz
-  - tar xf blr-testdata-0.2.1.tar.gz
-  - ln -s blr-testdata-0.2.1 testdata
+  - wget https://export.uppmax.uu.se/uppstore2018173/blr-testdata-0.3.tar.gz
+  - tar xf blr-testdata-0.3.tar.gz
+  - ln -s blr-testdata-0.3 testdata
 
 install:
   - conda env create -n testenv -f environment.${TRAVIS_OS_NAME}.lock.yml

@@ -10,14 +10,20 @@ dbSNP: # Path to dbSNP file (common SNP sites)
 BQSR: false # Adjust base calling accuracys using gatk's BQSR (true or false). Recommended if variant_caller is gatk
 read_mapper: bowtie2  # Choose bwa, bowtie2, minimap2 or ema
 duplicate_marker: sambamba # Choose sambamba or samblaster
+library_type: # Library type. Chose blr or 10x.
 
 #################
 # Trim settings #
 #################
+# BLR libraries
 h1: CAGTTGATCATCAGCAGGTAATCTGG # h1 adaptor sequnce, appears before barcode in read1
 h2: CATGACCTCTTGGAACTGTCAGATGTGTATAAGAGACAG # h2 adaptor sequence, appears after barcode in read1
 h3: CTGTCTCTTATACACATCT # h3 adaptor sequence, appears after genomics insert in read1 and read2.
 barcode_len: 20 # Length of barcode sequence
+
+# 10x libraries
+barcode_whitelist: # Path to barcode whitelist.
+apply_hamming_correction: false # Apply hamming correction when demultiplexing 10x barcodes. Increases runtime.
 
 ####################
 # Phasing settings #

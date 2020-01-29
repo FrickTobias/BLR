@@ -65,4 +65,15 @@ properties:
     pattern: "gatk|bcftools|freebayes|deepvariant"
   heap_space:
     type: integer
-    descriptoin: Heap space to run java scripts with (gatk).
+    description: Heap space to run java scripts with (gatk).
+  library_type:
+    type: string
+    pattern: "blr|10x"
+    description: Library type.
+  barcode_whitelist:
+    type: [ "string", "null" ]
+    description: Path to barcode whitelist for 10x linked-read demultiplexing
+  apply_hamming_correction:
+    type: boolean
+    default: false
+    description: Apply hamming correction when demultiplexing 10x barcodes. Increases runtime.
