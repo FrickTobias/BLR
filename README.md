@@ -19,7 +19,7 @@ Activate your Conda environment.
     conda activate blr
 
 Choose a name for the analysis. It will be `output_folder` in this example. Create
-the analysis directory with this command:
+the analysis directory.
 
     blr init --reads1=path/to/sample.R1.fastq.gz path/to/output_folder
 
@@ -60,8 +60,8 @@ For more options, see the documentation.
 - [Install miniconda](https://docs.conda.io/en/latest/miniconda.html)
 - Enable the [bioconda channel](http://bioconda.github.io/)
 
-You could also try copy-pasting the following i your terminal which will download miniconda
-to you `$HOME` folder and install it on you system.
+You could also try copy-pasting the following to your terminal. This will download miniconda, 
+install it to you `$HOME` folder and enable the bioconda channels.
 
 ```
 if [[ $OSTYPE = "linux-gnu" ]]; then 
