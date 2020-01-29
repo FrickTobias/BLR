@@ -60,6 +60,20 @@ For more options, see the documentation.
 - [Install miniconda](https://docs.conda.io/en/latest/miniconda.html)
 - Enable the [bioconda channel](http://bioconda.github.io/)
 
+You could also try copy-pasting the following i your terminal which will download miniconda
+to you `$HOME` folder and install it on you system.
+
+```
+if [[ $OSTYPE = "linux-gnu" ]]; then 
+    wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+elif [[ $OSTYPE = "darwin"* ]]; then 
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
+fi
+bash miniconda.sh -b -p $HOME/miniconda
+source $HOME/miniconda/etc/profile.d/conda.sh
+conda config --add channels bioconda
+```
+
 ### 2. Install
 
 Clone the git repository.
