@@ -63,16 +63,14 @@ For more options, see the documentation.
 You could also try copy-pasting the following to your terminal. This will download miniconda, 
 install it to you `$HOME` folder and enable the bioconda channel.
 
-```
-if [[ $OSTYPE = "linux-gnu" ]]; then 
-    wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-elif [[ $OSTYPE = "darwin"* ]]; then 
-    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
-fi
-bash miniconda.sh -b -p $HOME/miniconda
-source $HOME/miniconda/etc/profile.d/conda.sh
-conda config --add channels bioconda
-```
+    if [[ $OSTYPE = "linux-gnu" ]]; then 
+        wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    elif [[ $OSTYPE = "darwin"* ]]; then 
+        wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
+    fi
+    bash miniconda.sh -b -p $HOME/miniconda
+    source $HOME/miniconda/etc/profile.d/conda.sh
+    conda config --add channels bioconda
 
 ### 2. Install
 
