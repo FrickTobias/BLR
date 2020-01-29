@@ -79,13 +79,21 @@ Install blr into the environment in "editable install" mode.
 This will install blr in such a way that you can still modify the source code
 and get any changes immediately without re-installing.
 
+#### 2.1 Linux users (not macOS)
+
+To enable DeepVariant, install it separately to your environment.
+
+    conda activate blr
+    blr install deepvariant
+
+This will enable the `variant_caller: deepvariant` option in the analysis config file.    
+
 ### 3. Updating
 
 Change working directory to your blr git folder and update.
 
     cd path/to/BLR
     git pull
-    
 
 ## Old version
 
