@@ -98,7 +98,7 @@ and get any changes immediately without re-installing.
 To enable DeepVariant, install it separately to your environment.
 
     conda activate blr
-    blr install deepvariant
+    conda install deepvariant
 
 This will enable the `variant_caller: deepvariant` option in the analysis config file.    
 
