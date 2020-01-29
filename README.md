@@ -61,7 +61,7 @@ For more options, see the documentation.
 - Enable the [bioconda channel](http://bioconda.github.io/)
 
 You could also try copy-pasting the following to your terminal. This will download miniconda, 
-install it to you `$HOME` folder and enable the bioconda channels.
+install it to you `$HOME` folder and enable the bioconda channel.
 
 ```
 if [[ $OSTYPE = "linux-gnu" ]]; then 
