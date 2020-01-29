@@ -69,12 +69,27 @@ rule starcode_clustering:
         " 2> {log}"
 
 
+rule barcode_sort_fastq:
+    # Assumes barcode read name is followed by barcode sequence.
+    # Exmaple: @ST-E00269:339:H27G2CCX2:7:1102:21186:8060:AAAAAAAATATCTACGCTCA BX:Z:AAAAAAAATATCTACGCTCA
+    output:
+        fastq = "sorted.{nr}.fastq.gz"
+    input:
+        fastq = "trimmed.barcoded.{nr}.fastq.gz"
+    shell:
+        "pigz -cd -p 1 {input.fastq} |"
+        " paste - - - - |"
+        " sort -t ' ' -k2 |"
+        " tr '\t' '\n' |"
+        " pigz > {output.fastq}"
+
+
 rule map_reads:
     output:
         bam = "mapped.sorted.bam"
     input:
-        r1_fastq = "trimmed.barcoded.1.fastq.gz",
-        r2_fastq = "trimmed.barcoded.2.fastq.gz"
+        r1_fastq = "trimmed.barcoded.1.fastq.gz" if config["read_mapper"] != "ema" else "sorted.1.fastq.gz",
+        r2_fastq = "trimmed.barcoded.2.fastq.gz" if config["read_mapper"] != "ema" else "sorted.2.fastq.gz"
     threads: 20
     log: "read_mapping.log"
     run:
