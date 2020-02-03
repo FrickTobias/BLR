@@ -144,7 +144,7 @@ rule tagbam:
             "samtools addreplacerg"
             " -O BAM"
             " -r ID:1"
-            " -r LB:lib1"
+            " -r LB:{config[library_type]}"
             " -r PU:unit1"
             " -r SM:20"
             " -r PL:ILLUMINA"
