@@ -8,22 +8,40 @@ from snakemake.utils import validate
 import pkg_resources
 from pathlib import Path
 from typing import List, Tuple
+from shutil import get_terminal_size
 
 logger = logging.getLogger(__name__)
 DEFAULT_PATH = Path("blr.yaml")
 SCHEMA_FILE = "config.schema.yaml"
 
 
-def main(args):
-    # Script is based on repos NBISSweden/IgDisover config script.
-    # Link https://github.com/NBISweden/IgDiscover/blob/master/src/igdiscover/cli/config.py
+# Script is based on repos NBISSweden/IgDisover config script.
+# Link https://github.com/NBISweden/IgDiscover/blob/master/src/igdiscover/cli/config.py
 
-    if args.set:
-        change_config(args.file, args.set)
+def main(args):
+    run(yaml_file=args.file, changes_set=args.set)
+
+
+def run(yaml_file=DEFAULT_PATH, changes_set=None):
+    if changes_set:
+        change_config(yaml_file, changes_set)
     else:
-        configs, yaml = load_yaml(args.file)
-        print(f"--- CONFIGS IN: {args.file} ---")
-        yaml.dump(configs, stream=sys.stdout)
+        print_config(yaml_file)
+
+
+def print_config(filename: Path):
+    """
+    Print out current configs to terminal.
+    """
+    configs, yaml = load_yaml(filename)
+    width, _ = get_terminal_size()
+    header = f" CONFIGS IN: {filename} "
+    padding = int((width - len(header)) / 2) * "="
+
+    # Print out current setting
+    print(f"{padding}{header}{padding}")
+    yaml.dump(configs, stream=sys.stdout)
+    print(f"{'=' * width}")
 
 
 def change_config(filename: Path, changes_set: List[Tuple[str, str]]):
@@ -55,7 +73,7 @@ def change_config(filename: Path, changes_set: List[Tuple[str, str]]):
     tmpfile.rename(filename)
 
 
-def load_yaml(filename):
+def load_yaml(filename: Path):
     """
     Load YAML file and return the yaml object and data.
     :param filename: Path to YAML file
