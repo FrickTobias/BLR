@@ -294,10 +294,8 @@ rule call_variants:
     output:
          vcf = "variants.called.vcf"
     input:
-         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.BQSR.bam" if config["BQSR"]
-         else "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
-         index = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.BQSR.bam.bai" if config["BQSR"]
-         else "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam.bai"
+         bam = f"mapped.sorted.tag.mkdup.bcmerge.mol.filt.{'BQSR.' if config['BQSR'] else ''}bam",
+         index = f"mapped.sorted.tag.mkdup.bcmerge.mol.filt.{'BQSR' if config['BQSR'] else ''}bam.bai"
     log: "call_variants.log"
     run:
         commands = {
