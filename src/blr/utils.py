@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 import sys
 import pysam
+import numpy as np
 
 
 def is_1_2(s, t):
@@ -148,3 +149,21 @@ class PySAMIO:
         header["PG"] = pg_entries
 
         return pysam.AlignmentHeader.from_dict(header)
+
+
+def calculate_N50(lengths):
+    """
+    Calculate N50 metric for list of integers.
+    Based on https://gist.github.com/dinovski/2bcdcc770d5388c6fcc8a656e5dbe53c.
+    :param lengths: list containing integers.
+    :return int. N50 metric
+    """
+    lengths = sorted(lengths, reverse=True)
+
+    csum = np.cumsum(lengths)
+    n2 = int(sum(lengths) / 2)
+
+    # get index for cumsum >= N/2
+    csumn2 = min(csum[csum >= n2])
+    ind = np.where(csum == csumn2)
+    return lengths[ind[0][0]]

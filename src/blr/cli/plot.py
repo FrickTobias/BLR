@@ -147,7 +147,8 @@ def plot_molecule_stats(data: pd.DataFrame, directory: Path):
 
 class Plot:
     """
-    Plotting class for automatic filename generation and logging.
+    Plotting class for automatic filename generation, logging and file output. Using the defaults a PNG file with the
+    suffix '_mqc.png' is outputed where 'mqc' makes the file detectable as custom content by MultiQC.
     """
     def __init__(self, title: str, output_dir: Path):
         self.fig, self.ax = plt.subplots()

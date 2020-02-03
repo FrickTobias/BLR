@@ -9,11 +9,10 @@ import pysam
 import logging
 from collections import Counter
 from tqdm import tqdm
-import numpy as np
 import pandas as pd
 import statistics
 
-from blr.utils import PySAMIO, get_bamtag, print_stats
+from blr.utils import PySAMIO, get_bamtag, print_stats, calculate_N50
 
 logger = logging.getLogger(__name__)
 
@@ -229,21 +228,6 @@ class AllMolecules:
         for molecule in self.cache_dict.values():
             self.report(molecule=molecule)
         self.cache_dict = dict()
-
-
-def calculate_N50(lengths):
-    """
-    Based on https://gist.github.com/dinovski/2bcdcc770d5388c6fcc8a656e5dbe53c
-    """
-    lengths = sorted(lengths, reverse=True)
-
-    csum = np.cumsum(lengths)
-    n2 = int(sum(lengths) / 2)
-
-    # get index for cumsum >= N/2
-    csumn2 = min(csum[csum >= n2])
-    ind = np.where(csum == csumn2)
-    return lengths[ind[0][0]]
 
 
 def write_molecule_stats(molecule_dict, summary):
