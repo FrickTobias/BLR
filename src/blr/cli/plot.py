@@ -10,7 +10,7 @@ import os
 logger = logging.getLogger(__name__)
 
 
-FILES = [
+ACCEPTED_FILES = [
     "molecule_stats.tsv",   # Output data from 'buildmolecules' in tsv format.
     "barcodes.clstr"        # Output file from starcode clustering of blr library barcodes.
 ]
@@ -36,14 +36,42 @@ def main(args):
             logger.info(f"File '{filename}' does not match possible inputs. Skipping from analysis.")
 
 
-# TODO add
 def process_barcode_clstr(file: Path, directory: Path):
-    pass
+    data = pd.read_csv(file, sep="\t", names=["Canonical", "Reads", "Components"])
+    data["Size"] = data["Components"].apply(lambda x: len(x.split(',')))
+    data["SeqLen"] = data["Canonical"].apply(len)
+    plot_barcode_clstr(data, directory)
 
 
-# TODO add
 def plot_barcode_clstr(data: pd.DataFrame, directory: Path):
-    pass
+    # Histogram over reads per barcode cluster
+    # - x = reads per cluster
+    # - y = frequency
+    with Plot("Reads per barcode cluster histogram", output_dir=directory) as (fig, ax):
+        data["Reads"].plot(ax=ax, logy=True, kind="hist")
+        ax.set_xlabel("Reads per cluster")
+
+    # Cumulative sum of read count starting from largest cluster
+    # - x = number of reads
+    # - y = rank of cluster sorted from largest to smallest
+    with Plot("Cumulative read count", output_dir=directory) as (fig, ax):
+        data["Reads"].cumsum().plot(ax=ax)
+        ax.set_ylabel("Reads")
+        ax.set_xlabel("Rank")
+
+    # Histogram over components per barcode cluster
+    # - x = number of components per cluster
+    # - y = frequency
+    with Plot("Number of components per barcode cluster histogram", output_dir=directory) as (fig, ax):
+        data["Size"].plot(ax=ax, logy=True, kind="hist")
+        ax.set_xlabel("Nr components per cluster")
+
+    # Histogram of length for canonical fragment
+    # - x = length of canonical fragment in bp
+    # - y = frequency
+    with Plot("Canonical fragment length histogram", output_dir=directory) as (fig, ax):
+        data["SeqLen"].plot(ax=ax, logy=True, kind="hist", bins=7)
+        ax.set_xlabel("Canonical fragment length (bp)")
 
 
 def process_molecule_stats(file: Path, directory: Path):
@@ -151,7 +179,7 @@ def add_arguments(parser):
     parser.add_argument(
         "input", nargs="+", type=Path,
         help=f"Path to data files from pipeline run accepted file are. Currently accepted files are: "
-        f"{', '.join(FILES)}"
+        f"{', '.join(ACCEPTED_FILES)}"
     )
     parser.add_argument(
         "-o", "--output-dir", type=Path, default=Path(os.getcwd()),

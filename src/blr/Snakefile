@@ -58,15 +58,20 @@ rule multiqc_summarize:
         " 2> {log}"
 
 
+def plot_figures_input(*unused):
+    if config["library_type"] == "blr":
+        return "molecule_stats.tsv", "barcodes.clstr"
+    else:
+        return "molecule_stats.tsv"
+
 
 rule plot_figures:
     output: directory("figures")
-    input:
-        molecule_stats = "molecule_stats.tsv"
+    input: plot_figures_input
     log: "plot_figures.log"
     shell:
         "blr plot"
-        " {input.molecule_stats}"
+        " {input}"
         " -o {output} 2> {log}"
 
 
@@ -200,7 +205,7 @@ rule buildmolecules:
     # Groups reads into molecules depending on their genomic position and barcode
     output:
         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.bam",
-        stats = expand("{stat}.tsv", stat=['molecules_per_bc', 'molecule_stats'])
+        stats = "molecule_stats.tsv"
     input:
         bam = "mapped.sorted.tag.mkdup.bcmerge.bam"
     log: "buildmolecules.log"
