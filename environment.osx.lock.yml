@@ -47,7 +47,7 @@ dependencies:
   - inflect=4.0.0=py36_1
   - ipython_genutils=0.2.0=py_1
   - jaraco.itertools=5.0.0=py_0
-  - jinja2=2.11.0=py_0
+  - jinja2=2.11.1=py_0
   - jsonschema=3.2.0=py36_0
   - jupyter_core=4.6.1=py36_0
   - kiwisolver=1.1.0=py36ha1b3eb9_0
@@ -74,19 +74,20 @@ dependencies:
   - matplotlib=3.1.1=py36_2
   - matplotlib-base=3.1.1=py36h11da6c2_2
   - minimap2=2.17=hfbae3c0_1
-  - more-itertools=8.1.0=py_0
+  - more-itertools=8.2.0=py_0
   - multiqc=1.8=py_1
   - nbformat=5.0.4=py_0
   - ncurses=6.1=h0a44026_1002
   - networkx=2.2=py_1
   - nomkl=3.0=0
   - numpy=1.17.5=py36hde6bac1_0
-  - openjdk=8.0.192=h1de35cc_1003
+  - openjdk=8.0.192=h0b31af3_1004
   - openssl=1.1.1d=h0b31af3_0
+  - pandas=1.0.0=py36h4f17bb1_0
   - parallel=20200122=0
   - perl=5.26.2=haec8ef5_1006
   - pigz=2.3.4=0
-  - pip=20.0.2=py36_0
+  - pip=20.0.2=py36_1
   - psutil=5.6.7=py36h0b31af3_0
   - pycparser=2.19=py36_1
   - pyopenssl=19.1.0=py36_0
@@ -96,6 +97,7 @@ dependencies:
   - pysocks=1.7.1=py36_0
   - python=3.6.7=h4285619_1006
   - python-dateutil=2.8.1=py_0
+  - pytz=2019.3=py_0
   - pyyaml=5.3=py36h0b31af3_0
   - ratelimiter=1.2.0=py36_1000
   - readline=8.0=hcfe32e1_0
@@ -121,7 +123,7 @@ dependencies:
   - traitlets=4.3.3=py36_0
   - urllib3=1.25.7=py36_0
   - vcflib=1.0.0_rc2=he0122c3_2
-  - wheel=0.34.1=py36_0
+  - wheel=0.34.2=py36_0
   - wrapt=1.11.2=py36h0b31af3_0
   - xopen=0.8.4=py36_0
   - xz=5.2.4=h1de35cc_1001

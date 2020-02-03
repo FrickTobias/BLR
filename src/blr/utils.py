@@ -74,8 +74,12 @@ def print_stats(summary, name=None, value_width=15, print_to=sys.stderr):
 
     # Print stats in columns
     for name, value in summary.items():
-        print(f"{name:<{max_name_width}} {value:>{value_width},}", file=print_to)
-
+        if type(value) is int:
+            print(f"{name:<{max_name_width}} {value:>{value_width},}", file=print_to)
+        elif type(value) is float:
+            print(f"{name:<{max_name_width}} {value:>{value_width}.3f}", file=print_to)
+        else:
+            print(f"{name:<{max_name_width}} {value:>{value_width}}", file=print_to)
     print("="*width, file=print_to)
 
 
