@@ -30,7 +30,7 @@ dependencies:
   - dnaio=0.4.1=py36h516909a_0
   - docutils=0.16=py36_0
   - ema=0.6.2=h8b12597_1
-  - expat=2.2.9=he1b5a44_1
+  - expat=2.2.9=he1b5a44_2
   - fastqc=0.11.9=0
   - font-ttf-dejavu-sans-mono=2.37=hab24e00_0
   - fontconfig=2.13.1=h86ecdb6_1001
@@ -55,7 +55,7 @@ dependencies:
   - inflect=4.0.0=py36_1
   - ipython_genutils=0.2.0=py_1
   - jaraco.itertools=5.0.0=py_0
-  - jinja2=2.11.0=py_0
+  - jinja2=2.11.1=py_0
   - jpeg=9c=h14c3975_1001
   - jsonschema=3.2.0=py36_0
   - jupyter_core=4.6.1=py36_0
@@ -69,7 +69,7 @@ dependencies:
   - libedit=3.1.20170329=hf8c457e_1001
   - libffi=3.2.1=he1b5a44_1006
   - libgcc-ng=9.2.0=h24d8f2e_2
-  - libgfortran-ng=7.3.0=hdf63c60_4
+  - libgfortran-ng=7.3.0=hdf63c60_5
   - libgomp=9.2.0=h24d8f2e_2
   - libiconv=1.15=h516909a_1005
   - liblapack=3.8.0=14_openblas
@@ -89,7 +89,7 @@ dependencies:
   - matplotlib=3.1.1=py36_2
   - matplotlib-base=3.1.1=py36h250f245_2
   - minimap2=2.17=h8b12597_1
-  - more-itertools=8.1.0=py_0
+  - more-itertools=8.2.0=py_0
   - multiqc=1.8=py_1
   - nbformat=5.0.4=py_0
   - ncurses=6.1=hf484d3e_1002
@@ -98,13 +98,14 @@ dependencies:
   - nspr=4.24=he1b5a44_0
   - nss=3.47=he751ad9_0
   - numpy=1.17.5=py36h95a1406_0
-  - openjdk=8.0.192=h14c3975_1003
+  - openjdk=8.0.192=h516909a_1004
   - openssl=1.1.1d=h516909a_0
+  - pandas=1.0.0=py36hb3f55d8_0
   - parallel=20200122=0
   - pcre=8.43=he1b5a44_0
   - perl=5.26.2=h516909a_1006
   - pigz=2.3.4=0
-  - pip=20.0.2=py36_0
+  - pip=20.0.2=py36_1
   - psutil=5.6.7=py36h516909a_0
   - pthread-stubs=0.4=h14c3975_1001
   - pycparser=2.19=py36_1
@@ -116,6 +117,7 @@ dependencies:
   - pysocks=1.7.1=py36_0
   - python=3.6.7=h357f687_1006
   - python-dateutil=2.8.1=py_0
+  - pytz=2019.3=py_0
   - pyyaml=5.3=py36h516909a_0
   - qt=5.12.5=hd8c4c69_1
   - ratelimiter=1.2.0=py36_1000
@@ -142,7 +144,7 @@ dependencies:
   - traitlets=4.3.3=py36_0
   - urllib3=1.25.7=py36_0
   - vcflib=1.0.0_rc2=h56106d0_2
-  - wheel=0.34.1=py36_0
+  - wheel=0.34.2=py36_0
   - wrapt=1.11.2=py36h516909a_0
   - xopen=0.8.4=py36_0
   - xorg-libxau=1.0.9=h14c3975_0

@@ -48,13 +48,31 @@ rule multiqc_summarize:
     input:
         raw_read_1_qc = "trimmed.barcoded.1_fastqc.html",
         raw_read_2_qc = "trimmed.barcoded.2_fastqc.html",
-        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam"
+        bam = "mapped.sorted.tag.mkdup.bcmerge.mol.filt.bam",
+        plots = "figures"
     log:
         "multiqc.log"
     shell:
         "multiqc"
         " ."
         " 2> {log}"
+
+
+def plot_figures_input(*unused):
+    if config["library_type"] == "blr":
+        return "molecule_stats.tsv", "barcodes.clstr"
+    else:
+        return "molecule_stats.tsv"
+
+
+rule plot_figures:
+    output: directory("figures")
+    input: plot_figures_input
+    log: "plot_figures.log"
+    shell:
+        "blr plot"
+        " {input}"
+        " -o {output} 2> {log}"
 
 
 rule barcode_sort_fastq:
@@ -187,7 +205,7 @@ rule buildmolecules:
     # Groups reads into molecules depending on their genomic position and barcode
     output:
         bam = "mapped.sorted.tag.mkdup.bcmerge.mol.bam",
-        stats = expand("{stat}.tsv", stat=['molecules_per_bc', 'molecule_stats'])
+        stats = "molecule_stats.tsv"
     input:
         bam = "mapped.sorted.tag.mkdup.bcmerge.bam"
     log: "buildmolecules.log"

@@ -133,3 +133,15 @@ def test_call_variants(tmpdir, variant_caller):
     target = "variants.called.vcf"
     run(workdir=workdir, targets=[target])
     assert Path(workdir / target).is_file()
+
+
+def test_plot_figures(tmpdir):
+    workdir = tmpdir / "analysis"
+    init(workdir, TESTDATA_READS, "blr")
+    change_config(
+        workdir / DEFAULT_CONFIG,
+        [("genome_reference", REFERENCE_GENOME)]
+    )
+    target = "figures"
+    run(workdir=workdir, targets=[target])
+    assert Path(workdir / target).is_dir()
