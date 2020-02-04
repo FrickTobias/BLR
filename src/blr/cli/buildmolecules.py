@@ -24,10 +24,12 @@ def main(args):
 
     # Build molecules from BCs and reads
     with pysam.AlignmentFile(args.input, "rb") as infile:
+        library_type = infile.header.to_dict()["RG"][0]["LB"]
         bc_to_mol_dict, header_to_mol_dict = build_molecules(pysam_openfile=infile,
                                                              barcode_tag=args.barcode_tag,
                                                              window=args.window,
                                                              min_reads=args.threshold,
+                                                             tn5=library_type == "blr",
                                                              summary=summary)
     # Writes filtered out
     with PySAMIO(args.input, args.output, __name__) as (openin, openout):
@@ -85,7 +87,7 @@ def parse_reads(pysam_openfile, barcode_tag, summary):
             summary["Non analyced reads"] += 1
 
 
-def build_molecules(pysam_openfile, barcode_tag, window, min_reads, summary):
+def build_molecules(pysam_openfile, barcode_tag, window, min_reads, tn5, summary):
     """
     Builds all_molecules.bc_to_mol ([barcode][moleculeID] = molecule) and
     all_molecules.header_to_mol ([read_name]=mol_ID)
@@ -93,6 +95,7 @@ def build_molecules(pysam_openfile, barcode_tag, window, min_reads, summary):
     :param barcode_tag: Tag used to store barcode in bam file.
     :param window: Max distance between reads to include in the same molecule.
     :param min_reads: Minimum reads to include molecule in all_molecules.bc_to_mol
+    :param tn5: boolean. Library is constructed using Tn5 transposase and has possible 9-bp overlaps.
     :param summary: dict for stats collection
     :return: dict[barcode][molecule] = moleculeInstance, dict[read_name] = mol_ID
     """
@@ -116,7 +119,13 @@ def build_molecules(pysam_openfile, barcode_tag, window, min_reads, summary):
             # Read is within window => add read to molecule (don't include overlapping reads).
             if (molecule.stop + window) >= read_start:
                 if molecule.stop >= read_start and read.query_name not in molecule.read_headers:
-                    summary["Overlapping reads in molecule"] += 1
+                    # If tn5 was used for library construction, overlaps of ~9 bp are accepted.
+                    if tn5 and 8 <= molecule.stop - read_start <= 10:
+                        summary["Tn5-overlapping reads"] += 1
+                        molecule.add_read(stop=read_stop, read_header=read.query_name)
+                        all_molecules.cache_dict[barcode] = molecule
+                    else:
+                        summary["Overlapping reads in molecule"] += 1
                 else:
                     molecule.add_read(start=read_start, stop=read_stop, read_header=read.query_name)
                     all_molecules.cache_dict[barcode] = molecule
