@@ -149,7 +149,7 @@ def test_call_variants(tmpdir, variant_caller):
 
 def test_plot_figures(tmpdir):
     workdir = tmpdir / "analysis"
-    init(workdir, TESTDATA_READS, "blr")
+    init(workdir, TESTDATA_BLR_READ1, "blr")
     change_config(
         workdir / DEFAULT_CONFIG,
         [("genome_reference", REFERENCE_GENOME)]
