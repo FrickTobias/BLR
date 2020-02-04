@@ -122,7 +122,7 @@ def build_molecules(pysam_openfile, barcode_tag, window, min_reads, tn5, summary
                     # If tn5 was used for library construction, overlaps of ~9 bp are accepted.
                     if tn5 and 8 <= molecule.stop - read_start <= 10:
                         summary["Tn5-overlapping reads"] += 1
-                        molecule.add_read(stop=read_stop, read_header=read.query_name)
+                        molecule.add_read(start=read_start, stop=read_stop, read_header=read.query_name)
                         all_molecules.cache_dict[barcode] = molecule
                     else:
                         summary["Overlapping reads in molecule"] += 1
