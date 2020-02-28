@@ -25,6 +25,8 @@ It will also be required to have downloaded [Picard Tools](https://github.com/br
 reference genome (e.g. GRCh38), available at e.g. [Illumina iGenomes](https://support.illumina.com/sequencing/sequencing_software/igenome.html). 
 Lastly to utilize all aspects of the pipeline some GNU software are also needed.
 
+**NB:** picardtools MarkDuplicates current versions are not compatible with this pipeline due to a regex check for the barcode (here translated to integers), so please use version 2.5.0.
+
   - [pigz](https://zlib.net/pigz/)
   - [mail](https://mailutils.org/manual/mailutils.html)
 
