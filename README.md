@@ -1,6 +1,6 @@
 [![Travis CI](https://api.travis-ci.org/FrickTobias/BLR.svg?branch=master)](https://travis-ci.org/FrickTobias/BLR/)
 
-:exclamation:**NB! This is currently under heavy development.**:exclamation:
+:exclamation:**NB! New version comming soon!**:exclamation:
 
 # Barcode-Linked Reads Analysis
 
