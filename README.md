@@ -1,6 +1,6 @@
 [![Travis CI](https://api.travis-ci.org/FrickTobias/BLR.svg?branch=master)](https://travis-ci.org/FrickTobias/BLR/)
 
-:exclamation:**NB! New version comming soon!**:exclamation:
+**NB! For the latest version of this pipeline go to: [AfshinLab/BLR](https://github.com/AfshinLab/BLR)**
 
 # Barcode-Linked Reads Analysis
 
